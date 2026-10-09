@@ -3746,6 +3746,37 @@
         "Reversal failed",
         "Reversed (timeout)"
       ]
+    },
+    "fallback": {
+      "name": "Fallback swipe (chip failed)",
+      "def": "When a chip card's chip can't be read, the terminal may let the cashier swipe the stripe instead, and flags the sale as a fallback (DE22 801) so the issuer knows. Fallback swipes carry more counterfeit risk because the stripe is easy to copy, so issuers decline more of them and networks watch merchants with many. A terminal only allows one right after a failed chip read of that same card.",
+      "kt": [
+        [
+          "EMV chip",
+          "07-cards-bins-and-tokens.md#emv-chip-why-counterfeit-fraud-collapsed"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo contact chip",
+          "https://www.emvco.com/emv-technologies/emv-contact-chip/"
+        ],
+        [
+          "Magnetic stripe card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Magnetic_stripe_card"
+        ]
+      ],
+      "aliases": [
+        "Fallback swipe (chip failed)",
+        "Fallback swipe",
+        "Fallback",
+        "Chip won't read",
+        "Chip read failed"
+      ]
     }
   }
 }

@@ -46,6 +46,9 @@ const (
 	EntryContactless      = "071"
 	EntryEcommerce        = "812"
 	EntryCredentialOnFile = "100"
+	// EntryFallback is a magnetic-stripe read of a chip card after the chip
+	// failed to read ("80" = fallback to stripe). Issuers see it as riskier.
+	EntryFallback = "801"
 )
 
 // EntryModes maps entry mode codes to display names.
@@ -56,6 +59,7 @@ var EntryModes = map[string]string{
 	EntryContactless:      "Contactless",
 	EntryEcommerce:        "E-commerce",
 	EntryCredentialOnFile: "Credential on file",
+	EntryFallback:         "Fallback swipe (chip failed)",
 }
 
 // Credential-on-file indicators: who started a charge to a stored card.

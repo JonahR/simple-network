@@ -127,7 +127,9 @@ type server struct {
 	mu      sync.Mutex
 	history []*Transaction
 
-	reversalRetry time.Duration // Wait between attempts to deliver an 0400
+	reversalRetry time.Duration // Wait between attempts to deliver an 0420
+
+	chipFailures map[string]time.Time // PAN -> last failed chip read, for fallback swipes
 }
 
 func main() {
@@ -175,6 +177,7 @@ func main() {
 	mux.HandleFunc("GET /api/test-card", s.handleTestCard)
 	mux.HandleFunc("POST /api/sale", s.handleSale)
 	mux.HandleFunc("POST /api/void", s.handleVoid)
+	mux.HandleFunc("POST /api/chip-failure", s.handleChipFailure)
 	mux.HandleFunc("GET /api/transactions", s.handleTransactions)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	ui.Register(mux, ui.PagesFromEnv())

@@ -8,7 +8,7 @@
   if (!window.Learn) return;
 
   // DE22 values → the entry-mode term that explains them.
-  const ENTRY_TERMS = { "011": "manual-entry", "901": "magstripe", "051": "chip-emv", "071": "contactless", "812": "ecommerce", "100": "credential-on-file" };
+  const ENTRY_TERMS = { "011": "manual-entry", "901": "magstripe", "051": "chip-emv", "071": "contactless", "812": "ecommerce", "100": "credential-on-file", "801": "fallback" };
   // History columns, in order.
   const HISTORY_TERMS = ["de12", "de11", "de37", "pan-masking", "de22", "de4", "txn-status"];
 

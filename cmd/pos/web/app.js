@@ -14,7 +14,7 @@ let cofIndicators = {};
 let binProducts = {};
 let productNames = {};
 
-const ENTRY = { manual: "011", swipe: "901", chip: "051", contactless: "071", ecommerce: "812", cof: "100" };
+const ENTRY = { manual: "011", swipe: "901", chip: "051", contactless: "071", ecommerce: "812", cof: "100", fallback: "801" };
 
 // Human-readable labels for the ISO 8583 fields, in display order.
 const FIELDS = [
@@ -132,7 +132,33 @@ document.querySelectorAll(".present button").forEach((b) =>
 
 // presentCard simulates the cardholder tapping, inserting, swiping, or reading
 // out a card. The card supplies what the terminal can read from it.
+// The card whose chip just failed to read; its next swipe is a fallback (DE22 801).
+let chipFailedFor = null;
+
+async function failChipRead(c) {
+  resetCardRead();
+  clearErrors();
+  form.card_number.value = form.expiry.value = form.cvv.value = form.cardholder_name.value = "";
+  chipFailedFor = c.number;
+  setReadBadge("Chip read failed");
+  try {
+    const res = await fetch("/api/chip-failure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ card_number: c.number }),
+    });
+    const data = await res.json();
+    showErrors({ entry_mode: data.message || data.error });
+  } catch {
+    showErrors({ form: "Could not reach the terminal server." });
+  }
+}
+
 function presentCard(c, method) {
+  if (method === "insert" && document.getElementById("chip_broken").checked && !c.virtual) {
+    failChipRead(c);
+    return;
+  }
   if (c.virtual) {
     c.number = generatePAN(c.bin, 16);
     c.expiry = monthsFromNow(12);
@@ -149,7 +175,10 @@ function presentCard(c, method) {
 
   if (method === "tap" || method === "insert") form.cryptogram.value = newCryptogram();
   if (method === "swipe") form.track2.value = track2(c.number, c.expiry, c.methods.includes("insert"));
-  const badge = { tap: "Contactless read", insert: "Chip read", swipe: "Stripe read" }[method];
+  const fallback = method === "swipe" && chipFailedFor === c.number;
+  if (fallback) form.entry_mode.value = ENTRY.fallback;
+  if (method !== "swipe" || !fallback) chipFailedFor = null;
+  const badge = fallback ? "Fallback swipe" : { tap: "Contactless read", insert: "Chip read", swipe: "Stripe read" }[method];
   if (badge) setReadBadge(badge);
 
   updateForm();
@@ -302,7 +331,7 @@ function updateForm() {
   productBadge.textContent = productNames[product] || "";
 
   const wallet = form.wallet.value;
-  const onPINPad = !wallet && [ENTRY.chip, ENTRY.swipe, ENTRY.contactless].includes(entry);
+  const onPINPad = !wallet && [ENTRY.chip, ENTRY.swipe, ENTRY.contactless, ENTRY.fallback].includes(entry);
   const debitOnPad = product === "debit" && onPINPad;
   const prompts = {
     pin: debitOnPad,

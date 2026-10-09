@@ -133,6 +133,9 @@ main {
 .present { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .present button { padding: 8px 4px; font-size: 12px; }
 .present button:disabled { opacity: .35; cursor: not-allowed; }
+label.chip-broken { display: flex; flex-direction: row; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
+label.chip-broken input { width: auto; flex: none; margin: 1px 0 0; padding: 0; }
+label.chip-broken em { font-style: normal; }
 
 .panel {
   background: var(--panel);

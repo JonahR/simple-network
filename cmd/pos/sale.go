@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -63,7 +65,7 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 		errs["currency"] = "unsupported currency"
 	}
 
-	arqc, track2 := checkCardRead(in, pan, expiry, errs)
+	arqc, track2 := checkCardRead(in, pan, expiry, s.chipFailedRecently(pan, now), errs)
 	cvv := checkCVV(in, errs)
 	clearPIN := checkPIN(in, product, errs)
 	cashback := checkCashback(in, product, clearPIN != "", errs)
@@ -135,7 +137,7 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 // cryptogram as 16 hex characters. In-app and online wallet payments carry a
 // 20-byte token cryptogram (Visa TAVV, Mastercard UCAF) as 28 base64
 // characters, which is case-sensitive and so is not upper-cased.
-func checkCardRead(in SaleInput, pan, expiry string, errs fieldErrors) (arqc, track2 string) {
+func checkCardRead(in SaleInput, pan, expiry string, chipFailed bool, errs fieldErrors) (arqc, track2 string) {
 	entry := in.EntryMode
 	if in.Wallet != "" {
 		if _, ok := iso8583.Wallets[in.Wallet]; !ok {
@@ -164,18 +166,45 @@ func checkCardRead(in SaleInput, pan, expiry string, errs fieldErrors) (arqc, tr
 	}
 
 	track2 = strings.TrimSpace(in.Track2)
-	if entry == iso8583.EntryMagstripe {
+	switch {
+	case entry == iso8583.EntryMagstripe || entry == iso8583.EntryFallback:
 		if track2 == "" {
 			errs["entry_mode"] = "swipe a card from the wallet to read its magnetic stripe"
 		} else if err := checkTrack2(track2, pan, expiry); err != nil {
 			errs["form"] = err.Error()
-		} else if chipCard(track2) {
-			errs["entry_mode"] = "this card has a chip: insert or tap it instead of swiping"
+		} else if entry == iso8583.EntryMagstripe && chipCard(track2) {
+			errs["entry_mode"] = "this card has a chip: insert or tap it instead of swiping. If the chip won't read, the terminal allows a fallback swipe."
+		} else if entry == iso8583.EntryFallback && !chipCard(track2) {
+			errs["entry_mode"] = "fallback is only for chip cards; this card has no chip, so it's a normal swipe"
+		} else if entry == iso8583.EntryFallback && !chipFailed {
+			errs["entry_mode"] = "a fallback swipe is only allowed right after this card's chip failed to read: insert it first"
 		}
-	} else if track2 != "" {
+	case track2 != "":
 		errs["form"] = "track 2 data is only sent for swiped cards"
 	}
 	return arqc, track2
+}
+
+// chipFailureWindow is how long after a failed chip read the terminal
+// allows a fallback swipe of the same card.
+const chipFailureWindow = 2 * time.Minute
+
+// recordChipFailure notes that the terminal couldn't read pan's chip, which
+// unlocks a fallback swipe of that card for a short while.
+func (s *server) recordChipFailure(pan string, now time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.chipFailures == nil {
+		s.chipFailures = map[string]time.Time{}
+	}
+	s.chipFailures[pan] = now
+}
+
+func (s *server) chipFailedRecently(pan string, now time.Time) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.chipFailures[pan]
+	return ok && now.Sub(t) < chipFailureWindow
 }
 
 // checkTrack2 checks that track 2 ("PAN=YYMM" + service code + discretionary
@@ -192,9 +221,9 @@ func checkTrack2(track2, pan, expiry string) error {
 }
 
 // chipCard reports whether track 2's service code starts with 2, meaning the
-// card has a chip. A chip-capable terminal must read the chip, so swiping it
-// is declined. (Real terminals allow a swipe as fallback after a failed chip
-// read, flagged in DE22; this terminal doesn't model that.)
+// card has a chip. A chip-capable terminal must read the chip, so a plain
+// swipe is declined; after a failed chip read it allows a fallback swipe,
+// flagged in DE22 as 801.
 func chipCard(track2 string) bool {
 	_, rest, _ := strings.Cut(track2, "=")
 	return rest[4] == '2'
@@ -224,9 +253,9 @@ func checkPIN(in SaleInput, product card.Product, errs fieldErrors) string {
 	p := strings.TrimSpace(in.PIN)
 	entry := in.EntryMode
 	onPINPad := in.Wallet == "" &&
-		(entry == iso8583.EntryChip || entry == iso8583.EntryMagstripe || entry == iso8583.EntryContactless)
+		(entry == iso8583.EntryChip || entry == iso8583.EntryMagstripe || entry == iso8583.EntryContactless || entry == iso8583.EntryFallback)
 	required := product == card.Debit && in.Wallet == "" &&
-		(entry == iso8583.EntryChip || entry == iso8583.EntryMagstripe)
+		(entry == iso8583.EntryChip || entry == iso8583.EntryMagstripe || entry == iso8583.EntryFallback)
 
 	switch {
 	case p == "" && required:
@@ -370,4 +399,25 @@ func isBase64(s string, n int) bool {
 // isDigits reports whether s is between min and max decimal digits long.
 func isDigits(s string, min, max int) bool {
 	return len(s) >= min && len(s) <= max && strings.Trim(s, "0123456789") == ""
+}
+
+// handleChipFailure records that the chip of the card being presented
+// couldn't be read. The terminal then allows a fallback swipe of that card.
+func (s *server) handleChipFailure(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		CardNumber string `json:"card_number"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&in); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+	pan := card.Normalize(in.CardNumber)
+	if err := card.ValidatePAN(pan); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	s.recordChipFailure(pan, time.Now())
+	writeJSON(w, http.StatusOK, map[string]string{
+		"message": "Chip read failed. Swipe the card: the terminal sends it as a fallback (DE22 801).",
+	})
 }
