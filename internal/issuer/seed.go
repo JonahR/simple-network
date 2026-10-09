@@ -15,7 +15,7 @@ func FirstSimpleBankAccounts() ([]Account, []AutoEnroll) {
 				PINHash: HashPIN("4000056655665556", "1234"), Limit: 250_000},
 			{PAN: "4716006861111015", Holder: "Jane Doe", Product: card.Healthcare, Expiry: "3211", CVV: "852", Limit: 50_000},
 		}, []AutoEnroll{
-			{BIN: "400000", Product: card.Credit, Holder: "Test cardholder", Limit: 200_000}, // POS "Fill test card" range
+			{BIN: "400000", Product: card.Credit, Holder: "Test cardholder", Limit: 200_000}, // Test range (any Luhn-valid 400000… number)
 		}
 }
 

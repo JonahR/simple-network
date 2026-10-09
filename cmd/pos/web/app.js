@@ -410,18 +410,6 @@ for (const name of ["cvv", "pin", "odometer", "driver_id"]) {
   form[name].addEventListener("input", (e) => (e.target.value = digits(e.target.value)));
 }
 
-document.getElementById("testcard").addEventListener("click", async () => {
-  const card = await (await fetch("/api/test-card")).json();
-  resetCardRead();
-  clearErrors();
-  form.entry_mode.value = ENTRY.manual;
-  form.card_number.value = groupDigits(card.card_number);
-  form.expiry.value = card.expiry;
-  form.cvv.value = card.cvv;
-  if (!form.amount.value) form.amount.value = "12.50";
-  updateForm();
-});
-
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   clearErrors();

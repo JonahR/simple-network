@@ -47,7 +47,7 @@ type Account struct {
 
 // AutoEnroll opens an account the first time the bank sees a card in a BIN
 // range, for ranges whose numbers are issued outside this simulation: the
-// POS test-card generator and buy-now-pay-later virtual cards.
+// 400000 test range and buy-now-pay-later virtual cards.
 type AutoEnroll struct {
 	BIN     string
 	Product card.Product

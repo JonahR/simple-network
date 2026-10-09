@@ -103,11 +103,6 @@ var cardsOnFile = []StoredCard{
 	{ID: "cof_acme", Customer: "Acme Corp · monthly subscription", PAN: "5555555555554444", Expiry: "08/32"},
 }
 
-// expiryFromNow returns an MM/YY expiry the given years and months from now.
-func expiryFromNow(years, months int) string {
-	return time.Now().AddDate(years, months, 0).Format("01/06")
-}
-
 func cardOnFile(id string) (StoredCard, bool) {
 	for _, c := range cardsOnFile {
 		if c.ID == id {
@@ -199,7 +194,6 @@ func main() {
 	// Definitions for every label, the learning hub, and the Network KT docs.
 	mux.Handle("GET /learn/", learn.Handler(learn.Links{POS: "/", Dashboard: s.dashboardURL}))
 	mux.HandleFunc("GET /api/terminal", s.handleTerminal)
-	mux.HandleFunc("GET /api/test-card", s.handleTestCard)
 	mux.HandleFunc("POST /api/sale", s.handleSale)
 	mux.HandleFunc("POST /api/3ds/challenge", s.handleChallenge)
 	mux.HandleFunc("POST /api/void", s.handleVoid)
@@ -232,16 +226,6 @@ func (s *server) handleTerminal(w http.ResponseWriter, _ *http.Request) {
 		"dashboard_url":  s.dashboardURL,
 		"acquirer_url":   s.acquirerURL,
 	})
-}
-
-func (s *server) handleTestCard(w http.ResponseWriter, _ *http.Request) {
-	pan, err := card.Generate("400000", 16)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
-	}
-	expiry := expiryFromNow(3, 0)
-	writeJSON(w, http.StatusOK, map[string]string{"card_number": pan, "expiry": expiry, "cvv": "123"})
 }
 
 func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {

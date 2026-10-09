@@ -2525,9 +2525,6 @@
           "Payment card number (Wikipedia)",
           "https://en.wikipedia.org/wiki/Payment_card_number"
         ]
-      ],
-      "aliases": [
-        "Fill test card"
       ]
     },
     "network-token": {
