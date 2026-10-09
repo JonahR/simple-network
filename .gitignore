@@ -1,7 +1,12 @@
-__pycache__/
-*.pyc
-.venv/
-.env
+# Build output
+/bin/
+*.exe
+*.test
+*.out
+
+# Local data
 *.db
 *.sqlite3
+.env
+
 .DS_Store
