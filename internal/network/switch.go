@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
@@ -42,19 +43,38 @@ type Switch struct {
 	Issuers       map[string]*Issuer
 	AcquirerKeys  map[string][]byte // PIN keys shared with each acquirer
 	IssuerTimeout time.Duration     // D8: 5s from network to issuer
-	ReversalRetry time.Duration     // Delay between 0420 attempts
-	Recorder      *Recorder
-	Now           func() time.Time // Injectable clock (D20)
+	// An unacknowledged 0420 is resent after ReversalRetry, doubling each
+	// time up to ReversalRetryMax (default 1s and 30s).
+	ReversalRetry    time.Duration
+	ReversalRetryMax time.Duration
+	Recorder         *Recorder
+	Now              func() time.Time // Injectable clock (D20)
+
+	stan atomic.Uint32 // DE11 for messages the network originates
 
 	mu       sync.Mutex
 	seen     map[string]*attempt // Idempotency: acquirer ID + STAN + DE7 (D3)
 	seenFIFO []string
+	bgCtx    context.Context // Cancelled by Close
+	bgCancel context.CancelFunc
+	closed   bool
+	bg       sync.WaitGroup
 }
 
+// attempt is one authorization, keyed by acquirer ID + STAN + DE7. An
+// acquirer's 0420 can create it before the 0100 arrives.
 type attempt struct {
-	done chan struct{}
-	resp iso8583.AuthResponse
-	rec  *Record
+	done     chan struct{} // Closed once resp is set
+	started  bool          // An 0100 with this key arrived; guarded by Switch.mu
+	reversed bool          // An acquirer 0420 named this key; guarded by Switch.mu
+	resp     iso8583.AuthResponse
+	rec      *Record
+	tr       *tracer
+
+	// Set when the issuer approved, so an acquirer reversal can be forwarded.
+	// The PIN block, CVV2, track data, and cryptogram are dropped.
+	fwd *iso8583.AuthRequest
+	iss *Issuer
 }
 
 const maxSeen = 10_000
@@ -63,12 +83,9 @@ const maxSeen = 10_000
 // acquirer. A repeated request (same acquirer, STAN, and transmission time)
 // gets the original response and never reaches the issuer twice.
 func (s *Switch) Authorize(ctx context.Context, req iso8583.AuthRequest) iso8583.AuthResponse {
-	key := req.AcquirerID + "|" + req.STAN + "|" + req.TransmissionTime
 	s.mu.Lock()
-	if s.seen == nil {
-		s.seen = map[string]*attempt{}
-	}
-	if a, ok := s.seen[key]; ok {
+	a := s.attemptFor(idemKey(req.AcquirerID, req.STAN, req.TransmissionTime))
+	if a.started {
 		s.mu.Unlock()
 		select {
 		case <-a.done:
@@ -78,6 +95,28 @@ func (s *Switch) Authorize(ctx context.Context, req iso8583.AuthRequest) iso8583
 		s.Recorder.update(a.rec, func(r *Record) { r.Duplicates++ })
 		return a.resp
 	}
+	a.started = true
+	early := a.reversed
+	s.mu.Unlock()
+
+	a.resp = s.process(req, a, early)
+	close(a.done)
+	return a.resp
+}
+
+func idemKey(acquirerID, stan, transmissionTime string) string {
+	return acquirerID + "|" + stan + "|" + transmissionTime
+}
+
+// attemptFor returns the attempt for key, creating it if needed. The caller
+// holds s.mu.
+func (s *Switch) attemptFor(key string) *attempt {
+	if s.seen == nil {
+		s.seen = map[string]*attempt{}
+	}
+	if a, ok := s.seen[key]; ok {
+		return a
+	}
 	a := &attempt{done: make(chan struct{})}
 	s.seen[key] = a
 	s.seenFIFO = append(s.seenFIFO, key)
@@ -85,11 +124,7 @@ func (s *Switch) Authorize(ctx context.Context, req iso8583.AuthRequest) iso8583
 		delete(s.seen, s.seenFIFO[0])
 		s.seenFIFO = s.seenFIFO[1:]
 	}
-	s.mu.Unlock()
-
-	a.resp = s.process(req, a)
-	close(a.done)
-	return a.resp
+	return a
 }
 
 // tracer appends steps to a record.
@@ -112,7 +147,9 @@ func (t *tracer) step(name, detail string, ok bool, began time.Time) {
 	})
 }
 
-func (s *Switch) process(req iso8583.AuthRequest, a *attempt) iso8583.AuthResponse {
+// process handles a new 0100. early means the acquirer already sent an 0420
+// for it, so it is declined without reaching the issuer.
+func (s *Switch) process(req iso8583.AuthRequest, a *attempt, early bool) iso8583.AuthResponse {
 	start := s.Now()
 	id := NewTxnID(start)
 	rec := &Record{
@@ -126,12 +163,22 @@ func (s *Switch) process(req iso8583.AuthRequest, a *attempt) iso8583.AuthRespon
 	a.rec = rec
 	s.Recorder.add(rec)
 	tr := &tracer{s: s, rec: rec, start: start}
+	a.tr = tr
 
-	resp, fwd := s.authorize(req, id, tr)
+	var resp iso8583.AuthResponse
+	var fwd *iso8583.AuthRequest
+	if early {
+		tr.step("reversal", fmt.Sprintf("acquirer %s sent an 0420 for this authorization before the 0100 arrived; declined without contacting the issuer", req.AcquirerID), false, start)
+		resp = s.decline(req, id, iso8583.RCDoNotHonor)
+	} else {
+		resp, fwd = s.authorize(req, id, tr)
+	}
 
 	began := s.Now()
 	redacted := resp.Redacted(card.Mask)
+	var issuerID string
 	s.Recorder.update(rec, func(r *Record) {
+		issuerID = r.IssuerID
 		r.ResponseCode = resp.ResponseCode
 		r.ResponseText = resp.ResponseText
 		r.Response = &redacted
@@ -146,6 +193,11 @@ func (s *Switch) process(req iso8583.AuthRequest, a *attempt) iso8583.AuthRespon
 	})
 	tr.step("respond", fmt.Sprintf("0110 %s %s to acquirer %s", resp.ResponseCode, resp.ResponseText, req.AcquirerID), true, began)
 	s.Recorder.update(rec, func(r *Record) { r.LatencyUS = s.Now().Sub(start).Microseconds() })
+	if fwd != nil && iso8583.IsApproved(resp.ResponseCode) {
+		f := *fwd
+		f.PINData, f.CVV2, f.Track2, f.ARQC = "", "", "", ""
+		a.fwd, a.iss = &f, s.Issuers[issuerID]
+	}
 	return resp
 }
 
@@ -235,7 +287,7 @@ func (s *Switch) authorize(req iso8583.AuthRequest, id string, tr *tracer) (iso8
 		if errors.Is(err, ErrIssuerTimeout) {
 			tr.step("issuer", fmt.Sprintf("no response from %s within %s", iss.Name, s.IssuerTimeout), false, t0)
 			// D9: the issuer may still approve and hold funds, so reverse it.
-			go s.reverse(iss, fwd, tr, "issuer timeout")
+			s.background(func(ctx context.Context) { s.reverse(ctx, iss, fwd, tr, iso8583.RCLateResponse) })
 		} else {
 			tr.step("issuer", fmt.Sprintf("%s: %v", iss.Name, err), false, t0)
 		}
@@ -247,7 +299,7 @@ func (s *Switch) authorize(req iso8583.AuthRequest, id string, tr *tracer) (iso8
 	}
 	if _, known := iso8583.ResponseCodes[iresp.ResponseCode]; !known || iresp.NetworkTxnID != id {
 		tr.step("issuer", fmt.Sprintf("invalid response from %s (code %q)", iss.Name, iresp.ResponseCode), false, t0)
-		go s.reverse(iss, fwd, tr, "invalid issuer response")
+		s.background(func(ctx context.Context) { s.reverse(ctx, iss, fwd, tr, iso8583.RCSuspectedMalfunc) })
 		return s.decline(req, id, iso8583.RCSystemError), &fwd
 	}
 	text := iso8583.ResponseText(iresp.ResponseCode)
@@ -287,34 +339,161 @@ func (s *Switch) detokenize(req iso8583.AuthRequest) (Token, string, string) {
 	return tok, "", fmt.Sprintf("%s token → card %s", wallet, card.Mask(tok.PAN))
 }
 
-// reverse sends an 0420 to the issuer until it acknowledges, so a hold the
-// acquirer will never collect is released.
-func (s *Switch) reverse(iss *Issuer, fwd iso8583.AuthRequest, tr *tracer, reason string) {
-	adv := iso8583.ReversalAdvice{
-		MTI:          iso8583.MTIReversalAdvice,
-		NetworkTxnID: fwd.NetworkTxnID,
-		PAN:          fwd.PAN,
-		Amount:       fwd.Amount,
-		STAN:         fwd.STAN,
-		RRN:          fwd.RRN,
-		Reason:       reason,
+// Reverse handles an 0420 from an acquirer that never got, or could not use,
+// the 0110 for an authorization. It finds the original by DE90 (acquirer ID +
+// STAN + DE7, the idempotency key) and, if the network approved it, sends the
+// issuer the network's own 0420 in the background. The 0430 comes back at
+// once: it acknowledges the advice, not the issuer's release.
+//
+// A reversal that arrives before its authorization is remembered, and the
+// late 0100 is declined without reaching the issuer. A repeated 0420, or one
+// for a declined authorization, is acknowledged and otherwise ignored.
+func (s *Switch) Reverse(adv iso8583.ReversalAdvice) (iso8583.ReversalResponse, error) {
+	if err := validateReversal(adv); err != nil {
+		return iso8583.ReversalResponse{}, err
 	}
-	for attempt := 1; attempt <= 5; attempt++ {
+	code := adv.ResponseCode
+	if code == "" {
+		code = iso8583.RCLateResponse
+	}
+	o := adv.OriginalData
+
+	s.mu.Lock()
+	a := s.attemptFor(idemKey(o.AcquirerID, o.STAN, o.TransmissionTime))
+	started, repeat := a.started, a.reversed
+	a.reversed = true
+	s.mu.Unlock()
+
+	ack := iso8583.ReversalResponse{
+		MTI:          iso8583.MTIReversalResponse,
+		STAN:         adv.STAN,
+		ResponseCode: iso8583.RCApproved,
+		Matched:      started,
+	}
+	if !started || repeat {
+		return ack, nil
+	}
+	select {
+	case <-a.done:
+		ack.NetworkTxnID = a.resp.NetworkTxnID
+	default: // Still waiting on the issuer
+	}
+	s.background(func(ctx context.Context) {
+		select {
+		case <-a.done:
+		case <-ctx.Done():
+			return
+		}
 		t0 := s.Now()
-		ctx, cancel := context.WithTimeout(context.Background(), s.IssuerTimeout)
-		resp, err := iss.Client.Reverse(ctx, adv)
+		from := fmt.Sprintf("0420 from acquirer %s (STAN %s, reason %s %s)", o.AcquirerID, adv.STAN, code, iso8583.ResponseText(code))
+		if a.fwd == nil || a.iss == nil {
+			a.tr.step("reversal", from+": authorization was not approved, nothing to reverse", true, t0)
+			return
+		}
+		a.tr.step("reversal", from+": forwarding to "+a.iss.Name, true, t0)
+		s.reverse(ctx, a.iss, *a.fwd, a.tr, code)
+	})
+	return ack, nil
+}
+
+// reverse sends the network's own 0420 to the issuer, so a hold the acquirer
+// will never collect is released. It resends the same advice, backing off
+// from ReversalRetry to ReversalRetryMax, until the issuer acknowledges or ctx
+// is cancelled at shutdown. Every attempt is a step on the original trace.
+func (s *Switch) reverse(ctx context.Context, iss *Issuer, fwd iso8583.AuthRequest, tr *tracer, code string) {
+	adv := iso8583.ReversalAdvice{
+		MTI:              iso8583.MTIReversalAdvice,
+		NetworkTxnID:     fwd.NetworkTxnID,
+		PAN:              fwd.PAN,
+		Amount:           fwd.Amount,
+		TransmissionTime: s.Now().UTC().Format("0102150405"),
+		STAN:             s.nextSTAN(),
+		AcquirerID:       fwd.AcquirerID,
+		RRN:              fwd.RRN,
+		ResponseCode:     code,
+		OriginalData: &iso8583.OriginalData{
+			MTI:              fwd.MTI,
+			STAN:             fwd.STAN,
+			TransmissionTime: fwd.TransmissionTime,
+			AcquirerID:       fwd.AcquirerID,
+		},
+	}
+	sent := fmt.Sprintf("0420 STAN %s (reason %s)", adv.STAN, code)
+	delay, maxDelay := s.ReversalRetry, s.ReversalRetryMax
+	if delay <= 0 {
+		delay = time.Second
+	}
+	if maxDelay <= 0 {
+		maxDelay = 30 * time.Second
+	}
+	for attempt := 1; ; attempt++ {
+		t0 := s.Now()
+		actx, cancel := context.WithTimeout(ctx, s.IssuerTimeout)
+		resp, err := iss.Client.Reverse(actx, adv)
 		cancel()
 		if err == nil {
-			detail := "0420 acknowledged: hold released"
+			detail := sent + " acknowledged: hold released"
 			if !resp.Matched {
-				detail = "0420 acknowledged: no hold yet, issuer will decline the late authorization"
+				detail = sent + " acknowledged: no hold yet, issuer will decline the late authorization"
 			}
 			tr.step("reversal", detail, true, t0)
 			return
 		}
-		tr.step("reversal", fmt.Sprintf("0420 attempt %d failed: %v", attempt, err), false, t0)
-		time.Sleep(s.ReversalRetry)
+		if ctx.Err() != nil {
+			tr.step("reversal", sent+" not acknowledged; retries stopped because the network is shutting down", false, t0)
+			return
+		}
+		tr.step("reversal", fmt.Sprintf("%s attempt %d failed: %v; retrying in %s", sent, attempt, err, delay), false, t0)
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			tr.step("reversal", sent+" not acknowledged; retries stopped because the network is shutting down", false, s.Now())
+			return
+		}
+		delay = min(delay*2, maxDelay)
 	}
+}
+
+// nextSTAN returns a DE11 for a message the network originates.
+func (s *Switch) nextSTAN() string {
+	for {
+		if n := s.stan.Add(1) % 1_000_000; n != 0 {
+			return fmt.Sprintf("%06d", n)
+		}
+	}
+}
+
+// background runs fn in a goroutine whose context Close cancels. Close waits
+// for it to return.
+func (s *Switch) background(fn func(ctx context.Context)) {
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		return
+	}
+	if s.bgCtx == nil {
+		s.bgCtx, s.bgCancel = context.WithCancel(context.Background())
+	}
+	ctx := s.bgCtx
+	s.bg.Add(1)
+	s.mu.Unlock()
+	go func() {
+		defer s.bg.Done()
+		fn(ctx)
+	}()
+}
+
+// Close stops background work, such as reversals still waiting for an
+// issuer's acknowledgement, and waits for it to finish.
+func (s *Switch) Close() {
+	s.mu.Lock()
+	s.closed = true
+	cancel := s.bgCancel
+	s.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+	s.bg.Wait()
 }
 
 func (s *Switch) decline(req iso8583.AuthRequest, id, code string) iso8583.AuthResponse {
@@ -322,6 +501,7 @@ func (s *Switch) decline(req iso8583.AuthRequest, id, code string) iso8583.AuthR
 		MTI:              iso8583.MTIAuthResponse,
 		PAN:              req.PAN,
 		ProcessingCode:   req.ProcessingCode,
+		Amount:           req.Amount, // DE4 echoes the requested amount on a decline
 		TransmissionTime: req.TransmissionTime,
 		STAN:             req.STAN,
 		RRN:              req.RRN,
@@ -346,14 +526,49 @@ func validate(r iso8583.AuthRequest) error {
 		return errors.New("DE11: STAN must be 6 digits")
 	case !isDigits(r.TransmissionTime, 10):
 		return errors.New("DE7: transmission time must be MMDDhhmmss")
-	case r.AcquirerID == "":
-		return errors.New("DE32: acquirer ID is required")
+	case !isAcquirerID(r.AcquirerID):
+		return errors.New("DE32: acquirer ID must be 1-11 digits")
 	case len(r.RRN) != 12:
 		return errors.New("DE37: RRN must be 12 characters")
 	case iso8583.Currencies[r.Currency] == "":
 		return fmt.Errorf("DE49: unsupported currency %q", r.Currency)
 	}
 	return nil
+}
+
+// validateReversal checks an acquirer's 0420.
+func validateReversal(adv iso8583.ReversalAdvice) error {
+	o := adv.OriginalData
+	switch {
+	case adv.MTI != iso8583.MTIReversalAdvice:
+		return fmt.Errorf("MTI %q is not 0420", adv.MTI)
+	case !isDigits(adv.STAN, 6):
+		return errors.New("DE11: STAN must be 6 digits")
+	case !isDigits(adv.TransmissionTime, 10):
+		return errors.New("DE7: transmission time must be MMDDhhmmss")
+	case adv.AcquirerID != "" && !isAcquirerID(adv.AcquirerID):
+		return errors.New("DE32: acquirer ID must be 1-11 digits")
+	case adv.ResponseCode != "" && iso8583.ResponseCodes[adv.ResponseCode] == (iso8583.ResponseCode{}):
+		return fmt.Errorf("DE39: unknown reversal reason %q", adv.ResponseCode)
+	case o == nil:
+		return errors.New("DE90: original data is required")
+	case o.MTI != "" && o.MTI != iso8583.MTIAuthRequest:
+		return fmt.Errorf("DE90: original MTI %q is not 0100", o.MTI)
+	case !isDigits(o.STAN, 6):
+		return errors.New("DE90: original STAN must be 6 digits")
+	case !isDigits(o.TransmissionTime, 10):
+		return errors.New("DE90: original transmission time must be MMDDhhmmss")
+	case !isAcquirerID(o.AcquirerID):
+		return errors.New("DE90: original acquirer ID must be 1-11 digits")
+	case adv.AcquirerID != "" && adv.AcquirerID != o.AcquirerID:
+		return errors.New("DE32: acquirer may only reverse its own authorizations")
+	}
+	return nil
+}
+
+// isAcquirerID reports whether s is a valid DE32: n..11, 1-11 digits.
+func isAcquirerID(s string) bool {
+	return len(s) >= 1 && len(s) <= 11 && isDigits(s, len(s))
 }
 
 func isDigits(s string, n int) bool {

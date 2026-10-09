@@ -36,17 +36,20 @@ func Format0(pin, pan string) (string, error) {
 	}
 	pinField := fmt.Sprintf("0%X%s", len(pin), pin)
 	pinField += strings.Repeat("F", 16-len(pinField))
-	// PAN field: four zeros, then the 12 rightmost PAN digits excluding the
-	// check digit, left-padded with zeros when the PAN is shorter.
-	p := strings.Repeat("0", 13) + pan
-	panField := "0000" + p[len(p)-13:len(p)-1]
-
 	a, _ := hex.DecodeString(pinField)
-	b, _ := hex.DecodeString(panField)
+	b, _ := hex.DecodeString(panField(pan))
 	for i := range a {
 		a[i] ^= b[i]
 	}
 	return strings.ToUpper(hex.EncodeToString(a)), nil
+}
+
+// panField returns the format 0 PAN field: four zeros, then the 12 rightmost
+// PAN digits excluding the check digit, left-padded with zeros when the PAN
+// is shorter.
+func panField(pan string) string {
+	p := strings.Repeat("0", 13) + pan
+	return "0000" + p[len(p)-13:len(p)-1]
 }
 
 // Encrypt builds the format 0 block and encrypts it with key, a 16- or 24-byte
@@ -107,11 +110,8 @@ func Extract(encrypted, pan string, key []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if len(pan) < 13 {
-		return "", errors.New("PAN too short for PIN block")
-	}
 	a, _ := hex.DecodeString(clear)
-	b, _ := hex.DecodeString("0000" + pan[len(pan)-13:len(pan)-1])
+	b, _ := hex.DecodeString(panField(pan))
 	for i := range a {
 		a[i] ^= b[i]
 	}

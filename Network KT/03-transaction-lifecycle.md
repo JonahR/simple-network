@@ -116,7 +116,7 @@ stateDiagram-v2
     Requested --> TimedOut: no response
     TimedOut --> StandInApproved: STIP rules allow
     TimedOut --> Declined: STIP declines (e.g., 05/61)
-    TimedOut --> Declined: no STIP, issuer unavailable (91)
+    TimedOut --> Declined: no STIP, issuer or switch inoperative (91)
     TimedOut --> Reversed: acquirer sends 0400
     StandInApproved --> Approved
     Approved --> Reversed: 0400 void / partial reversal

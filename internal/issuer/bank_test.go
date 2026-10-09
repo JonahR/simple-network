@@ -33,7 +33,7 @@ func req(pan, expiry string, amount int64) iso8583.AuthRequest {
 
 func TestAuthorizeAndHold(t *testing.T) {
 	fsb, _, _ := testBanks(t)
-	r := req("4242424242424242", "2912", 12_50)
+	r := req("4242424242424242", "3312", 12_50)
 	r.CVV2 = "123"
 	resp := fsb.Authorize(r)
 	if resp.ResponseCode != "00" || resp.Amount != 1250 || len(resp.AuthCode) != 6 || resp.MTI != "0110" {
@@ -58,7 +58,7 @@ func TestAuthorizeAndHold(t *testing.T) {
 
 func TestReversalBeforeAuthorization(t *testing.T) {
 	fsb, _, _ := testBanks(t)
-	r := req("4242424242424242", "2912", 1000)
+	r := req("4242424242424242", "3312", 1000)
 	fsb.Reverse(iso8583.ReversalAdvice{NetworkTxnID: r.NetworkTxnID})
 	if resp := fsb.Authorize(r); resp.ResponseCode == "00" {
 		t.Fatal("late authorization approved after its reversal")
@@ -79,37 +79,43 @@ func TestDeclines(t *testing.T) {
 		req  func() iso8583.AuthRequest
 		want string
 	}{
-		{"unknown card", fsb, func() iso8583.AuthRequest { return req("4242424242424241", "2912", 100) }, "14"},
+		{"unknown card", fsb, func() iso8583.AuthRequest { return req("4242424242424241", "3312", 100) }, "14"},
 		{"wrong expiry", fsb, func() iso8583.AuthRequest { return req("4242424242424242", "3001", 100) }, "54"},
 		{"wrong CVV", fsb, func() iso8583.AuthRequest {
-			r := req("4242424242424242", "2912", 100)
+			r := req("4242424242424242", "3312", 100)
 			r.CVV2 = "999"
 			return r
 		}, "N7"},
 		{"correct PIN", fsb, func() iso8583.AuthRequest {
-			r := req("4000056655665556", "2905", 100)
+			r := req("4000056655665556", "3305", 100)
 			r.PINData = goodPIN
 			return r
 		}, "00"},
 		{"wrong PIN", fsb, func() iso8583.AuthRequest {
-			r := req("4000056655665556", "2905", 100)
+			r := req("4000056655665556", "3305", 100)
 			r.PINData = badPIN
 			return r
 		}, "55"},
-		{"over credit limit", ucb, func() iso8583.AuthRequest { return req("5555555555554444", "2808", 30_001) }, "51"},
+		{"over credit limit", ucb, func() iso8583.AuthRequest { return req("5555555555554444", "3208", 30_001) }, "51"},
 		{"cash back on credit", ucb, func() iso8583.AuthRequest {
-			r := req("5555555555554444", "2808", 2000)
+			r := req("5555555555554444", "3208", 2000)
 			r.AdditionalAmounts = []iso8583.AdditionalAmount{{Type: "40", Amount: 1000}}
 			return r
 		}, "57"},
-		{"HSA without eligible amount", fsb, func() iso8583.AuthRequest { return req("4716006861111015", "2811", 100) }, "57"},
+		{"HSA without eligible amount", fsb, func() iso8583.AuthRequest { return req("4716006861111015", "3211", 100) }, "57"},
 		{"auto-enrolled test card", fsb, func() iso8583.AuthRequest { return req("4000001234567899", "3010", 100) }, "00"},
 		{"auto-enrolled pay later", ucb, func() iso8583.AuthRequest { return req("4859321234567890", "2710", 100) }, "00"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.bank.Authorize(tt.req()); got.ResponseCode != tt.want {
+			r := tt.req()
+			got := tt.bank.Authorize(r)
+			if got.ResponseCode != tt.want {
 				t.Errorf("code = %s (%s), want %s", got.ResponseCode, got.ResponseText, tt.want)
+			}
+			// DE4 echoes the requested amount on approvals and declines alike.
+			if got.Amount != r.Amount {
+				t.Errorf("DE4 = %d, want %d", got.Amount, r.Amount)
 			}
 		})
 	}
@@ -119,21 +125,21 @@ func TestPartialApprovals(t *testing.T) {
 	fsb, ucb, _ := testBanks(t)
 
 	// Prepaid: $100 balance, $120 purchase → approve the $100 left.
-	resp := ucb.Authorize(req("4358805984634941", "2807", 12_000))
+	resp := ucb.Authorize(req("4358805984634941", "3207", 12_000))
 	if resp.ResponseCode != "10" || resp.Amount != 10_000 {
 		t.Fatalf("prepaid partial: %+v", resp)
 	}
-	if resp := ucb.Authorize(req("4358805984634941", "2807", 100)); resp.ResponseCode != "51" {
+	if resp := ucb.Authorize(req("4358805984634941", "3207", 100)); resp.ResponseCode != "51" {
 		t.Errorf("empty prepaid card: %s", resp.ResponseCode)
 	}
 
 	// HSA: only the eligible $30 of a $50 purchase is approved.
-	r := req("4716006861111015", "2811", 5000)
+	r := req("4716006861111015", "3211", 5000)
 	r.AdditionalAmounts = []iso8583.AdditionalAmount{{Type: "4S", Amount: 3000}}
 	if resp := fsb.Authorize(r); resp.ResponseCode != "10" || resp.Amount != 3000 {
 		t.Errorf("HSA partial: %+v", resp)
 	}
-	r = req("4716006861111015", "2811", 3000)
+	r = req("4716006861111015", "3211", 3000)
 	r.AdditionalAmounts = []iso8583.AdditionalAmount{{Type: "4S", Amount: 3000}}
 	if resp := fsb.Authorize(r); resp.ResponseCode != "00" || resp.Amount != 3000 {
 		t.Errorf("HSA full: %+v", resp)
@@ -152,14 +158,14 @@ func TestDecisionLog(t *testing.T) {
 	fsb, _, key := testBanks(t)
 
 	// An approval with a PIN runs every check and records the hold.
-	r := req("4000056655665556", "2905", 2000)
+	r := req("4000056655665556", "3305", 2000)
 	r.PINData, _ = pin.Encrypt("1234", r.PAN, key)
 	r.AdditionalAmounts = []iso8583.AdditionalAmount{{Type: "40", Amount: 500}}
 	r.MerchantNameLoc = "Simple Coffee Co         San Francisco US"
 	fsb.Authorize(r)
 
 	// A decline stops at the failing check.
-	bad := req("4242424242424242", "2912", 100)
+	bad := req("4242424242424242", "3312", 100)
 	bad.CVV2 = "000"
 	fsb.Authorize(bad)
 
@@ -187,7 +193,7 @@ func TestDecisionLog(t *testing.T) {
 	if acct.Held != 2000 || acct.Holds != 1 || acct.Available != 248_000 || !acct.HasPIN || acct.PAN != "400005******5556" {
 		t.Errorf("account view: %+v", acct)
 	}
-	fsb.Reverse(iso8583.ReversalAdvice{NetworkTxnID: r.NetworkTxnID, Reason: "issuer timeout"})
+	fsb.Reverse(iso8583.ReversalAdvice{NetworkTxnID: r.NetworkTxnID, ResponseCode: iso8583.RCLateResponse})
 	st = fsb.State()
 	if st.Decisions[1].Hold != "released" || st.Accounts[1].Held != 0 || len(st.Reversals) != 1 || st.Reversals[0].Released != 2000 {
 		t.Errorf("after reversal: decision hold %q, held %d, reversals %+v", st.Decisions[1].Hold, st.Accounts[1].Held, st.Reversals)
@@ -199,11 +205,11 @@ func TestFrozenCardDeclines(t *testing.T) {
 	if !fsb.SetBlocked("fsb-001", true) {
 		t.Fatal("account fsb-001 not found")
 	}
-	if resp := fsb.Authorize(req("4242424242424242", "2912", 100)); resp.ResponseCode != "62" {
+	if resp := fsb.Authorize(req("4242424242424242", "3312", 100)); resp.ResponseCode != "62" {
 		t.Errorf("frozen card: %s", resp.ResponseCode)
 	}
 	fsb.SetBlocked("fsb-001", false)
-	if resp := fsb.Authorize(req("4242424242424242", "2912", 100)); resp.ResponseCode != "00" {
+	if resp := fsb.Authorize(req("4242424242424242", "3312", 100)); resp.ResponseCode != "00" {
 		t.Errorf("unfrozen card: %s", resp.ResponseCode)
 	}
 }

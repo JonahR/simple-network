@@ -82,3 +82,21 @@ func TestTranslateAndExtract(t *testing.T) {
 		t.Fatal("extracted PIN with the wrong key")
 	}
 }
+
+func TestShortPANRoundTrip(t *testing.T) {
+	acq, _ := hex.DecodeString("0123456789ABCDEFFEDCBA9876543210")
+	iss, _ := hex.DecodeString("A1B2C3D4E5F60718293A4B5C6D7E8F90")
+	pan := "123456789012" // 12 digits: the shortest PAN card.ValidatePAN allows
+
+	enc, err := Encrypt("1234", pan, acq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	translated, err := Translate(enc, acq, iss)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := Extract(translated, pan, iss); err != nil || got != "1234" {
+		t.Fatalf("Extract = %q, %v", got, err)
+	}
+}

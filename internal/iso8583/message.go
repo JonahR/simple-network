@@ -206,21 +206,41 @@ func (r AuthResponse) Redacted(mask func(string) string) AuthResponse {
 	return r
 }
 
-// ReversalAdvice is an 0420 message telling an issuer to release the hold
-// for an authorization whose response never reached the acquirer.
+// ReversalAdvice is an 0420 message telling the next party to release the
+// hold for an authorization whose response never reached the acquirer. An
+// acquirer sends one to the network, and the network sends its own to the
+// issuer. Each sender gives the advice its own STAN (DE11) and transmission
+// time (DE7); the authorization being reversed is identified by DE90.
 type ReversalAdvice struct {
-	MTI          string `json:"mti"`
-	NetworkTxnID string `json:"network_txn_id"`
-	PAN          string `json:"de2_pan"`
-	Amount       int64  `json:"de4_amount"`
-	STAN         string `json:"de11_stan"`
-	RRN          string `json:"de37_rrn"`
-	Reason       string `json:"reason"`
+	MTI              string        `json:"mti"`
+	NetworkTxnID     string        `json:"network_txn_id,omitempty"` // Set by the network; an acquirer that timed out may not know it
+	PAN              string        `json:"de2_pan"`
+	Amount           int64         `json:"de4_amount"`                // Amount of the original authorization
+	TransmissionTime string        `json:"de7_transmission_datetime"` // When this 0420 was sent, MMDDhhmmss UTC
+	STAN             string        `json:"de11_stan"`                 // This 0420's own trace number, not the original's
+	AcquirerID       string        `json:"de32_acquirer_id,omitempty"`
+	RRN              string        `json:"de37_rrn"`
+	ResponseCode     string        `json:"de39_response_code"` // Reversal reason, e.g. 68 response received too late
+	OriginalData     *OriginalData `json:"de90_original_data"` // The authorization being reversed
 }
 
-// ReversalResponse is the issuer's 0430 acknowledgement.
+// OriginalData is DE90: the fields that identify the original message. For
+// an 0100, acquirer ID + STAN + transmission time is the network's
+// idempotency key, so DE90 finds exactly one authorization.
+type OriginalData struct {
+	MTI              string `json:"mti"`               // Usually 0100
+	STAN             string `json:"stan"`              // Original DE11
+	TransmissionTime string `json:"transmission_time"` // Original DE7, MMDDhhmmss
+	AcquirerID       string `json:"acquirer_id"`       // Original DE32
+}
+
+// ReversalResponse is the 0430 acknowledgement of an 0420.
 type ReversalResponse struct {
 	MTI          string `json:"mti"`
 	NetworkTxnID string `json:"network_txn_id"`
-	Matched      bool   `json:"matched"` // Whether a hold was found and released
+	STAN         string `json:"de11_stan,omitempty"`          // Echoes the 0420's DE11
+	ResponseCode string `json:"de39_response_code,omitempty"` // 00: advice received
+	// From an issuer: whether a hold was found and released. From the
+	// network to an acquirer: whether the network had seen the original 0100.
+	Matched bool `json:"matched"`
 }

@@ -14,7 +14,7 @@ This document turns the previous eleven into decisions. Each one is written as a
 | D6 | Ledger | Double-entry, append-only, zero-sum invariant | Never |
 | D7 | BIN routing | In-memory range table, longest-prefix match, versioned | Millions of ranges → trie or interval tree |
 | D8 | Timeouts and stand-in | Tiered timeouts. Decline (91) at first, with a STIP parameter model ready for later. | First stand-in approval feature |
-| D9 | Reversals | Network sends 0420 for late responses. Acquirers reverse on timeout. | Never |
+| D9 | Reversals | Network sends 0420 as soon as its issuer timeout fires. Acquirers reverse on timeout. | Never |
 | D10 | Clearing | Daily batch files with header/trailer controls, cycle IDs | Need for intraday cycles |
 | D11 | Settlement | Net per (member, currency, cycle). Release only after the invariant check. | Multi-currency |
 | D12 | Fees | Versioned table-driven rules engine, small initial table | Never (just grow the table) |
@@ -22,7 +22,7 @@ This document turns the previous eleven into decisions. Each one is written as a
 | D14 | Participant trust | HMAC + nonce + timestamp, then mTLS | Moving off localhost |
 | D15 | Card data | Own test BIN prefix, masked logs, CVV never stored, PAN in as few services as possible | Never |
 | D16 | Products | Credit first. Funding source on the BIN from day one. Prepaid next. | Debit regulation work |
-| D17 | Tokenization | Yes, as a separate vault service, in M10, after hardening (M9) | |
+| D17 | Tokenization | Yes. In-switch vault done in M3; a separate token service is planned for M10. | |
 | D18 | Testing | Certification harness + deterministic simulators + property tests on ledger invariants | |
 | D19 | Observability | Per-hop latency, approval rate, and response-code mix from day one (feeds M8 dashboard) | |
 | D20 | Time | All timestamps in UTC. Business date and cycle are explicit fields. Injectable clock. | |
@@ -134,14 +134,14 @@ func (t *BinTable) Lookup(pan string) (BinEntry, bool) {
 | Acquirer → Network | 15 s |
 | Network → Issuer | 5 s |
 
-At first, on an issuer timeout: respond `91`, log it, and send a `0420` if the issuer answers late. Store per-issuer STIP parameters now (max amount, daily limits, MCC blocks) with `enabled=false`. Enabling stand-in approvals is then a config change plus the `0120` advice queue.
+At first, on an issuer timeout: respond `91`, log it, and send a `0420` right away, so any hold the issuer placed (or places when it answers late) is released. Store per-issuer STIP parameters now (max amount, daily limits, MCC blocks) with `enabled=false`. Enabling stand-in approvals is then a config change plus the `0120` advice queue.
 
-**Use a circuit breaker per issuer.** After N consecutive timeouts, stop sending to that issuer and go straight to STIP/decline until echo messages succeed again.
+**Use a circuit breaker per issuer.** After N consecutive failures (timeouts, HTTP 503s, or connection errors), stop sending to that issuer and go straight to STIP/decline. After a cooldown the breaker goes half-open and lets one live request through as a trial; if it succeeds the breaker closes, otherwise it opens again. (Probing with `0800` echo messages instead of a live request is planned.)
 
 ## D9: Reversal rules
 
-1. A late issuer response is **never forwarded**. Send `0420` to the issuer.
-2. The acquirer simulator sends `0400` when it gets no response before its own timeout.
+1. A late issuer response is **never forwarded**. The network sends a `0420` to the issuer as soon as its timeout fires (with its own DE11 and DE7, reason `68` in DE39, and the original in DE90), and retries it with capped exponential backoff (1 s doubling to 30 s) until the issuer acknowledges.
+2. The acquirer sends a `0420` reversal advice to the network when it gets no response before its own timeout. The network (`POST /reverse`) acknowledges with an `0430` at once and forwards it to the issuer if the original was approved. If the `0420` arrives before the `0100`, the late `0100` is declined with `05`.
 3. Reversals are idempotent and match on `network_txn_id` or DE90.
 4. Reversal after clearing → reject with a "use refund" code.
 
@@ -187,7 +187,7 @@ Follow [06](06-economics-and-fees.md) and [10](10-rules-governance-and-regulatio
 
 Answers to PLAN.md's open questions:
 - **Credit only, or debit and prepaid?** Credit first. Put `funding_source` and `product` on BIN entries immediately. Prepaid is the best second product (partial auth, balance inquiry). Debit with single-message comes after that.
-- **Tokenization?** Yes, in M10, after hardening (M9), as its own service and database. It is the most valuable modern network service and good practice for keeping PAN handling in one place.
+- **Tokenization?** Yes. A small in-switch token vault with a detokenize step shipped in M3. A standalone token service with its own database is planned for M10, after hardening (M9). It is the most valuable modern network service and good practice for keeping PAN handling in one place.
 
 ## D18: Testing strategy
 
@@ -234,18 +234,18 @@ The metrics that matter to a network operator:
 | Milestone | Add |
 |---|---|
 | M1 Data models | `network_txn_id`, money type, event types, BIN entry attributes, response-code registry with retry categories |
-| M3 Network switch | Idempotency, per-issuer circuit breaker, `0420` on late response, signed requests |
+| M3 Network switch | Idempotency, per-issuer circuit breaker, `0420` on issuer timeout, signed requests |
 | M5 Clearing | File header/trailer controls, MCC tolerance table, 1-to-many matching |
 | M6 Settlement | Double-entry ledger, zero-sum invariant, exposure tracking |
 | M7 Lifecycle | Dispute state machine with reason-code table and deadlines |
 | M9 Hardening | Certification harness, chaos scenarios, STIP approvals |
-| M10 (new) | Tokenization vault + detokenize step |
+| M10 (new) | Standalone token service (the in-switch vault + detokenize step shipped in M3) |
 | M11 (new) | Prepaid product: partial auth, balance inquiry |
 
 ## Key takeaways
 
 - Most correctness comes from a few non-negotiables: idempotency, append-only events, integer money, double-entry, and rules as data.
-- PLAN.md's open questions: **table-driven fees (small table)**, **credit first with funding source modeled**, **tokenization yes, in M10 after hardening (M9)**.
+- PLAN.md's open questions: **table-driven fees (small table)**, **credit first with funding source modeled**, **tokenization yes (in-switch vault done in M3; standalone token service in M10)**.
 - Build the certification harness and observability early. They make the PoC credible and make the M8 dashboard nearly free.
 
 Next: [13: Glossary](13-glossary.md)

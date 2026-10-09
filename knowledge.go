@@ -10,8 +10,9 @@ import (
 var knowledgeFS embed.FS
 
 // Knowledge returns the Network KT docs, visuals, and interactive pages, rooted
-// at the "Network KT" folder. The POS serves them under /learn/kt/ so every
-// learning link works locally and matches the running version.
+// at the "Network KT" folder. Every service serves them under /learn/kt/
+// (learn.Handler), so every learning link works locally and matches the
+// running version.
 func Knowledge() fs.FS {
 	sub, err := fs.Sub(knowledgeFS, "Network KT")
 	if err != nil {

@@ -47,7 +47,7 @@ func TestPOSFieldsHaveTerms(t *testing.T) {
 			t.Errorf("POS field %q has no glossary alias", m[1])
 		}
 	}
-	for _, label := range []string{"Device account number (token)", "Network transaction ID", "Response from network", "Request sent (0100)"} {
+	for _, label := range []string{"Device account number (token)", "Network transaction ID", "Request sent (0100)"} {
 		if strings.Contains(src, label) || strings.HasPrefix(label, "Device") {
 			if _, ok := learn.Lookup(label); !ok {
 				t.Errorf("POS label %q has no glossary alias", label)

@@ -94,11 +94,11 @@ The 4 digits mean **version · class · function · origin**.
   "de42_merchant_id": "MERCH0000000042",
   "de43_merchant_name_location": "JOE'S DINER              AUSTIN       US",
   "de49_currency": "840",
-  "de55_arqc": "A1B2C3D4E5F60718"
+  "de55_arqc": "1A2B3C4D5E6F7081"
 }
 ```
 
-Fields to add as the switch is built: `de32_acquirer_id` (to route the response back), `de38_auth_code` and `de39_response_code` on the `0110`, `de90_original_data` on reversals, and a network-assigned `network_txn_id` (see [12](12-design-decisions.md), D3).
+Fields the switch adds around this request (all now in `internal/iso8583/message.go`): `de32_acquirer_id` (set by the acquirer, used to route the response back), `de38_auth_code` and `de39_response_code` on the `0110`, `de90_original_data` (original MTI, STAN, DE7, acquirer ID) on `0420` reversals (which also carry their own DE11 and DE7, and the reversal reason in DE39: `68` response received too late, `22` suspected malfunction), and a network-assigned `network_txn_id` (see [12](12-design-decisions.md), D3).
 
 ## The authorization pipeline inside the switch
 
@@ -122,7 +122,7 @@ flowchart TD
     RESP -- yes --> OUT[Log + forward 0110 to acquirer]
     RESP -- no --> STIP{Issuer has STIP<br/>parameters?}
     STIP -- yes --> STIPD[Stand-in decision<br/>queue 0120 advice for issuer]
-    STIP -- no --> R91[Respond 91 issuer unavailable]
+    STIP -- no --> R91[Respond 91 issuer or switch inoperative]
     STIPD --> OUT
     R91 --> OUT
 ```
@@ -154,7 +154,7 @@ The common ISO-style codes. Networks add their own on top.
 | `62` | Restricted card | Issuer | No |
 | `65` | Exceeds frequency limit (or "SCA required" in the EU) | Issuer | With authentication |
 | `75` | PIN tries exceeded | Issuer | No |
-| `91` | Issuer or switch unavailable | Network | Yes, with backoff |
+| `91` | Issuer or switch inoperative | Network | Yes, with backoff |
 | `96` | System malfunction | Any | Yes, with backoff |
 
 Networks now regulate **retries**. Merchants that resubmit declined transactions too often are charged excess retry fees, and some codes (such as pick-up, lost, and stolen) must never be retried. **Design lesson:** put a retry category on every response code in your registry.
@@ -189,16 +189,16 @@ sequenceDiagram
     N->>I: 0100
     Note over N: Issuer timer expires
     N-->>A: 0110 DE39=91 (or STIP decision)
-    I-->>N: 0110 DE39=00 (LATE)
-    Note over N: Late approval for a txn already answered.<br/>Issuer now holds funds the merchant was never given.
-    N->>I: 0420 Reversal Advice (cleanup)
+    N->>I: 0420 Reversal Advice (sent right away, retried until acknowledged)
+    I-->>N: 0110 DE39=00 (LATE, dropped)
+    Note over N: The issuer may approve after the network gave up.<br/>The 0420 releases that hold, or makes the issuer decline the late auth.
     I-->>N: 0430
 ```
 
 Rules to put in place:
 1. **Every hop has a timeout budget**, and the downstream timeout is shorter than the upstream one. For example, POS 20s > acquirer 15s > issuer 5s (see [12](12-design-decisions.md), D8). The exact values are a network rule. Pick them deliberately.
-2. **A late response is never forwarded.** The network sends a reversal advice to clean up the issuer's hold.
-3. **The acquirer reverses on doubt.** If the acquirer gets no response, it sends a `0400` or `0420` reversal so that no orphan hold stays on the card.
+2. **A late response is never forwarded.** As soon as its timer expires, the network sends a reversal advice so the issuer releases any hold it places.
+3. **The acquirer reverses on doubt.** If the acquirer gets no response, it sends a `0400` or `0420` reversal so that no orphan hold stays on the card. (simple-network's acquirer sends a `0420` to the network's `POST /reverse`.)
 4. **Every message is idempotent**, keyed on (acquirer ID, STAN, transmission date/time). Retries return the cached response instead of creating a second hold.
 
 ## Authorization variants the network must support

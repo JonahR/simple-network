@@ -76,10 +76,10 @@ type StoredCard struct {
 
 // cardsOnFile is the merchant's card vault. The browser only ever sees the
 // masked number; the full PAN stays on the terminal server. Expiries must
-// match the issuer's records (internal/issuer/seed.go).
+// match the issuer's records (internal/issuer/seed.go); expiry_test.go checks.
 var cardsOnFile = []StoredCard{
-	{ID: "cof_jane", Customer: "Jane Doe · loyalty account", PAN: "4242424242424242", Expiry: "12/29"},
-	{ID: "cof_acme", Customer: "Acme Corp · monthly subscription", PAN: "5555555555554444", Expiry: "08/28"},
+	{ID: "cof_jane", Customer: "Jane Doe · loyalty account", PAN: "4242424242424242", Expiry: "12/33"},
+	{ID: "cof_acme", Customer: "Acme Corp · monthly subscription", PAN: "5555555555554444", Expiry: "08/32"},
 }
 
 // expiryFromNow returns an MM/YY expiry the given years and months from now.

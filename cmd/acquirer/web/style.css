@@ -184,6 +184,15 @@ td small { display: block; color: var(--muted); font-size: 11px; }
 .msg.bad .msg-line { background: var(--bad-line); }
 .msg.bad.left .msg-line::after { border-right-color: var(--bad-line); }
 .msg.bad.right .msg-line::after { border-left-color: var(--bad-line); }
+/* A note on one lifeline: a dashed box instead of an arrow. */
+.msg.note { justify-self: center; max-width: 100%; }
+.msg.note .msg-label {
+  border: 1px dashed var(--warn-text);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-radius: 7px;
+  padding: 4px 10px;
+}
 .msg-ms { text-align: center; font-size: 11px; color: var(--muted); padding-top: 3px; font-variant-numeric: tabular-nums; }
 .msg-detail {
   grid-column: 1 / -1;

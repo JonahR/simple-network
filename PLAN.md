@@ -90,8 +90,8 @@ A purchase goes through three phases:
 | 0.5 | POS terminal (browser) | Builds 0100 requests for keyed, swipe, chip, contactless, mobile wallets, debit + PIN, cash back, prepaid, fleet, HSA/FSA, BNPL single-use virtual cards (simulated as keyed credit), and card on file ✅ |
 | 1 | Data models | Card, account, merchant, and ISO-style message schemas; Luhn and card generator (partial: Luhn, card generator, and message schema done; account and merchant models pending) |
 | 2 | Issuer service | Can approve or decline an auth request directly ✅ Two banks (`cmd/issuer`): holds, PIN verification, partial approvals, reversals, fault simulation, and a back-office page per bank showing each decision's checks, accounts and holds |
-| 3 | Network switch | Routes auths by BIN to two or more issuers; transaction log ✅ `cmd/network`: longest-prefix BIN routing, token vault, PIN translation, idempotency, 5s issuer timeout with 0420 reversal, per-issuer circuit breaker, per-step trace |
-| 4 | Acquirer + POS | End-to-end swipe from the CLI shows approved/declined ✅ POS → `cmd/acquirer` (:8081) → network: merchant/terminal checks, own network-leg STAN, DE32, MCC from the merchant agreement, idempotent retries; back office shows each message path and what each merchant is owed. Clearing batch and merchant payout come with milestones 5-6 |
+| 3 | Network switch | Routes auths by BIN to two or more issuers; transaction log ✅ `cmd/network`: longest-prefix BIN routing, token vault, PIN translation, idempotency, 5s issuer timeout with 0420 reversal (retried with backoff until acknowledged), acquirer 0420s at `POST /reverse`, per-issuer circuit breaker, per-step trace |
+| 4 | Acquirer + POS | End-to-end sale from the browser POS through the acquirer shows approved/declined ✅ POS → `cmd/acquirer` (:8081) → network: merchant/terminal checks, own network-leg STAN, DE32, MCC from the merchant agreement, idempotent retries; back office shows each message path and what each merchant is owed. Clearing batch and merchant payout come with milestones 5-6 |
 | 5 | Clearing | End-of-day batch is matched to auths and issuer holds are posted |
 | 6 | Settlement + fees | Net settlement report per bank; interchange and network fees applied |
 | 7 | Reversals, refunds, chargebacks | Full transaction lifecycle |
@@ -110,4 +110,4 @@ This PoC must **never** handle real card data. Use test PANs only.
 
 - Fee model: a flat network fee, or interchange tables by MCC and card tier?
 - Credit only, or debit and prepaid too?
-- Should the PoC include a tokenization service (similar to Visa Token Service)?
+- Should the PoC include a tokenization service (similar to Visa Token Service)? **Answered: yes.** An in-switch token vault shipped in milestone 3; a standalone token service is planned for M10 (see [Network KT 12](Network%20KT/12-design-decisions.md), D17).

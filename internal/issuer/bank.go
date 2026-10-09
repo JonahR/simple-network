@@ -181,7 +181,7 @@ func (b *Bank) Authorize(req iso8583.AuthRequest) iso8583.AuthResponse {
 		MTI:              iso8583.MTIAuthResponse,
 		PAN:              req.PAN,
 		ProcessingCode:   req.ProcessingCode,
-		Amount:           approved,
+		Amount:           req.Amount, // A decline echoes the requested amount
 		TransmissionTime: req.TransmissionTime,
 		STAN:             req.STAN,
 		RRN:              req.RRN,
@@ -198,6 +198,7 @@ func (b *Bank) Authorize(req iso8583.AuthRequest) iso8583.AuthResponse {
 	}
 	if iso8583.IsApproved(code) {
 		resp.AuthCode = authCode()
+		resp.Amount = approved // Less than requested on a partial approval
 		acct.Available -= approved
 		b.holds[req.NetworkTxnID] = hold{pan: req.PAN, amount: approved}
 		d.Hold = "active"
@@ -205,7 +206,10 @@ func (b *Bank) Authorize(req iso8583.AuthRequest) iso8583.AuthResponse {
 	if acct != nil {
 		d.AvailableAfter = acct.Available
 	}
-	d.Approved, d.ResponseCode, d.ResponseText, d.AuthCode = resp.Amount, code, resp.ResponseText, resp.AuthCode
+	if iso8583.IsApproved(code) {
+		d.Approved = approved // A decline's DE4 echoes the request, but nothing was approved
+	}
+	d.ResponseCode, d.ResponseText, d.AuthCode = code, resp.ResponseText, resp.AuthCode
 	b.decisions = append(b.decisions, d)
 	if len(b.decisions) > maxLog {
 		b.decisions = b.decisions[1:]
@@ -345,8 +349,9 @@ func (b *Bank) account(pan, expiry string) (acct *Account, opened bool) {
 func (b *Bank) Reverse(adv iso8583.ReversalAdvice) iso8583.ReversalResponse {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	resp := iso8583.ReversalResponse{MTI: iso8583.MTIReversalResponse, NetworkTxnID: adv.NetworkTxnID}
-	rev := Reversal{Time: b.now().UTC(), NetworkTxnID: adv.NetworkTxnID, Reason: adv.Reason}
+	resp := iso8583.ReversalResponse{MTI: iso8583.MTIReversalResponse, NetworkTxnID: adv.NetworkTxnID,
+		STAN: adv.STAN, ResponseCode: iso8583.RCApproved} // 00: advice received
+	rev := Reversal{Time: b.now().UTC(), NetworkTxnID: adv.NetworkTxnID, Reason: reversalReason(adv)}
 	if h, ok := b.holds[adv.NetworkTxnID]; ok {
 		acct := b.accounts[h.pan]
 		acct.Available += h.amount
@@ -477,4 +482,13 @@ func authCode() string {
 		buf[i] = chars[int(buf[i])%len(chars)]
 	}
 	return string(buf)
+}
+
+// reversalReason describes why the network reversed: the DE39 reason code
+// and its meaning, e.g. "68 Response received too late".
+func reversalReason(adv iso8583.ReversalAdvice) string {
+	if adv.ResponseCode == "" {
+		return ""
+	}
+	return adv.ResponseCode + " " + iso8583.ResponseText(adv.ResponseCode)
 }

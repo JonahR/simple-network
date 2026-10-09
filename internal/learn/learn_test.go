@@ -127,7 +127,7 @@ func TestLearningPagesAndVisualsUseKnownTerms(t *testing.T) {
 	for _, src := range []struct {
 		fsys fs.FS
 		root string
-	}{{Web(), "."}, {simplenetwork.Knowledge(), "visuals"}} {
+	}{{Web(), "."}, {simplenetwork.Knowledge(), "."}} {
 		bad, err := UnknownTerms(src.fsys, src.root)
 		if err != nil {
 			t.Fatal(err)

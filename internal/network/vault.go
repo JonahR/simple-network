@@ -63,11 +63,11 @@ func (v *Vault) All() []Token {
 func DefaultVault() *Vault {
 	const everyday, rewards = "4242424242424242", "5555555555554444"
 	return NewVault([]Token{
-		{Token: "4895372051310681", PAN: everyday, TokenExpiry: "3009", CardExpiry: "2912", Wallet: "apple_pay", Active: true},
-		{Token: "4895373708421368", PAN: everyday, TokenExpiry: "3011", CardExpiry: "2912", Wallet: "google_pay", Active: true},
-		{Token: "4895377555006883", PAN: everyday, TokenExpiry: "3006", CardExpiry: "2912", Wallet: "samsung_pay", Active: true},
-		{Token: "5220930238452479", PAN: rewards, TokenExpiry: "3103", CardExpiry: "2808", Wallet: "apple_pay", Active: true},
-		{Token: "5220934871046911", PAN: rewards, TokenExpiry: "3101", CardExpiry: "2808", Wallet: "google_pay", Active: true},
-		{Token: "5220933784416278", PAN: rewards, TokenExpiry: "3105", CardExpiry: "2808", Wallet: "samsung_pay", Active: true},
+		{Token: "4895372051310681", PAN: everyday, TokenExpiry: "3409", CardExpiry: "3312", Wallet: "apple_pay", Active: true},
+		{Token: "4895373708421368", PAN: everyday, TokenExpiry: "3411", CardExpiry: "3312", Wallet: "google_pay", Active: true},
+		{Token: "4895377555006883", PAN: everyday, TokenExpiry: "3406", CardExpiry: "3312", Wallet: "samsung_pay", Active: true},
+		{Token: "5220930238452479", PAN: rewards, TokenExpiry: "3503", CardExpiry: "3208", Wallet: "apple_pay", Active: true},
+		{Token: "5220934871046911", PAN: rewards, TokenExpiry: "3501", CardExpiry: "3208", Wallet: "google_pay", Active: true},
+		{Token: "5220933784416278", PAN: rewards, TokenExpiry: "3505", CardExpiry: "3208", Wallet: "samsung_pay", Active: true},
 	})
 }

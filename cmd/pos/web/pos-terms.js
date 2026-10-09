@@ -2,13 +2,13 @@
 // renders at runtime (the 0100 field table, transaction history, wallet, header).
 // Static labels carry data-term directly in index.html. Keeping this mapping
 // out of app.js means POS changes and learning changes rarely collide.
-// cmd/pos/glossary_test.go checks that every field app.js can show has a term.
+// cmd/pos/learn_test.go checks that every field app.js can show has a term.
 (function () {
   "use strict";
   if (!window.Learn) return;
 
   // DE22 values → the entry-mode term that explains them.
-  const ENTRY_TERMS = { "010": "manual-entry", "011": "manual-entry", "901": "magstripe", "051": "chip-emv", "071": "contactless", "812": "ecommerce", "100": "credential-on-file" };
+  const ENTRY_TERMS = { "011": "manual-entry", "901": "magstripe", "051": "chip-emv", "071": "contactless", "812": "ecommerce", "100": "credential-on-file" };
   // History columns, in order.
   const HISTORY_TERMS = ["de12", "de11", "de37", "pan-masking", "de22", "de4", "txn-status"];
 

@@ -135,7 +135,7 @@ quadrantChart
     Analytics dashboard: [0.45, 0.45]
 ```
 
-Stand-in approvals land in hardening (PLAN M9). Suggested order after that: **tokenization (M10) → simple fraud score → push payments (OCT) → account updater → 3DS directory → cross-border FX**.
+Stand-in approvals land in hardening (PLAN M9). Suggested order after that: **standalone token service (M10; the in-switch vault shipped in M3) → simple fraud score → push payments (OCT) → account updater → 3DS directory → cross-border FX**.
 
 ## Key takeaways
 

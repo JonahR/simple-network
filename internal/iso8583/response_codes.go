@@ -8,6 +8,7 @@ const (
 	RCDoNotHonor        = "05"
 	RCInvalidCard       = "14"
 	RCNoSuchIssuer      = "15"
+	RCSuspectedMalfunc  = "22" // Reversal reason: suspected malfunction
 	RCFormatError       = "30"
 	RCInsufficientFunds = "51"
 	RCExpiredCard       = "54"
@@ -15,6 +16,7 @@ const (
 	RCNotPermitted      = "57"
 	RCSuspectedFraud    = "59"
 	RCRestrictedCard    = "62"
+	RCLateResponse      = "68" // Reversal reason: response received too late
 	RCIssuerUnavailable = "91"
 	RCDuplicate         = "94"
 	RCSystemError       = "96"
@@ -37,6 +39,7 @@ var ResponseCodes = map[string]ResponseCode{
 	RCDoNotHonor:        {"Do not honor", false, "issuer"},
 	RCInvalidCard:       {"Invalid card number", false, "issuer"},
 	RCNoSuchIssuer:      {"No such issuer", false, "network"},
+	RCSuspectedMalfunc:  {"Suspected malfunction", false, "network"},
 	RCFormatError:       {"Format error", false, "network"},
 	RCInsufficientFunds: {"Insufficient funds", false, "issuer"},
 	RCExpiredCard:       {"Expired card", false, "issuer"},
@@ -44,7 +47,8 @@ var ResponseCodes = map[string]ResponseCode{
 	RCNotPermitted:      {"Transaction not permitted to cardholder", false, "issuer"},
 	RCSuspectedFraud:    {"Suspected fraud", false, "issuer"},
 	RCRestrictedCard:    {"Restricted card", false, "issuer"},
-	RCIssuerUnavailable: {"Issuer unavailable", false, "network"},
+	RCLateResponse:      {"Response received too late", false, "network"},
+	RCIssuerUnavailable: {"Issuer or switch unavailable", false, "network"},
 	RCDuplicate:         {"Duplicate transmission", false, "network"},
 	RCSystemError:       {"System malfunction", false, "network"},
 	RCCVVMismatch:       {"CVV2 mismatch", false, "issuer"},

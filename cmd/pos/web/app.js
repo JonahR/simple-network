@@ -56,29 +56,30 @@ const ALL_METHODS = ["tap", "insert", "swipe", "key"];
 // The cardholder's cards. Numbers are Luhn-valid test numbers; BINs match the
 // terminal's BIN table so the right prompts appear. The two credit cards are
 // also provisioned to each mobile wallet with a distinct device token.
-// Expiries are relative to today so the test cards never expire.
+// Expiries are fixed and must match the issuer's records (internal/issuer/seed.go)
+// and the token vault (internal/network/vault.go); cmd/pos/expiry_test.go checks.
 const WALLET = [
-  { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/29", cvv: "123", name: "Jane Doe",
+  { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/33", cvv: "123", name: "Jane Doe",
     methods: ALL_METHODS,
     tokens: {
-      apple_pay:   { number: "4895372051310681", expiry: "09/30" },
-      google_pay:  { number: "4895373708421368", expiry: "11/30" },
-      samsung_pay: { number: "4895377555006883", expiry: "06/30" },
+      apple_pay:   { number: "4895372051310681", expiry: "09/34" },
+      google_pay:  { number: "4895373708421368", expiry: "11/34" },
+      samsung_pay: { number: "4895377555006883", expiry: "06/34" },
     } },
-  { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/28", cvv: "456", name: "John Smith",
+  { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/32", cvv: "456", name: "John Smith",
     methods: ALL_METHODS,
     tokens: {
-      apple_pay:   { number: "5220930238452479", expiry: "03/31" },
-      google_pay:  { number: "5220934871046911", expiry: "01/31" },
-      samsung_pay: { number: "5220933784416278", expiry: "05/31" },
+      apple_pay:   { number: "5220930238452479", expiry: "03/35" },
+      google_pay:  { number: "5220934871046911", expiry: "01/35" },
+      samsung_pay: { number: "5220933784416278", expiry: "05/35" },
     } },
-  { label: "Checking Debit", style: "green", number: "4000056655665556", expiry: "05/29", cvv: "789", name: "Jane Doe",
+  { label: "Checking Debit", style: "green", number: "4000056655665556", expiry: "05/33", cvv: "789", name: "Jane Doe",
     hint: "PIN 1234", methods: ALL_METHODS },
-  { label: "Gift Card", style: "purple", number: "4358805984634941", expiry: "07/28", cvv: "321", name: "",
+  { label: "Gift Card", style: "purple", number: "4358805984634941", expiry: "07/32", cvv: "321", name: "",
     methods: ["swipe", "key"] },
-  { label: "Fleet Card", style: "orange", number: "5568007143162129", expiry: "02/29", cvv: "654", name: "Acme Logistics",
+  { label: "Fleet Card", style: "orange", number: "5568007143162129", expiry: "02/33", cvv: "654", name: "Acme Logistics",
     hint: "Driver 4821", methods: ["insert", "swipe", "key"] },
-  { label: "Health Savings", style: "teal", number: "4716006861111015", expiry: "11/28", cvv: "852", name: "Jane Doe",
+  { label: "Health Savings", style: "teal", number: "4716006861111015", expiry: "11/32", cvv: "852", name: "Jane Doe",
     methods: ALL_METHODS },
   // Buy now, pay later: the provider issues a new single-use virtual card for each purchase.
   { label: "Pay Later", style: "pink", virtual: true, bin: "485932", name: "Jane Doe", methods: ["key"] },
@@ -498,14 +499,19 @@ function statusBadge(tx) {
   return `<span class="status ${cls}"><span aria-hidden="true">${icon}</span> ${escapeHTML(label + code)}</span>`;
 }
 
-// responseRows shows the 0110 answer the acquirer passed back from the network.
+// responseRows shows the 0110 the terminal got from the acquirer: usually the
+// network's answer passed back, but the acquirer's own when it declines
+// (unknown merchant, or the network didn't answer).
 function responseRows(tx) {
   const resp = tx.response;
   if (!resp) return "";
   const r = tx.request;
   const txn = encodeURIComponent(resp.network_txn_id || "");
+  // The acquirer finds the record by the terminal's own keys, which it has
+  // even when the network never answered.
+  const atAcquirer = new URLSearchParams({ tid: r.de41_terminal_id, stan: r.de11_stan, de7: r.de7_transmission_datetime });
   const links = [
-    acquirerURL && `<a href="${acquirerURL}/#txn=${txn}" target="_blank" rel="noopener">View at acquirer →</a>`,
+    acquirerURL && `<a href="${acquirerURL}/#${atAcquirer}" target="_blank" rel="noopener">View at acquirer →</a>`,
     dashboardURL && resp.network_txn_id && `<a href="${dashboardURL}/#txn=${txn}" target="_blank" rel="noopener">View in network →</a>`,
   ].filter(Boolean);
   const link = links.join(" · ");
@@ -513,10 +519,11 @@ function responseRows(tx) {
     ["MTI", "Message type", resp.mti],
     ["DE39", "Response code", `${resp.de39_response_code}  (${resp.response_text})`],
     ["DE38", "Auth code", resp.de38_auth_code],
+    ["DE37", "Retrieval reference number", resp.de37_rrn !== r.de37_rrn ? resp.de37_rrn : ""],
     ["DE4", "Approved amount", resp.de4_amount ? `${resp.de4_amount}  (${money(resp.de4_amount, r.de49_currency)})` : ""],
     ["", "Network transaction ID", resp.network_txn_id],
   ].filter(([, , v]) => v);
-  return `<h3>Response from network</h3>
+  return `<h3 data-term="msg-0110">Response (via acquirer)</h3>
     <div class="table-wrap"><table class="fields"><tbody>${rows
       .map(([de, name, v]) => `<tr><td class="mono">${de}</td><td>${name}</td><td class="mono">${escapeHTML(v)}</td></tr>`)
       .join("")}</tbody></table></div>

@@ -16,7 +16,7 @@ A card network PoC in Go (see PLAN.md). Several agents often work on this repo a
 | `make serve` | Serve the latest good commit of `main`: POS on http://localhost:8080, acquirer on http://localhost:8081, network dashboard on http://localhost:8090, and the issuers' back-office pages on http://localhost:8091 (First Simple Bank) and http://localhost:8092 (Union Card Bank). Logs are in `.run/logs/`. |
 | `make serve-stop` | Stop it |
 | `make test` | `go test ./...` |
-| `make up` / `make down` | Full Docker setup (uses the same port 8080, so stop `make serve` first) |
+| `make up` / `make down` | Full Docker setup (uses the same ports, so stop `make serve` first) |
 
 New services go under `cmd/<name>/`. `make serve` builds and starts every binary there, so give each one its own port in `serve.env` and `docker-compose.yml`.
 
@@ -25,9 +25,9 @@ New services go under `cmd/<name>/`. `make serve` builds and starts every binary
 Every label in a UI (POS, network dashboard, any new service) and in `Network KT/visuals/` must teach what it means:
 
 - Give it `data-term="<id>"` with an id from `internal/learn/web/glossary.json`. Each term has a definition, at least one Network KT link (`file.md#heading`) and one outside link.
-- Labels a page renders at runtime are tagged by that service's terms script (`cmd/pos/web/pos-terms.js`, `cmd/network/web/dashboard-terms.js`), usually through glossary aliases, so a new label text needs a matching alias.
+- Labels a page renders at runtime are tagged by that service's terms script (`cmd/pos/web/pos-terms.js`, `cmd/network/web/dashboard-terms.js`; the acquirer's `app.js` sets its terms directly), usually through glossary aliases, so a new label text needs a matching alias.
 - A new UI loads `/learn/learn.css` and `/learn/learn.js` and mounts `learn.Handler` at `/learn/`, which also serves the learning hub, the doc viewer and the KT docs.
-- `go test ./...` fails on untagged SVG text, unknown terms, labels without aliases, missing links, or doc links to headings that don't exist.
+- `go test ./...` fails on untagged SVG text in `Network KT/visuals/`, unknown `data-term` ids in any service's `web/` or in `Network KT/`, glossary terms missing links, doc links to headings that don't exist, and some runtime labels without aliases (the 0100 fields and dashboard labels the tests extract from each `app.js`). It does not see every label a terms script looks up at runtime (card rows, product and read badges, wallet tabs), so check those by hand.
 
 ## Conventions
 

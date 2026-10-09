@@ -138,7 +138,7 @@ func (s *bankServer) handleReverse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := s.bank.Reverse(adv)
-	log.Printf("%s reversal txn=%s matched=%v", s.bank.ID, adv.NetworkTxnID, resp.Matched)
+	log.Printf("%s reversal txn=%s stan=%s reason=%s matched=%v", s.bank.ID, adv.NetworkTxnID, adv.STAN, adv.ResponseCode, resp.Matched)
 	writeJSON(w, http.StatusOK, resp)
 }
 

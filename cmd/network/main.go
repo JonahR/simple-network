@@ -1,23 +1,28 @@
 // Command network runs the card network switch and its operations dashboard.
 //
 // Acquirers send 0100 authorization requests to POST /authorize. The switch
-// routes each one to an issuer by BIN and returns the 0110. The dashboard on
-// the same port shows transactions moving through the network as they happen.
+// routes each one to an issuer by BIN and returns the 0110. An acquirer that
+// never got an 0110 sends an 0420 reversal advice to POST /reverse and gets an
+// 0430 back. The dashboard on the same port shows transactions moving through
+// the network as they happen.
 package main
 
 import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
@@ -56,14 +61,15 @@ func main() {
 	}
 
 	sw := &network.Switch{
-		BINs:          network.DefaultBINs(),
-		Vault:         network.DefaultVault(),
-		Issuers:       map[string]*network.Issuer{},
-		AcquirerKeys:  map[string][]byte{acquirerID: acqKey},
-		IssuerTimeout: 5 * time.Second,
-		ReversalRetry: 2 * time.Second,
-		Recorder:      network.NewRecorder(1000),
-		Now:           time.Now,
+		BINs:             network.DefaultBINs(),
+		Vault:            network.DefaultVault(),
+		Issuers:          map[string]*network.Issuer{},
+		AcquirerKeys:     map[string][]byte{acquirerID: acqKey},
+		IssuerTimeout:    5 * time.Second,
+		ReversalRetry:    time.Second,
+		ReversalRetryMax: 30 * time.Second,
+		Recorder:         network.NewRecorder(1000),
+		Now:              time.Now,
 	}
 	for _, ic := range issuers {
 		sw.Issuers[ic.ID] = &network.Issuer{
@@ -83,9 +89,10 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /authorize", s.handleAuthorize)
+	mux.HandleFunc("POST /reverse", s.handleReverse)
 	mux.Handle("GET /", http.FileServerFS(static))
 	// Definitions for every dashboard label, the learning hub, and the Network KT docs.
-	mux.Handle("GET /learn/", learn.Handler(learn.Links{POS: env("POS_URL", "http://localhost:8080"), Dashboard: "/"}))
+	mux.Handle("GET /learn/", learn.Handler(learn.Links{POS: env("POS_PUBLIC_URL", "http://localhost:8080"), Dashboard: "/"}))
 	mux.HandleFunc("GET /api/overview", s.handleOverview)
 	mux.HandleFunc("GET /api/transactions", s.handleTransactions)
 	mux.HandleFunc("GET /api/transactions/{id}", s.handleTransaction)
@@ -95,8 +102,24 @@ func main() {
 	ui.Register(mux, ui.PagesFromEnv())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 
+	// On SIGINT or SIGTERM, stop taking requests, then stop retrying reversals.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	srv := &http.Server{Addr: addr, Handler: mux}
+	drained := make(chan struct{})
+	go func() {
+		defer close(drained)
+		<-ctx.Done()
+		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		srv.Shutdown(shutdown) // Dashboard streams never finish; give up on them after 5s
+	}()
 	log.Printf("network switch and dashboard listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
+	<-drained
+	sw.Close()
 }
 
 // handleAuthorize is the acquirer-facing endpoint.
@@ -109,6 +132,28 @@ func (s *server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	resp := s.sw.Authorize(r.Context(), req)
 	log.Printf("auth txn=%s acq=%s pan=%s amount=%d code=%s",
 		resp.NetworkTxnID, req.AcquirerID, card.Mask(req.PAN), req.Amount, resp.ResponseCode)
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleReverse is the acquirer-facing endpoint for 0420 reversal advices.
+// The 0430 acknowledges receipt; forwarding to the issuer happens afterwards.
+func (s *server) handleReverse(w http.ResponseWriter, r *http.Request) {
+	var adv iso8583.ReversalAdvice
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&adv); err != nil {
+		http.Error(w, "invalid 0420 message", http.StatusBadRequest)
+		return
+	}
+	resp, err := s.sw.Reverse(adv)
+	if err != nil {
+		http.Error(w, "invalid 0420 message: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	var orig iso8583.OriginalData
+	if adv.OriginalData != nil {
+		orig = *adv.OriginalData
+	}
+	log.Printf("reversal acq=%s orig_stan=%s orig_de7=%s reason=%s matched=%v txn=%s",
+		orig.AcquirerID, orig.STAN, orig.TransmissionTime, adv.ResponseCode, resp.Matched, resp.NetworkTxnID)
 	writeJSON(w, http.StatusOK, resp)
 }
 

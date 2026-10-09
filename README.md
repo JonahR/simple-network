@@ -22,11 +22,13 @@ Or run everything in Docker:
 make up      # docker compose up --build -d
 ```
 
-Either way, open the POS terminal at **http://localhost:8080**. `make serve` and `make up` use the same port, so run only one at a time.
+Either way, open the POS terminal at **http://localhost:8080**, the acquirer back office at **http://localhost:8081**, and the network dashboard at **http://localhost:8090**. `make serve` and `make up` use the same ports, so run only one at a time.
 
 | Service | Port | Status |
 |---|---|---|
-| `pos` (merchant terminal) | 8080 | ✅ Builds 0100 auth requests; not yet sent to the network |
-| `acquirer`, `network`, `issuer` | — | Planned |
+| `pos` (merchant terminal) | 8080 | ✅ Builds 0100 auth requests and sends them via the acquirer |
+| `acquirer` (merchant's bank) | 8081 | ✅ Back office; forwards POS sales to the network (POS → acquirer → network) |
+| `network` (switch) | 8090 | ✅ Switch + dashboard |
+| `issuer` (cardholder banks) | 8091 / 8092 | ✅ FSB / UCB |
 
 Other commands: `make down`, `make logs`, `make test`, `make run-pos` (runs the POS from your working tree, without Docker), and `make hooks` (enables a pre-commit hook that blocks commits that don't build or pass tests).

@@ -2,6 +2,8 @@
 // 0100 authorization requests at POST /authorize. It checks that the
 // merchant and terminal are signed up, adds its own fields, forwards the
 // request to the card network, and passes the 0110 back to the terminal.
+// When the network doesn't answer, it declines with 91 and sends the network
+// an 0420 reversal advice until the network acknowledges it.
 //
 // Its back-office page on the same port shows each authorization's path,
 // what the acquirer changed, and what it owes each merchant.
@@ -12,13 +14,18 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
@@ -71,8 +78,24 @@ func main() {
 		Dashboard: env("NETWORK_DASHBOARD_URL", "http://localhost:8090"),
 	}))
 
+	// On SIGINT or SIGTERM, stop taking requests, then stop retrying reversals.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	srv := &http.Server{Addr: addr, Handler: mux}
+	drained := make(chan struct{})
+	go func() {
+		defer close(drained)
+		<-ctx.Done()
+		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		srv.Shutdown(shutdown)
+	}()
 	log.Printf("acquirer %s (%s) listening on %s, forwarding to network %s", s.acq.id, s.acq.name, addr, network.url)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
+	<-drained
+	s.acq.Close()
 }
 
 // handleAuthorize is the terminal-facing endpoint.
@@ -120,7 +143,7 @@ func (s *server) handleOverview(w http.ResponseWriter, _ *http.Request) {
 		st.Count++
 		totalMS += rec.TotalMS
 		for _, step := range rec.Steps {
-			if step.From == PartyNetwork {
+			if step.From == PartyNetwork && step.MTI == iso8583.MTIAuthResponse {
 				netMS += step.MS
 				netCount++
 			}
@@ -190,28 +213,64 @@ func newHTTPNetwork(url string) *httpNetwork {
 
 func (n *httpNetwork) Authorize(ctx context.Context, req iso8583.AuthRequest) (iso8583.AuthResponse, error) {
 	var resp iso8583.AuthResponse
-	body, err := json.Marshal(req)
+	return resp, n.post(ctx, "/authorize", req, &resp)
+}
+
+// Reverse sends an 0420 reversal advice and returns the network's 0430.
+func (n *httpNetwork) Reverse(ctx context.Context, adv iso8583.ReversalAdvice) (iso8583.ReversalResponse, error) {
+	var resp iso8583.ReversalResponse
+	return resp, n.post(ctx, "/reverse", adv, &resp)
+}
+
+// post sends msg as JSON to the network and decodes a 200 reply into out.
+func (n *httpNetwork) post(ctx context.Context, path string, msg, out any) error {
+	body, err := json.Marshal(msg)
 	if err != nil {
-		return resp, err
+		return err
 	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, n.url+"/authorize", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, n.url+path, bytes.NewReader(body))
 	if err != nil {
-		return resp, err
+		return err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	res, err := n.http.Do(httpReq)
 	if err != nil {
-		return resp, fmt.Errorf("network unreachable at %s", n.url)
+		if isTimeout(err) {
+			return &netError{fmt.Sprintf("network at %s did not answer within %s", n.url, networkTimeout), err}
+		}
+		return &netError{fmt.Sprintf("network unreachable at %s", n.url), err}
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("network returned HTTP %d", res.StatusCode)
+		text, _ := io.ReadAll(io.LimitReader(res.Body, 200))
+		err := fmt.Errorf("network returned HTTP %d: %s", res.StatusCode, strings.TrimSpace(string(text)))
+		if res.StatusCode >= 400 && res.StatusCode < 500 {
+			return &rejectedError{err}
+		}
+		return err
 	}
-	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
-		return resp, fmt.Errorf("unreadable network response: %v", err)
+	if err := json.NewDecoder(res.Body).Decode(out); err != nil {
+		return fmt.Errorf("unreadable network response: %v", err)
 	}
-	return resp, nil
+	return nil
 }
+
+// netError is a short message for the back office that still unwraps to the
+// transport error, so isTimeout can tell a timeout from a refused connection.
+// rejectedError is an HTTP 4xx from the network: it refused the message
+// itself, so sending it again won't help.
+type rejectedError struct{ err error }
+
+func (e *rejectedError) Error() string { return e.err.Error() }
+func (e *rejectedError) Unwrap() error { return e.err }
+
+type netError struct {
+	msg string
+	err error
+}
+
+func (e *netError) Error() string { return e.msg }
+func (e *netError) Unwrap() error { return e.err }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")

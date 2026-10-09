@@ -162,10 +162,13 @@ stateDiagram-v2
 
 ## Should `simple-network` build a tokenization service?
 
-This is one of PLAN.md's open questions. **Recommendation: yes, but as M10, after hardening (M9), and kept small.** It teaches the network's most important modern service and pushes you to keep PAN handling inside one boundary. The minimum version:
-- A separate service with its own database (the "vault"): token ↔ PAN, requestor ID, status.
-- A token BIN range in the BIN table.
+**Yes, and part of it already exists.** It teaches the network's most important modern service and pushes you to keep PAN handling inside one boundary. Milestone 3 shipped a small in-switch version:
+- An in-memory token vault inside the network (`internal/network/vault.go`): token ↔ PAN, expiry, wallet, status.
+- Token BIN ranges in the BIN table (`token_range = true`).
 - A detokenize step in the switch pipeline (see [04](04-authorization-deep-dive.md)).
+
+What is still planned, as M10 after hardening (M9), and kept small:
+- A separate token service with its own database, so the vault moves out of the switch.
 - A simple HMAC-based cryptogram per transaction to show domain restriction.
 
 ## Key takeaways

@@ -7,8 +7,9 @@ const LANES = [
   { id: "network", label: "Network", role: "Routes to the issuer", term: "network" },
 ];
 // Glossary terms for the labels Help mode explains.
-const MTI_TERMS = { "0100": "msg-0100", "0110": "msg-0110" };
-const FIELD_TERMS = { DE11: "de11", DE18: "de18", DE32: "de32-acquirer-id" };
+const MTI_TERMS = { "0100": "msg-0100", "0110": "msg-0110", "0420": "reversal", "0430": "reversal" };
+const FIELD_TERMS = { DE11: "de11", DE18: "de18", DE32: "de32-acquirer-id", DE37: "de37" };
+const REVERSAL_TEXT = { pending: "0420 sent, waiting for the 0430", acknowledged: "acknowledged by the network", stopped: "not acknowledged; retries stopped at shutdown", rejected: "refused by the network; needs manual cleanup" };
 const LANE_INDEX = Object.fromEntries(LANES.map((l, i) => [l.id, i]));
 const POLL_MS = 2000;
 
@@ -16,8 +17,23 @@ let data = null;
 let networkURL = "";
 // The selected authorization, or null to follow the newest one.
 let selectedKey = null;
-// A network transaction ID from the URL (#txn=...), as linked from the POS.
-let wantedTxn = new URLSearchParams(location.hash.slice(1)).get("txn");
+// The authorization the URL asks for, as linked from the POS: the terminal's
+// own keys (#tid=&stan=&de7=), which every record has, or a network
+// transaction ID (#txn=), which only records the network answered have.
+let wanted = parseHash();
+
+function parseHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  const w = { tid: p.get("tid"), stan: p.get("stan"), de7: p.get("de7"), txn: p.get("txn") };
+  return (w.tid && w.stan) || w.txn ? w : null;
+}
+
+function matches(rec, w) {
+  if (w.tid && w.stan) {
+    return rec.terminal_id === w.tid && rec.terminal_stan === w.stan && (!w.de7 || rec.request.de7_transmission_datetime === w.de7);
+  }
+  return rec.response.network_txn_id === w.txn;
+}
 
 const keyOf = (rec) => `${rec.received}|${rec.terminal_id}|${rec.terminal_stan}`;
 
@@ -56,11 +72,11 @@ function renderKPIs() {
 function selected() {
   const txns = data.transactions;
   if (!txns.length) return null;
-  if (wantedTxn) {
-    const hit = txns.find((r) => r.response.network_txn_id === wantedTxn);
+  if (wanted) {
+    const hit = txns.find((r) => matches(r, wanted));
     if (hit) {
       selectedKey = keyOf(hit);
-      wantedTxn = null;
+      wanted = null;
     }
   }
   return (selectedKey && txns.find((r) => keyOf(r) === selectedKey)) || txns[0];
@@ -83,6 +99,18 @@ function renderPath(rec) {
   const approved = rec.status !== "DECLINED";
   const rows = rec.steps
     .map((s) => {
+      // A step within one participant (the acquirer giving up on the network,
+      // or waiting to resend a reversal) is a note on its lifeline, not an arrow.
+      if (s.from === s.to) {
+        const i = LANE_INDEX[s.from];
+        return `<div class="seq-row">
+          <div class="msg note" style="grid-column: ${2 * i + 1} / ${2 * i + 3}">
+            <div class="msg-label"><span aria-hidden="true">⏱</span> ${escapeHTML(s.title)}</div>
+            <div class="msg-ms">${s.ms ? fmtMS(s.ms) : "&nbsp;"}</div>
+          </div>
+          <div class="msg-detail">${escapeHTML(s.detail)}</div>
+        </div>`;
+      }
       const a = LANE_INDEX[s.from];
       const b = LANE_INDEX[s.to];
       const lo = Math.min(a, b);
@@ -123,6 +151,7 @@ function renderPath(rec) {
       <span><span data-term="latency">Total at acquirer</span> <b>${fmtMS(rec.total_ms)}</b></span>
       ${rec.response.de38_auth_code ? `<span><span data-term="de38">Auth code</span> <b class="mono">${escapeHTML(rec.response.de38_auth_code)}</b></span>` : ""}
       ${txnID ? `<span><span data-term="network-txn-id">Network txn</span> <b class="mono">${escapeHTML(txnID)}</b></span>` : ""}
+      ${rec.reversal ? `<span><span data-term="reversal">Reversal</span> <b>${escapeHTML(REVERSAL_TEXT[rec.reversal] || rec.reversal)}</b></span>` : ""}
       ${link}
     </div>
     ${changes}`;
@@ -209,7 +238,7 @@ async function poll() {
 }
 
 window.addEventListener("hashchange", () => {
-  wantedTxn = new URLSearchParams(location.hash.slice(1)).get("txn");
+  wanted = parseHash();
   if (data) render();
 });
 

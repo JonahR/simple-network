@@ -1,5 +1,5 @@
 {
-  "about": "Definitions for every learnable label in simple-network. kt links are Network KT docs (file#anchor); ext links are official or reference sources. Validated by cmd/pos/glossary_test.go.",
+  "about": "Definitions for every learnable label in simple-network. kt links are Network KT docs (file#anchor); ext links are official or reference sources. Validated by internal/learn/learn_test.go and each service's learn_test.go (cmd/pos, cmd/network, cmd/acquirer).",
   "terms": {
     "cardholder": {
       "name": "Cardholder",
@@ -695,7 +695,7 @@
     },
     "reversal": {
       "name": "Reversal (void)",
-      "def": "Undoing an authorization before clearing (MTI 0400/0420). It releases the issuer's hold. Because no money has moved, nothing needs to be refunded. The network also sends reversals to clean up late issuer responses after a timeout.",
+      "def": "Undoing an authorization before clearing (MTI 0400/0420). It releases the issuer's hold. Because no money has moved, nothing needs to be refunded. The network also sends an 0420 as soon as an issuer times out, so a late approval doesn't leave a hold behind, and an acquirer that never got its 0110 sends one to the network.",
       "kt": [
         [
           "Reversal mechanics",
@@ -847,7 +847,7 @@
     },
     "mti": {
       "name": "MTI: message type indicator",
-      "def": "The first four digits of every ISO 8583 message: version, class, function and origin. 0100 is a 1987-version authorization request from the acquirer; the issuer answers with 0110. Reversals are 0400, network management 0800.",
+      "def": "The first four digits of every ISO 8583 message: version, class, function and origin. 0100 is a 1987-version authorization request from the acquirer; the issuer answers with 0110. Reversals are 0400 (request) or 0420 (advice; simple-network uses 0420/0430), network management 0800.",
       "kt": [
         [
           "MTI: Message Type Indicator",
@@ -931,6 +931,7 @@
         "0110 Response",
         "Authorization response",
         "Response from network",
+        "Response (via acquirer)",
         "0110 to acquirer",
         "Respond"
       ]
@@ -1132,7 +1133,7 @@
     },
     "de12": {
       "name": "DE12 / DE13 · Local transaction time and date",
-      "def": "The time (hhmmss) and date (MMDD) on the merchant's clock when the card was used. They appear on receipts and statements and help in disputes. This simulator uses the POS server's local clock.",
+      "def": "The time (hhmmss) and date (MMDD) on the merchant's clock when the card was used. They appear on receipts and statements and help in disputes. This simulator uses the merchant's configured time zone (MERCHANT_TZ).",
       "kt": [
         [
           "Data elements you will use most",
@@ -1211,7 +1212,7 @@
     },
     "de22": {
       "name": "DE22 · POS entry mode",
-      "def": "How the card number was captured, plus whether the terminal can take a PIN. In this POS: 010 keyed, 901 swipe, 051 chip, 071 contactless, 812 e-commerce, 100 card on file. It tells the issuer how much to trust the card data, and decides who is liable for fraud.",
+      "def": "How the card number was captured, plus whether the terminal can take a PIN. In this POS: 011 keyed, 901 swipe, 051 chip, 071 contactless, 812 e-commerce, 100 card on file. It tells the issuer how much to trust the card data, and decides who is liable for fraud.",
       "kt": [
         [
           "Card-present vs card-not-present",
@@ -1248,7 +1249,7 @@
     },
     "de32-acquirer-id": {
       "name": "DE32 · Acquiring institution ID",
-      "def": "Identifies the acquirer that sent the request. The network uses it to route the 0110 back and to know who is owed money at settlement. The switch should check it matches the signed sender.",
+      "def": "Identifies the acquirer that sent the request, in up to 11 digits. The network uses it to route the 0110 back and to know who is owed money at settlement. The switch should check it matches the signed sender.",
       "kt": [
         [
           "Identifiers each party carries",
@@ -1348,7 +1349,7 @@
     },
     "de39": {
       "name": "DE39 · Response code",
-      "def": "The issuer's answer in the 0110. 00 approved; 05 do not honor; 51 insufficient funds; 54 expired card; 91 issuer unavailable. The code also tells the merchant whether a retry could ever succeed.",
+      "def": "The issuer's answer in the 0110. 00 approved; 05 do not honor; 51 insufficient funds; 54 expired card; 91 issuer or switch unavailable. The code also tells the merchant whether a retry could ever succeed. On an 0420 reversal it carries the reason instead: 68 response received too late, 22 suspected malfunction.",
       "kt": [
         [
           "Response codes (DE39)",
@@ -1644,7 +1645,7 @@
     },
     "manual-entry": {
       "name": "Key in (manual entry)",
-      "def": "Typing the card number by hand (entry mode 010). Nothing proves the card is present, so the terminal asks for the CVV2. Keyed sales carry the highest fraud risk and usually the highest interchange.",
+      "def": "Typing the card number by hand (entry mode 011). Nothing proves the card is present, so the terminal asks for the CVV2. Keyed sales carry the highest fraud risk and usually the highest interchange.",
       "kt": [
         [
           "Card-present vs card-not-present",
@@ -3194,7 +3195,7 @@
     },
     "txn-status": {
       "name": "Transaction status",
-      "def": "Where a sale stands after the network answers: Approved (DE39 00), Partial approval (the issuer approved less than asked), Declined (with the issuer's response code), or No response (the network or issuer couldn't be reached). The icon and words carry the meaning, not just the color.",
+      "def": "Where a sale stands after the network answers: Approved (DE39 00), Partial approval (the issuer approved less than asked), Declined (with the issuer's response code), or No response (the POS couldn't reach its acquirer). An unreachable network or issuer shows as Declined with 91. The icon and words carry the meaning, not just the color.",
       "kt": [
         [
           "The full state machine of a transaction",
@@ -3435,7 +3436,7 @@
     },
     "timeout": {
       "name": "Issuer timeout",
-      "def": "How long the network waits for an issuer before giving up. Then it declines with 91 (issuer unavailable) or stands in, and if the issuer's answer arrives late it sends an 0420 reversal advice so the issuer drops its hold.",
+      "def": "How long the network waits for an issuer before giving up. Then it declines with 91 (issuer or switch unavailable) or stands in. When the timeout fires it immediately sends an 0420 reversal advice, resending it with backoff until the issuer acknowledges, so any hold the issuer places is released (or the late authorization is declined).",
       "kt": [
         [
           "Timeouts and late responses",
@@ -3489,7 +3490,7 @@
     },
     "switch-trace": {
       "name": "Transaction trace",
-      "def": "Every step the switch took for one authorization, with how long each took: validate, route, token vault, PIN translation, circuit breaker, send to issuer, issuer answer, respond. It's built from the network's append-only event log, so any transaction can be explained later.",
+      "def": "Every step the switch took for one authorization, with how long each took: validate, route, token vault, PIN translation, circuit breaker, send to issuer, issuer answer, respond. It's built from the network's in-memory record of recent transactions (the last 1,000, lost on restart); each step is appended, never edited, so a recent transaction can be explained step by step.",
       "kt": [
         [
           "The pipeline inside the switch",
@@ -3519,7 +3520,7 @@
     },
     "switch-validate": {
       "name": "Validate (switch step)",
-      "def": "The switch's first checks on an 0100 before routing it: is the message well formed, does the card number pass Luhn, is the amount valid, and is it a duplicate of a request already answered. Failures are declined inside the network without bothering the issuer.",
+      "def": "The switch's first checks on an 0100 before routing it: is the MTI an 0100, does the card number pass Luhn, is the amount positive, and are the STAN, transmission time, acquirer ID, RRN and currency present and well formed. Failures get DE39 30 (format error) inside the network without bothering the issuer. (Duplicates are caught earlier and get the original 0110 back; see duplicate detection.)",
       "kt": [
         [
           "The pipeline inside the switch",
