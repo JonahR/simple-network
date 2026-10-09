@@ -60,6 +60,16 @@ type AuthRequest struct {
 	Currency         string `json:"de49_currency"`               // ISO 4217 numeric
 	CVV2             string `json:"cvv2,omitempty"`              // Card verification value; never logged or stored
 	CardholderName   string `json:"cardholder_name,omitempty"`
+	WalletProvider   string `json:"wallet_provider,omitempty"`  // Set when DE2 is a device token, e.g. "apple_pay"
+	Cryptogram       string `json:"token_cryptogram,omitempty"` // One-time cryptogram proving the token was used on its device
+}
+
+// Digital wallet providers.
+const WalletApplePay = "apple_pay"
+
+// Wallets maps wallet provider codes to display names.
+var Wallets = map[string]string{
+	WalletApplePay: "Apple Pay",
 }
 
 // Redacted returns a copy safe for display and logging: the PAN is masked

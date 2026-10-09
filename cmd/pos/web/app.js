@@ -3,6 +3,7 @@ const resultEl = document.getElementById("result");
 const historyEl = document.getElementById("history");
 let currencies = {};
 let entryModes = {};
+let wallets = {};
 
 // Human-readable labels for the ISO 8583 fields, in display order.
 const FIELDS = [
@@ -23,12 +24,18 @@ const FIELDS = [
   ["de43_merchant_name_location", "DE43", "Merchant name/location"],
   ["de49_currency", "DE49", "Currency code"],
   ["cardholder_name", "", "Cardholder name"],
+  ["wallet_provider", "", "Wallet provider"],
+  ["token_cryptogram", "", "Token cryptogram"],
 ];
 
 // The cardholder's wallet. These are well-known test numbers that pass Luhn.
+// Each card is also provisioned to Apple Pay with its own device token
+// (a Luhn-valid number distinct from the card number) and token expiry.
 const WALLET = [
-  { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/29", cvv: "123", name: "Jane Doe" },
-  { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/28", cvv: "456", name: "John Smith" },
+  { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/29", cvv: "123", name: "Jane Doe",
+    token: "4895372051310681", tokenExpiry: "09/30" },
+  { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/28", cvv: "456", name: "John Smith",
+    token: "5220930238452479", tokenExpiry: "03/31" },
 ];
 
 function renderWallet() {
@@ -57,6 +64,7 @@ function renderWallet() {
 
 function presentCard(c) {
   clearErrors();
+  clearWalletToken();
   form.card_number.value = c.number.replace(/(\d{4})(?=\d)/g, "$1 ");
   form.expiry.value = c.expiry;
   form.cvv.value = c.cvv;
@@ -68,13 +76,90 @@ function clearWalletSelection() {
   document.querySelectorAll("#cards .card").forEach((el) => el.classList.remove("selected"));
 }
 
+// --- Apple Pay -------------------------------------------------------------
+
+let apSelected = 0;
+const apStatus = document.getElementById("ap-status");
+const apPay = document.getElementById("ap-pay");
+
+function renderApplePay() {
+  const container = document.getElementById("ap-cards");
+  container.innerHTML = "";
+  WALLET.forEach((c, i) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ap-card";
+    btn.setAttribute("role", "radio");
+    btn.setAttribute("aria-checked", String(i === apSelected));
+    btn.innerHTML = `
+      <span class="ap-swatch ${c.style}"></span>
+      <span class="ap-card-text">${escapeHTML(c.label)}<small>Device •••• ${c.token.slice(-4)}</small></span>`;
+    btn.addEventListener("click", () => {
+      apSelected = i;
+      renderApplePay();
+    });
+    container.append(btn);
+  });
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// A fresh 8-byte cryptogram per tap, as the phone's secure element would produce.
+function newCryptogram() {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+apPay.addEventListener("click", async () => {
+  const c = WALLET[apSelected];
+  apPay.disabled = true;
+  apStatus.className = "ap-status";
+  apStatus.textContent = "Hold near reader…";
+  await sleep(600);
+  apStatus.textContent = "Face ID…";
+  await sleep(600);
+
+  clearErrors();
+  clearWalletSelection();
+  form.card_number.value = c.token.replace(/(\d{4})(?=\d)/g, "$1 ");
+  form.expiry.value = c.tokenExpiry;
+  form.cvv.value = "";
+  form.cardholder_name.value = ""; // Apple Pay in-store does not share the cardholder's name
+  form.entry_mode.value = "071"; // Contactless
+  form.wallet.value = "apple_pay";
+  form.cryptogram.value = newCryptogram();
+  document.getElementById("token-badge").hidden = false;
+
+  apStatus.className = "ap-status done";
+  apStatus.textContent = "Done ✓";
+  apPay.disabled = false;
+  form.amount.focus();
+});
+
+function clearWalletToken() {
+  form.wallet.value = "";
+  form.cryptogram.value = "";
+  document.getElementById("token-badge").hidden = true;
+  apStatus.className = "ap-status";
+  apStatus.textContent = "Ready";
+}
+
+// Editing the card details by hand means the token no longer applies.
+for (const name of ["card_number", "expiry"]) {
+  form[name].addEventListener("input", () => {
+    if (form.wallet.value) clearWalletToken();
+  });
+}
+
 async function init() {
   renderWallet();
+  renderApplePay();
   const res = await fetch("/api/terminal");
   const data = await res.json();
   const t = data.terminal;
   currencies = data.currencies;
   entryModes = data.entry_modes;
+  wallets = data.wallets;
 
   document.getElementById("merchant").textContent =
     `${t.merchant_name} · ${t.city}, ${t.country} · MID ${t.merchant_id} · TID ${t.terminal_id} · MCC ${t.mcc}`;
@@ -111,6 +196,7 @@ document.getElementById("testcard").addEventListener("click", async () => {
   form.cvv.value = card.cvv;
   if (!form.amount.value) form.amount.value = "12.50";
   clearWalletSelection();
+  clearWalletToken();
 });
 
 form.addEventListener("submit", async (e) => {
@@ -134,6 +220,7 @@ form.addEventListener("submit", async (e) => {
     form.card_number.value = form.expiry.value = form.cvv.value = form.cardholder_name.value = "";
     form.amount.value = "";
     clearWalletSelection();
+    clearWalletToken();
     loadHistory();
   } catch (err) {
     showErrors({ form: "Could not reach the terminal server." });
@@ -165,6 +252,8 @@ function renderResult(tx) {
   const rows = FIELDS.filter(([key]) => r[key] !== undefined && r[key] !== "")
     .map(([key, de, name]) => {
       let value = r[key];
+      if (key === "de2_pan" && r.wallet_provider) name = "Device account number (token)";
+      if (key === "wallet_provider") value = wallets[value] || value;
       if (key === "de4_amount") value = `${value}  (${money(value, r.de49_currency)})`;
       if (key === "de22_pos_entry_mode") value = `${value}  (${entryModes[value]})`;
       if (key === "de49_currency") value = `${value}  (${currencies[value]})`;
@@ -193,7 +282,7 @@ async function loadHistory() {
         <td class="mono">${r.de11_stan}</td>
         <td class="mono">${r.de37_rrn}</td>
         <td class="mono">${escapeHTML(r.de2_pan)}</td>
-        <td>${escapeHTML(entryModes[r.de22_pos_entry_mode] || r.de22_pos_entry_mode)}</td>
+        <td>${escapeHTML(entryModes[r.de22_pos_entry_mode] || r.de22_pos_entry_mode)}${r.wallet_provider ? " · " + escapeHTML(wallets[r.wallet_provider] || r.wallet_provider) : ""}</td>
         <td class="num">${money(r.de4_amount, r.de49_currency)}</td>
         <td><span class="status">${escapeHTML(tx.status.replace("_", " "))}</span></td>
       </tr>`;

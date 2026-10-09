@@ -13,11 +13,24 @@
 </header>
 
 <main>
-  <section class="panel wallet">
-    <h2>Wallet</h2>
-    <p class="hint">Tap a card to present it to the terminal.</p>
-    <div id="cards" class="cards"></div>
-  </section>
+  <div class="side">
+    <section class="panel wallet">
+      <h2>Wallet</h2>
+      <p class="hint">Tap a card to present it to the terminal.</p>
+      <div id="cards" class="cards"></div>
+    </section>
+
+    <section class="panel applepay">
+      <h2>Apple Pay</h2>
+      <p class="hint">Pays with a device token and one-time cryptogram. The card number never leaves the phone.</p>
+      <div class="phone">
+        <div class="phone-label">Choose card</div>
+        <div id="ap-cards" class="ap-cards" role="radiogroup" aria-label="Apple Pay card"></div>
+        <div id="ap-status" class="ap-status" aria-live="polite">Ready</div>
+        <button type="button" id="ap-pay" class="ap-button">Pay with Apple Pay</button>
+      </div>
+    </section>
+  </div>
 
   <section class="panel terminal">
     <h2>New sale</h2>
@@ -37,8 +50,11 @@
         <small class="err" data-for="entry_mode"></small>
       </label>
 
+      <input type="hidden" name="wallet">
+      <input type="hidden" name="cryptogram">
+
       <label>
-        <span>Card number</span>
+        <span>Card number <em id="token-badge" class="badge" hidden>Apple Pay · device token</em></span>
         <input name="card_number" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off">
         <small class="err" data-for="card_number"></small>
       </label>

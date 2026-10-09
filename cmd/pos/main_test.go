@@ -78,3 +78,47 @@ func TestNextSTANWraps(t *testing.T) {
 		t.Errorf("got %s, want wrap to 000001", got)
 	}
 }
+
+func TestBuildAuthRequestApplePay(t *testing.T) {
+	s := &server{terminal: Terminal{MCC: "5814"}}
+	now := time.Date(2026, 10, 9, 14, 30, 0, 0, time.UTC)
+	base := SaleInput{
+		CardNumber: "4895372051310681",
+		Expiry:     "09/30",
+		Amount:     "5.00",
+		Currency:   "840",
+		EntryMode:  iso8583.EntryContactless,
+		Wallet:     iso8583.WalletApplePay,
+		Cryptogram: "a1b2c3d4e5f60718",
+	}
+
+	req, errs := s.buildAuthRequest(base, now)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	if req.WalletProvider != "apple_pay" || req.Cryptogram != "A1B2C3D4E5F60718" || req.CVV2 != "" {
+		t.Errorf("unexpected wallet fields: %+v", req)
+	}
+
+	// In-app (e-commerce) wallet payments need no CVV either.
+	inApp := base
+	inApp.EntryMode = iso8583.EntryEcommerce
+	if _, errs := s.buildAuthRequest(inApp, now); len(errs) > 0 {
+		t.Errorf("in-app wallet: unexpected errors %v", errs)
+	}
+
+	bad := map[string]func(*SaleInput){
+		"missing cryptogram":    func(in *SaleInput) { in.Cryptogram = "" },
+		"short cryptogram":      func(in *SaleInput) { in.Cryptogram = "ABC" },
+		"unknown wallet":        func(in *SaleInput) { in.Wallet = "foo_pay" },
+		"keyed wallet":          func(in *SaleInput) { in.EntryMode = iso8583.EntryManual },
+		"cryptogram, no wallet": func(in *SaleInput) { in.Wallet = ""; in.EntryMode = iso8583.EntryChip },
+	}
+	for name, mutate := range bad {
+		in := base
+		mutate(&in)
+		if _, errs := s.buildAuthRequest(in, now); len(errs) == 0 {
+			t.Errorf("%s: expected an error", name)
+		}
+	}
+}

@@ -47,6 +47,8 @@ type SaleInput struct {
 	Amount         string `json:"amount"`
 	Currency       string `json:"currency"`
 	EntryMode      string `json:"entry_mode"`
+	Wallet         string `json:"wallet"`     // Digital wallet that supplied a device token, if any
+	Cryptogram     string `json:"cryptogram"` // One-time cryptogram from the wallet
 }
 
 // Transaction is a sale as recorded by the terminal.
@@ -99,6 +101,7 @@ func (s *server) handleTerminal(w http.ResponseWriter, _ *http.Request) {
 		"terminal":    s.terminal,
 		"entry_modes": iso8583.EntryModes,
 		"currencies":  iso8583.Currencies,
+		"wallets":     iso8583.Wallets,
 	})
 }
 
@@ -135,8 +138,8 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 	s.history = append(s.history, tx)
 	s.mu.Unlock()
 
-	log.Printf("sale stan=%s rrn=%s pan=%s amount=%d currency=%s status=%s",
-		tx.Request.STAN, tx.Request.RRN, tx.Request.PAN, tx.Request.Amount, tx.Request.Currency, tx.Status)
+	log.Printf("sale stan=%s rrn=%s pan=%s amount=%d currency=%s wallet=%s status=%s",
+		tx.Request.STAN, tx.Request.RRN, tx.Request.PAN, tx.Request.Amount, tx.Request.Currency, tx.Request.WalletProvider, tx.Status)
 	writeJSON(w, http.StatusOK, tx)
 }
 
@@ -164,9 +167,11 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 	if err != nil {
 		errs["expiry"] = err.Error()
 	}
-	// CVV is required for keyed and e-commerce sales, where the card is not read.
+	// CVV is required for keyed and e-commerce card sales, where the card is not
+	// read. Wallet payments prove possession with a cryptogram instead.
 	cvv := strings.TrimSpace(in.CVV)
-	if cvv != "" || in.EntryMode == iso8583.EntryManual || in.EntryMode == iso8583.EntryEcommerce {
+	cardNotPresent := in.EntryMode == iso8583.EntryManual || in.EntryMode == iso8583.EntryEcommerce
+	if cvv != "" || (cardNotPresent && in.Wallet == "") {
 		if err := card.ValidateCVV(cvv); err != nil {
 			errs["cvv"] = err.Error()
 		}
@@ -180,6 +185,19 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 	}
 	if _, ok := iso8583.EntryModes[in.EntryMode]; !ok {
 		errs["entry_mode"] = "unsupported entry mode"
+	}
+	// Wallet payments carry a device token and a one-time cryptogram in place of a CVV.
+	cryptogram := strings.ToUpper(strings.TrimSpace(in.Cryptogram))
+	if in.Wallet != "" {
+		if _, ok := iso8583.Wallets[in.Wallet]; !ok {
+			errs["form"] = "unsupported wallet"
+		} else if !isHex(cryptogram, 16) {
+			errs["form"] = "wallet cryptogram must be 16 hex characters"
+		} else if in.EntryMode != iso8583.EntryContactless && in.EntryMode != iso8583.EntryEcommerce {
+			errs["entry_mode"] = "wallet payments must be contactless or e-commerce"
+		}
+	} else if cryptogram != "" {
+		errs["form"] = "cryptogram sent without a wallet"
 	}
 	if len(errs) > 0 {
 		return iso8583.AuthRequest{}, errs
@@ -208,6 +226,8 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 		Currency:        in.Currency,
 		CVV2:            cvv,
 		CardholderName:  strings.TrimSpace(in.CardholderName),
+		WalletProvider:  in.Wallet,
+		Cryptogram:      cryptogram,
 	}, nil
 }
 
@@ -242,6 +262,20 @@ func parseAmount(s string) (int64, error) {
 		return 0, errors.New("amount exceeds terminal limit")
 	}
 	return cents, nil
+}
+
+// isHex reports whether s is exactly n hexadecimal characters.
+func isHex(s string, n int) bool {
+	if len(s) != n {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if !(c >= '0' && c <= '9' || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
