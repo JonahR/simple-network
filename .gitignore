@@ -4,6 +4,12 @@
 *.test
 *.out
 
+# make serve: private checkout, builds and logs
+/.run/
+
+# Claude Code worktrees
+/.claude/worktrees/
+
 # Local data
 *.db
 *.sqlite3
