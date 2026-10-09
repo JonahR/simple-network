@@ -8,6 +8,7 @@ let mccs = {};
 let currencies = {};
 let entryModes = {};
 let wallets = {};
+let dashboardURL = "";
 let cofIndicators = {};
 let binProducts = {};
 let productNames = {};
@@ -27,6 +28,7 @@ const FIELDS = [
   ["de14_expiry", "DE14", "Expiration (YYMM)"],
   ["de18_mcc", "DE18", "Merchant category code"],
   ["de22_pos_entry_mode", "DE22", "POS entry mode"],
+  ["de32_acquirer_id", "DE32", "Acquirer ID"],
   ["de35_track2", "DE35", "Track 2 data"],
   ["de37_rrn", "DE37", "Retrieval reference number"],
   ["de41_terminal_id", "DE41", "Terminal ID"],
@@ -477,6 +479,40 @@ function describe(key, r) {
   }
 }
 
+const STATUS = {
+  APPROVED: ["good", "✓", "Approved"],
+  PARTIAL: ["warning", "◐", "Partial approval"],
+  DECLINED: ["critical", "✕", "Declined"],
+  NO_RESPONSE: ["critical", "!", "No response"],
+};
+
+// statusBadge shows the outcome with an icon and words, not color alone.
+function statusBadge(tx) {
+  const [cls, icon, label] = STATUS[tx.status] || ["", "", tx.status];
+  const code = tx.response && tx.status === "DECLINED" ? ` ${tx.response.de39_response_code}` : "";
+  return `<span class="status ${cls}"><span aria-hidden="true">${icon}</span> ${escapeHTML(label + code)}</span>`;
+}
+
+// responseRows shows the network's 0110 answer.
+function responseRows(tx) {
+  const resp = tx.response;
+  if (!resp) return "";
+  const r = tx.request;
+  const link = dashboardURL ? ` <a href="${dashboardURL}/#txn=${encodeURIComponent(resp.network_txn_id)}" target="_blank" rel="noopener">View in network →</a>` : "";
+  const rows = [
+    ["MTI", "Message type", resp.mti],
+    ["DE39", "Response code", `${resp.de39_response_code}  (${resp.response_text})`],
+    ["DE38", "Auth code", resp.de38_auth_code],
+    ["DE4", "Approved amount", resp.de4_amount ? `${resp.de4_amount}  (${money(resp.de4_amount, r.de49_currency)})` : ""],
+    ["", "Network transaction ID", resp.network_txn_id],
+  ].filter(([, , v]) => v);
+  return `<h3>Response from network</h3>
+    <div class="table-wrap"><table class="fields"><tbody>${rows
+      .map(([de, name, v]) => `<tr><td class="mono">${de}</td><td>${name}</td><td class="mono">${escapeHTML(v)}</td></tr>`)
+      .join("")}</tbody></table></div>
+    <p class="trace-link">${link}</p>`;
+}
+
 function renderResult(tx) {
   const r = tx.request;
   const rows = FIELDS.filter(([key]) => r[key] !== undefined && r[key] !== "")
@@ -489,9 +525,11 @@ function renderResult(tx) {
   resultEl.className = "";
   resultEl.innerHTML = `
     <div class="result-head">
-      <span class="status">${escapeHTML(tx.status.replace("_", " "))}</span>
+      ${statusBadge(tx)}
       <p>${escapeHTML(tx.message)}</p>
     </div>
+    ${responseRows(tx)}
+    <h3>Request sent (0100)</h3>
     <div class="table-wrap"><table class="fields"><tbody>${rows}</tbody></table></div>
     <details><summary>Raw JSON (PAN masked, PIN block and CVV hidden)</summary><pre>${escapeHTML(JSON.stringify(r, null, 2))}</pre></details>`;
 }
@@ -512,7 +550,7 @@ async function loadHistory() {
         <td class="mono">${escapeHTML(r.de2_pan)}</td>
         <td>${escapeHTML(mode.join(" · "))}</td>
         <td class="num">${money(r.de4_amount, r.de49_currency)}</td>
-        <td><span class="status">${escapeHTML(tx.status.replace("_", " "))}</span></td>
+        <td>${statusBadge(tx)}</td>
       </tr>`;
     })
     .join("");
@@ -570,6 +608,7 @@ async function init() {
   currencies = data.currencies;
   entryModes = data.entry_modes;
   wallets = data.wallets;
+  dashboardURL = data.dashboard_url;
   cofIndicators = data.cof_indicators;
   binProducts = data.bin_products;
   productNames = data.product_names;

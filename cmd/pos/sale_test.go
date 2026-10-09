@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/pin"
 )
@@ -12,10 +13,11 @@ import (
 var testNow = time.Date(2026, 10, 9, 14, 30, 0, 0, time.UTC)
 
 func newTestServer() *server {
-	key, _ := hex.DecodeString(demoPINKey)
+	key, _ := hex.DecodeString(demokeys.AcquirerPIN)
 	return &server{
-		terminal: Terminal{MerchantID: "M1", TerminalID: "T1", MerchantName: "Shop", City: "SF", Country: "US", MCC: "5814"},
-		pinKey:   key,
+		terminal:   Terminal{MerchantID: "M1", TerminalID: "T1", MerchantName: "Shop", City: "SF", Country: "US", MCC: "5814"},
+		acquirerID: "100001",
+		pinKey:     key,
 	}
 }
 

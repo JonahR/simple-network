@@ -44,3 +44,29 @@ func TestValidate(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestTranslateAndExtract(t *testing.T) {
+	acq, _ := hex.DecodeString("0123456789ABCDEFFEDCBA9876543210")
+	iss, _ := hex.DecodeString("A1B2C3D4E5F60718293A4B5C6D7E8F90")
+	pan := "4000056655665556"
+
+	enc, err := Encrypt("2468", pan, acq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	translated, err := Translate(enc, acq, iss)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if translated == enc {
+		t.Fatal("translation did not change the block")
+	}
+	got, err := Extract(translated, pan, iss)
+	if err != nil || got != "2468" {
+		t.Fatalf("Extract = %q, %v", got, err)
+	}
+	// The wrong key yields garbage, not the PIN.
+	if got, err := Extract(translated, pan, acq); err == nil && got == "2468" {
+		t.Fatal("extracted PIN with the wrong key")
+	}
+}

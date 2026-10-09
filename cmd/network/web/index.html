@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>simple-network Operations</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">simple-network <span>Network</span></div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="live">Live</button>
+    <button role="tab" aria-selected="false" data-tab="routing">Routing &amp; tokens</button>
+  </nav>
+  <div id="conn" class="conn" aria-live="polite"><span class="dot"></span><span class="label">Connecting…</span></div>
+</header>
+
+<main>
+  <!-- Live -->
+  <section id="tab-live" class="tab">
+    <div class="kpis" id="kpis"></div>
+
+    <section class="panel topo-panel">
+      <h2>Network</h2>
+      <div class="topo-wrap"><svg id="topo" viewBox="0 20 1000 260" role="img" aria-label="Transactions moving from the acquirer through the network to issuers"></svg></div>
+    </section>
+
+    <div class="split">
+      <section class="panel feed-panel">
+        <div class="panel-head">
+          <h2>Transactions</h2>
+          <span class="muted" id="feed-count"></span>
+        </div>
+        <div class="table-wrap feed-wrap">
+          <table class="feed">
+            <thead><tr><th>Time</th><th>Card</th><th>Mode</th><th>Issuer</th><th class="num">Amount</th><th>Response</th><th class="num">Latency</th></tr></thead>
+            <tbody id="feed"><tr><td colspan="7" class="empty">Waiting for transactions. Run a sale on the POS at <a href="http://localhost:8080" target="_blank" rel="noopener">localhost:8080</a>.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel trace-panel">
+        <div class="panel-head">
+          <h2>Trace</h2>
+          <button type="button" id="follow" class="link" hidden>Follow latest</button>
+        </div>
+        <div id="trace" class="empty">Select a transaction to see each step the network took.</div>
+      </section>
+    </div>
+
+    <div class="split even">
+      <section class="panel">
+        <h2>Response codes</h2>
+        <div id="codes" class="empty">No responses yet.</div>
+      </section>
+      <section class="panel">
+        <h2>Issuers</h2>
+        <div id="issuers"></div>
+        <p class="hint">Simulation: <b>Slow</b> answers after the <span id="timeout">5s</span> timeout, so the network declines with 91 and sends an 0420 reversal. <b>Down</b> refuses requests. Three failures in a row open the issuer's circuit breaker for 15s.</p>
+      </section>
+    </div>
+  </section>
+
+  <!-- Routing & tokens -->
+  <section id="tab-routing" class="tab" hidden>
+    <div class="split even">
+      <section class="panel">
+        <div class="panel-head"><h2>BIN table</h2><span class="muted" id="bin-version"></span></div>
+        <p class="hint">The network routes each card number by its longest matching prefix (6–8 digits). Token ranges go to the token vault first.</p>
+        <div class="table-wrap"><table><thead><tr><th>Prefix</th><th>Routes to</th><th>Product</th><th>Range</th></tr></thead><tbody id="bins"></tbody></table></div>
+      </section>
+      <section class="panel">
+        <h2>Token vault</h2>
+        <p class="hint">Device tokens provisioned to mobile wallets. The network swaps a token for its card number before sending to the issuer; the acquirer only ever sees the token. Suspend a token to simulate a lost phone.</p>
+        <div class="table-wrap"><table><thead><tr><th>Token</th><th>Wallet</th><th>Card</th><th>Expires</th><th>Status</th><th></th></tr></thead><tbody id="tokens"></tbody></table></div>
+      </section>
+    </div>
+  </section>
+</main>
+
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

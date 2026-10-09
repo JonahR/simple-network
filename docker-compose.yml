@@ -14,3 +14,35 @@ services:
       MERCHANT_CITY: "San Francisco"
       MERCHANT_COUNTRY: "US"
       MCC: "5814"
+      ACQUIRER_ID: "100001"
+      NETWORK_URL: "http://network:8090"
+      NETWORK_DASHBOARD_URL: "http://localhost:8090" # Opened by your browser, not the container
+    depends_on:
+      - network
+
+  network:
+    build:
+      context: .
+      args:
+        SERVICE: network
+    ports:
+      - "8090:8090"
+    environment:
+      NETWORK_ADDR: ":8090"
+      ACQUIRER_ID: "100001"
+      ISSUER_FSB_URL: "http://issuer:8091"
+      ISSUER_UCB_URL: "http://issuer:8092"
+    depends_on:
+      - issuer
+
+  issuer:
+    build:
+      context: .
+      args:
+        SERVICE: issuer
+    ports:
+      - "8091:8091"
+      - "8092:8092"
+    environment:
+      ISSUER_FSB_ADDR: ":8091"
+      ISSUER_UCB_ADDR: ":8092"

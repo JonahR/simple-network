@@ -89,13 +89,13 @@ A purchase goes through three phases:
 | 0 | Repo bootstrap | Git repo, README, plan ✅ |
 | 0.5 | POS terminal (browser) | Builds 0100 requests for keyed, swipe, chip, contactless, mobile wallets, debit + PIN, cash back, prepaid, fleet, HSA/FSA, BNPL virtual cards, and card on file ✅ |
 | 1 | Data models | Card, account, merchant, and ISO-style message schemas; Luhn and card generator |
-| 2 | Issuer service | Can approve or decline an auth request directly |
-| 3 | Network switch | Routes auths by BIN to two or more issuers; transaction log |
-| 4 | Acquirer + POS | End-to-end swipe from the CLI shows approved/declined |
+| 2 | Issuer service | Can approve or decline an auth request directly ✅ Two banks (`cmd/issuer`): holds, PIN verification, partial approvals, reversals, fault simulation |
+| 3 | Network switch | Routes auths by BIN to two or more issuers; transaction log ✅ `cmd/network`: longest-prefix BIN routing, token vault, PIN translation, idempotency, 5s issuer timeout with 0420 reversal, per-issuer circuit breaker, per-step trace |
+| 4 | Acquirer + POS | End-to-end swipe from the CLI shows approved/declined (partial: the POS gets real approvals and declines, but sends straight to the network; the acquirer service is next) |
 | 5 | Clearing | End-of-day batch is matched to auths and issuer holds are posted |
 | 6 | Settlement + fees | Net settlement report per bank; interchange and network fees applied |
 | 7 | Reversals, refunds, chargebacks | Full transaction lifecycle |
-| 8 | Ops dashboard | Web UI with live auth stream, approval rates, and settlement positions |
+| 8 | Ops dashboard | Web UI with live auth stream, approval rates, and settlement positions (partial: live dashboard on :8090 without settlement) |
 | 9 | Hardening | Message signing between participants, idempotency, timeouts/stand-in, load test |
 
 ## 6. Security (simulated)

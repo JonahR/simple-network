@@ -6,8 +6,10 @@ import "strings"
 
 // Message type indicators.
 const (
-	MTIAuthRequest  = "0100"
-	MTIAuthResponse = "0110"
+	MTIAuthRequest      = "0100"
+	MTIAuthResponse     = "0110"
+	MTIReversalAdvice   = "0420"
+	MTIReversalResponse = "0430"
 )
 
 // MTINames maps message type indicators to display names.
@@ -138,6 +140,7 @@ type AuthRequest struct {
 	Expiry            string             `json:"de14_expiry"`                       // YYMM
 	MCC               string             `json:"de18_mcc"`                          // Merchant category code
 	EntryMode         string             `json:"de22_pos_entry_mode"`               // How the card was read
+	AcquirerID        string             `json:"de32_acquirer_id,omitempty"`        // Acquiring institution
 	Track2            string             `json:"de35_track2,omitempty"`             // Magnetic stripe data
 	RRN               string             `json:"de37_rrn"`                          // Retrieval reference number
 	TerminalID        string             `json:"de41_terminal_id"`                  // Card acceptor terminal ID
@@ -152,6 +155,10 @@ type AuthRequest struct {
 	CVV2              string             `json:"cvv2,omitempty"`                    // Card verification value; never logged or stored
 	CardholderName    string             `json:"cardholder_name,omitempty"`
 	WalletProvider    string             `json:"wallet_provider,omitempty"` // Set when DE2 is a device token, e.g. "apple_pay"
+
+	// Set by the network on the request it forwards to the issuer.
+	NetworkTxnID string `json:"network_txn_id,omitempty"`
+	Token        string `json:"token,omitempty"` // The device token, when the network replaced it with the card number in DE2
 }
 
 // Redacted returns a copy safe for display and logging: the PAN is masked
@@ -166,5 +173,51 @@ func (r AuthRequest) Redacted(mask func(string) string) AuthRequest {
 		r.PINData = "ENCRYPTED"
 	}
 	r.CVV2 = ""
+	if r.Token != "" {
+		r.Token = mask(r.Token)
+	}
 	return r
+}
+
+// AuthResponse is an 0110 authorization response.
+type AuthResponse struct {
+	MTI              string `json:"mti"`
+	PAN              string `json:"de2_pan"`
+	ProcessingCode   string `json:"de3_processing_code"`
+	Amount           int64  `json:"de4_amount"` // Approved amount; less than requested on a partial approval
+	TransmissionTime string `json:"de7_transmission_datetime"`
+	STAN             string `json:"de11_stan"`
+	RRN              string `json:"de37_rrn"`
+	AuthCode         string `json:"de38_auth_code,omitempty"` // Issuer's approval code
+	ResponseCode     string `json:"de39_response_code"`
+	TerminalID       string `json:"de41_terminal_id"`
+	MerchantID       string `json:"de42_merchant_id"`
+	Currency         string `json:"de49_currency"`
+	NetworkTxnID     string `json:"network_txn_id"`
+	ResponseText     string `json:"response_text"`
+}
+
+// Redacted returns a copy with the PAN masked.
+func (r AuthResponse) Redacted(mask func(string) string) AuthResponse {
+	r.PAN = mask(r.PAN)
+	return r
+}
+
+// ReversalAdvice is an 0420 message telling an issuer to release the hold
+// for an authorization whose response never reached the acquirer.
+type ReversalAdvice struct {
+	MTI          string `json:"mti"`
+	NetworkTxnID string `json:"network_txn_id"`
+	PAN          string `json:"de2_pan"`
+	Amount       int64  `json:"de4_amount"`
+	STAN         string `json:"de11_stan"`
+	RRN          string `json:"de37_rrn"`
+	Reason       string `json:"reason"`
+}
+
+// ReversalResponse is the issuer's 0430 acknowledgement.
+type ReversalResponse struct {
+	MTI          string `json:"mti"`
+	NetworkTxnID string `json:"network_txn_id"`
+	Matched      bool   `json:"matched"` // Whether a hold was found and released
 }

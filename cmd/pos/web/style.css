@@ -10,6 +10,10 @@
   --warn-bg: #fff4d6;
   --warn-text: #7a5600;
   --code-bg: #f0f0eb;
+  --good-bg: #e3f5e3;
+  --good-text: #006300;
+  --bad-bg: #fbe5e5;
+  --bad-text: #b42323;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -25,6 +29,10 @@
     --warn-bg: #3a2f10;
     --warn-text: #f3cf73;
     --code-bg: #252522;
+    --good-bg: #13321a;
+    --good-text: #4fd14f;
+    --bad-bg: #3d1717;
+    --bad-text: #ff7a7a;
     color-scheme: dark;
   }
 }
@@ -197,7 +205,13 @@ button:disabled { opacity: .6; cursor: wait; }
   border-radius: 5px;
   background: var(--warn-bg);
   color: var(--warn-text);
+  white-space: nowrap;
 }
+.status.good { background: var(--good-bg); color: var(--good-text); }
+.status.critical { background: var(--bad-bg); color: var(--bad-text); }
+.result h3 { margin: 16px 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.trace-link { margin: 8px 0 0; font-size: 13px; }
+.trace-link a { color: var(--accent); }
 .result-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
 .result-head p { margin: 0; color: var(--muted); }
 

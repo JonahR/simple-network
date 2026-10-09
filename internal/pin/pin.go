@@ -83,6 +83,51 @@ func Decrypt(encrypted string, key []byte) (string, error) {
 	return strings.ToUpper(hex.EncodeToString(out)), nil
 }
 
+// Translate re-encrypts a PIN block from one key to another without exposing
+// the PIN, as the network does between the acquirer's and issuer's keys. In
+// production this happens inside a hardware security module.
+func Translate(encrypted string, from, to []byte) (string, error) {
+	clear, err := Decrypt(encrypted, from)
+	if err != nil {
+		return "", err
+	}
+	c, err := tripleDES(to)
+	if err != nil {
+		return "", err
+	}
+	block, _ := hex.DecodeString(clear)
+	out := make([]byte, 8)
+	c.Encrypt(out, block)
+	return strings.ToUpper(hex.EncodeToString(out)), nil
+}
+
+// Extract decrypts a PIN block and recovers the PIN, as the issuer does to
+// verify it.
+func Extract(encrypted, pan string, key []byte) (string, error) {
+	clear, err := Decrypt(encrypted, key)
+	if err != nil {
+		return "", err
+	}
+	if len(pan) < 13 {
+		return "", errors.New("PAN too short for PIN block")
+	}
+	a, _ := hex.DecodeString(clear)
+	b, _ := hex.DecodeString("0000" + pan[len(pan)-13:len(pan)-1])
+	for i := range a {
+		a[i] ^= b[i]
+	}
+	field := strings.ToUpper(hex.EncodeToString(a))
+	n := int(a[0] & 0x0F)
+	if field[0] != '0' || n < 4 || n > 12 {
+		return "", errors.New("PIN block is not format 0")
+	}
+	pin := field[2 : 2+n]
+	if err := Validate(pin); err != nil || strings.Trim(field[2+n:], "F") != "" {
+		return "", errors.New("PIN block is malformed")
+	}
+	return pin, nil
+}
+
 func tripleDES(key []byte) (cipher.Block, error) {
 	switch len(key) {
 	case 16: // double-length key K1K2 is used as K1K2K1

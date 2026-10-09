@@ -7,7 +7,6 @@ package main
 
 import (
 	"embed"
-	"encoding/hex"
 	"encoding/json"
 	"io/fs"
 	"log"
@@ -18,15 +17,12 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
+	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/iso8583"
 )
 
 //go:embed web
 var webFS embed.FS
-
-// demoPINKey is the triple-DES key the PIN pad encrypts PINs under. It is a
-// published test key for simulation only; set PIN_KEY to override it.
-const demoPINKey = "0123456789ABCDEFFEDCBA9876543210"
 
 // Terminal holds the merchant configuration provisioned onto this terminal.
 type Terminal struct {
@@ -92,16 +88,20 @@ func cardOnFile(id string) (StoredCard, bool) {
 
 // Transaction is a sale as recorded by the terminal.
 type Transaction struct {
-	Status  string              `json:"status"`
-	Message string              `json:"message"`
-	Request iso8583.AuthRequest `json:"request"` // redacted
-	Created time.Time           `json:"created"`
+	Status   string                `json:"status"` // APPROVED, PARTIAL, DECLINED, or NO_RESPONSE
+	Message  string                `json:"message"`
+	Request  iso8583.AuthRequest   `json:"request"`            // Redacted
+	Response *iso8583.AuthResponse `json:"response,omitempty"` // Redacted; nil if the network never answered
+	Created  time.Time             `json:"created"`
 }
 
 type server struct {
-	terminal Terminal
-	pinKey   []byte
-	stan     atomic.Uint32
+	terminal     Terminal
+	acquirerID   string
+	pinKey       []byte // PIN key shared between this acquirer and the network
+	network      *networkClient
+	dashboardURL string
+	stan         atomic.Uint32
 
 	mu      sync.Mutex
 	history []Transaction
@@ -118,12 +118,20 @@ func main() {
 	}
 	addr := env("POS_ADDR", ":8080")
 
-	pinKey, err := hex.DecodeString(env("PIN_KEY", demoPINKey))
-	if err != nil || (len(pinKey) != 16 && len(pinKey) != 24) {
-		log.Fatal("PIN_KEY must be 32 or 48 hex characters")
+	pinKey, err := demokeys.Load("ACQUIRER_PIN_KEY", demokeys.AcquirerPIN)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	s := &server{terminal: t, pinKey: pinKey}
+	// The POS sends straight to the network for now, carrying its acquirer's
+	// ID; an acquirer service will sit in between later.
+	s := &server{
+		terminal:     t,
+		acquirerID:   env("ACQUIRER_ID", "100001"),
+		pinKey:       pinKey,
+		network:      newNetworkClient(env("NETWORK_URL", "http://localhost:8090")),
+		dashboardURL: env("NETWORK_DASHBOARD_URL", "http://localhost:8090"),
+	}
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
 		log.Fatal(err)
@@ -157,6 +165,7 @@ func (s *server) handleTerminal(w http.ResponseWriter, _ *http.Request) {
 		"bin_products":   card.BINProducts,
 		"product_names":  card.ProductNames,
 		"cards_on_file":  saved,
+		"dashboard_url":  s.dashboardURL,
 	})
 }
 
@@ -182,12 +191,14 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The network does not exist yet, so the request is built but not sent.
-	tx := Transaction{
-		Status:  "NOT_SENT",
-		Message: "Authorization request built. Network not connected yet.",
-		Request: req.Redacted(card.Mask),
-		Created: time.Now(),
+	tx := Transaction{Request: req.Redacted(card.Mask), Created: time.Now()}
+	resp, err := s.network.authorize(r.Context(), req)
+	if err != nil {
+		tx.Status, tx.Message = "NO_RESPONSE", "No response from the network: "+err.Error()
+	} else {
+		redacted := resp.Redacted(card.Mask)
+		tx.Response = &redacted
+		tx.Status, tx.Message = outcome(req, resp)
 	}
 	s.mu.Lock()
 	s.history = append(s.history, tx)

@@ -13,7 +13,7 @@ A card network PoC in Go (see PLAN.md). Several agents often work on this repo a
 
 | Command | What it does |
 |---|---|
-| `make serve` | Serve the latest good commit of `main` (POS on http://localhost:8080). Logs are in `.run/logs/`. |
+| `make serve` | Serve the latest good commit of `main`: POS on http://localhost:8080, network dashboard on http://localhost:8090, issuers on 8091 (First Simple Bank) and 8092 (Union Card Bank). Logs are in `.run/logs/`. |
 | `make serve-stop` | Stop it |
 | `make test` | `go test ./...` |
 | `make up` / `make down` | Full Docker setup (uses the same port 8080, so stop `make serve` first) |
