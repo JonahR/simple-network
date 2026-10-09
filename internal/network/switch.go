@@ -437,6 +437,7 @@ func (s *Switch) reverse(ctx context.Context, iss *Issuer, fwd iso8583.AuthReque
 				detail = sent + " acknowledged: no hold yet, issuer will decline the late authorization"
 			}
 			tr.step("reversal", detail, true, t0)
+			s.Recorder.update(tr.rec, func(r *Record) { r.Reversed = true })
 			return
 		}
 		if ctx.Err() != nil {

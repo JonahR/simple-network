@@ -175,6 +175,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .status.critical { color: var(--critical-text); }
 .status.warning { color: var(--warning-text); }
 .status.pending { color: var(--muted); }
+.status.reversed { color: var(--muted); }
 .status .code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 600; }
 
 /* Trace */

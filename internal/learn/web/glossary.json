@@ -717,7 +717,13 @@
         "Reversal",
         "Reversed: hold released",
         "Reversal 0420",
-        "0420"
+        "0420",
+        "Reversal sent",
+        "Reversal reason",
+        "Reversal advice",
+        "Reversal advice from the terminal",
+        "0430",
+        "Reversal acknowledged"
       ]
     },
     "chargeback": {
@@ -3601,6 +3607,92 @@
         "Suspended",
         "Suspend",
         "Reactivate"
+      ]
+    },
+    "void": {
+      "name": "Void",
+      "def": "Cancelling an approved sale before the end-of-day batch, for example when the customer changes their mind at the counter. The terminal sends an 0420 reversal advice with reason 17 (customer cancellation); the acquirer passes it on and the issuer releases the hold. The sale never reaches clearing, so no money moves and no fees are charged. After clearing, the merchant has to refund instead.",
+      "kt": [
+        [
+          "The four ways to undo money",
+          "08-exceptions-and-disputes.md#the-four-ways-to-undo-money"
+        ],
+        [
+          "Reversal mechanics",
+          "08-exceptions-and-disputes.md#reversal-mechanics"
+        ]
+      ],
+      "ext": [
+        [
+          "Authorization hold (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Authorization_hold"
+        ],
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "aliases": [
+        "Void",
+        "Void sale",
+        "Voided",
+        "Voiding…"
+      ]
+    },
+    "de90": {
+      "name": "DE90 · Original data elements",
+      "def": "The field in a reversal that identifies the authorization being undone: its message type (0100), STAN, transmission date and time, and acquirer ID. Each sender uses the values from its own leg, so an acquirer that renumbers STANs translates DE90 before passing a terminal's reversal on to the network.",
+      "kt": [
+        [
+          "Reversal mechanics",
+          "08-exceptions-and-disputes.md#reversal-mechanics"
+        ],
+        [
+          "D9: Reversal rules",
+          "12-design-decisions.md#d9-reversal-rules"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "aliases": [
+        "DE90",
+        "Original data elements",
+        "Original STAN"
+      ]
+    },
+    "timeout-reversal": {
+      "name": "Timeout reversal",
+      "def": "When a terminal sends an 0100 and never gets the 0110, it can't know whether the issuer approved and placed a hold. So it sends an 0420 reversal advice anyway (reason 68, response received too late) and resends it until acknowledged. If the authorization never reached the network, the network remembers the reversal and declines the 0100 if it shows up late.",
+      "kt": [
+        [
+          "Timeouts and late responses",
+          "04-authorization-deep-dive.md#timeouts-and-late-responses"
+        ],
+        [
+          "D9: Reversal rules",
+          "12-design-decisions.md#d9-reversal-rules"
+        ]
+      ],
+      "ext": [
+        [
+          "Timeout (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Timeout_(computing)"
+        ],
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "aliases": [
+        "Timeout reversal",
+        "Lose the response",
+        "Reversal pending",
+        "Reversal failed",
+        "Reversed (timeout)"
       ]
     }
   }

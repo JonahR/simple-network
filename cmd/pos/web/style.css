@@ -215,6 +215,16 @@ button:disabled { opacity: .6; cursor: wait; }
 .trace-link a { color: var(--accent); }
 .result-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
 .result-head p { margin: 0; color: var(--muted); }
+.result-head button.void { margin-left: auto; }
+
+/* Voids and reversals */
+button.void { background: transparent; color: var(--err); border: 1px solid currentColor; padding: 6px 14px; }
+button.void.small { padding: 2px 8px; font-size: 12px; margin-left: 6px; }
+.reversal-note { margin: 0 0 8px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.result > .err { margin: 0 0 10px; }
+label.simulate { display: flex; flex-direction: row; gap: 8px; align-items: flex-start; margin-top: 12px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+label.simulate input { width: auto; flex: none; margin: 2px 0 0; padding: 0; }
+.simulate em { font-style: normal; }
 
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }

@@ -380,6 +380,7 @@ form.addEventListener("submit", async (e) => {
   btn.disabled = true;
   try {
     const body = Object.fromEntries(new FormData(form));
+    body.lose_response = form.lose_response.checked;
     const res = await fetch("/api/sale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -490,13 +491,53 @@ const STATUS = {
   PARTIAL: ["warning", "◐", "Partial approval"],
   DECLINED: ["critical", "✕", "Declined"],
   NO_RESPONSE: ["critical", "!", "No response"],
+  VOIDED: ["", "↩", "Voided"],
+};
+const REVERSAL_STATUS = {
+  PENDING: ["warning", "…", "Reversal pending"],
+  ACCEPTED: ["good", "↩", "Reversed"],
+  FAILED: ["critical", "!", "Reversal failed"],
 };
 
 // statusBadge shows the outcome with an icon and words, not color alone.
 function statusBadge(tx) {
   const [cls, icon, label] = STATUS[tx.status] || ["", "", tx.status];
   const code = tx.response && tx.status === "DECLINED" ? ` ${tx.response.de39_response_code}` : "";
-  return `<span class="status ${cls}"><span aria-hidden="true">${icon}</span> ${escapeHTML(label + code)}</span>`;
+  let html = `<span class="status ${cls}"><span aria-hidden="true">${icon}</span> ${escapeHTML(label + code)}</span>`;
+  // A void shows as the sale's status; a timeout reversal needs its own badge.
+  if (tx.reversal && tx.status !== "VOIDED") {
+    const [rcls, ricon, rlabel] = REVERSAL_STATUS[tx.reversal.status] || ["", "", tx.reversal.status];
+    html += ` <span class="status reversal ${rcls}"><span aria-hidden="true">${ricon}</span> ${escapeHTML(rlabel)}</span>`;
+  }
+  return html;
+}
+
+const canVoid = (tx) => (tx.status === "APPROVED" || tx.status === "PARTIAL") && !tx.reversal;
+const voidButton = (tx, cls = "") =>
+  canVoid(tx) ? `<button type="button" class="void ${cls}" data-void="${escapeHTML(tx.request.de11_stan)}" data-term="void">Void</button>` : "";
+
+// reversalRows shows the 0400 the terminal sent to undo a sale, and the 0410.
+function reversalRows(tx) {
+  const rev = tx.reversal;
+  if (!rev) return "";
+  const adv = rev.advice;
+  const o = adv.de90_original_data;
+  const reason = rev.reason === "17" ? "17  (Customer cancellation: a void)" : `${rev.reason}  (Response received too late: no 0110 arrived)`;
+  const ack = rev.ack;
+  const rows = [
+    ["MTI", "Message type", `${adv.mti}  (${mtis[adv.mti] || "Reversal advice"})`],
+    ["DE11", "STAN", adv.de11_stan],
+    ["DE90", "Original data elements", `${o.mti} · STAN ${o.stan} · ${o.transmission_time}`],
+    ["DE4", "Amount", `${adv.de4_amount}  (${money(adv.de4_amount, tx.request.de49_currency)})`],
+    ["DE39", "Reversal reason", reason],
+    ["", "Reversal acknowledged", ack ? `0430 ${ack.de39_response_code}  (${ack.matched ? "the acquirer had the sale and will reverse it" : "the sale never reached the network"})` : "—"],
+  ];
+  const [cls, icon, label] = REVERSAL_STATUS[rev.status] || ["", "", rev.status];
+  return `<h3>Reversal sent (0420)</h3>
+    <p class="reversal-note"><span class="status ${cls}"><span aria-hidden="true">${icon}</span> ${escapeHTML(label)}</span> ${escapeHTML(rev.message)}</p>
+    <div class="table-wrap"><table class="fields"><tbody>${rows
+      .map(([de, name, v]) => `<tr><td class="mono">${de}</td><td>${name}</td><td class="mono">${escapeHTML(v)}</td></tr>`)
+      .join("")}</tbody></table></div>`;
 }
 
 // responseRows shows the 0110 the terminal got from the acquirer: usually the
@@ -539,21 +580,33 @@ function renderResult(tx) {
     })
     .join("");
 
+  shownSTAN = r.de11_stan;
   resultEl.className = "";
   resultEl.innerHTML = `
     <div class="result-head">
       ${statusBadge(tx)}
       <p>${escapeHTML(tx.message)}</p>
+      ${voidButton(tx)}
     </div>
+    ${reversalRows(tx)}
     ${responseRows(tx)}
     <h3>Request sent (0100)</h3>
     <div class="table-wrap"><table class="fields"><tbody>${rows}</tbody></table></div>
     <details><summary>Raw JSON (PAN masked, PIN block and CVV hidden)</summary><pre>${escapeHTML(JSON.stringify(r, null, 2))}</pre></details>`;
 }
 
+// The STAN of the sale in the result panel, so it can refresh as a reversal progresses.
+let shownSTAN = null;
+let reversalPoll = 0;
+
 async function loadHistory() {
   const txs = await (await fetch("/api/transactions")).json();
   if (!txs.length) return;
+  // Keep the result panel and history current while a reversal is retrying.
+  const shown = txs.find((tx) => tx.request.de11_stan === shownSTAN);
+  if (shown && shown.reversal) renderResult(shown);
+  clearTimeout(reversalPoll);
+  if (txs.some((tx) => tx.reversal && tx.reversal.status === "PENDING")) reversalPoll = setTimeout(loadHistory, 2000);
   historyEl.innerHTML = txs
     .map((tx) => {
       const r = tx.request;
@@ -567,10 +620,38 @@ async function loadHistory() {
         <td class="mono">${escapeHTML(r.de2_pan)}</td>
         <td>${escapeHTML(mode.join(" · "))}</td>
         <td class="num">${money(r.de4_amount, r.de49_currency)}</td>
-        <td>${statusBadge(tx)}</td>
+        <td>${statusBadge(tx)} ${voidButton(tx, "small")}</td>
       </tr>`;
     })
     .join("");
+}
+
+// Void an approved sale: the terminal sends an 0400 naming it in DE90.
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-void]");
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = "Voiding…";
+  try {
+    const res = await fetch("/api/void", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stan: btn.dataset.void }),
+    });
+    const data = await res.json();
+    if (res.ok) renderResult(data);
+    else alertResult(data.error || "Void failed.");
+  } catch {
+    alertResult("Could not reach the terminal server.");
+  }
+  loadHistory();
+});
+
+function alertResult(msg) {
+  const p = document.createElement("p");
+  p.className = "err";
+  p.textContent = msg;
+  resultEl.prepend(p);
 }
 
 // --- Helpers -----------------------------------------------------------------

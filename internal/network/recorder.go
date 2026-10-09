@@ -30,6 +30,7 @@ type Record struct {
 	LatencyUS     int64                 `json:"latency_us"`
 	IssuerUS      int64                 `json:"issuer_us"` // Time spent waiting on the issuer
 	Duplicates    int                   `json:"duplicates"`
+	Reversed      bool                  `json:"reversed,omitempty"`       // The issuer acknowledged a reversal (0420/0430)
 	Request       iso8583.AuthRequest   `json:"request"`                  // As received from the acquirer
 	IssuerRequest *iso8583.AuthRequest  `json:"issuer_request,omitempty"` // As forwarded to the issuer
 	Response      *iso8583.AuthResponse `json:"response,omitempty"`       // As returned to the acquirer

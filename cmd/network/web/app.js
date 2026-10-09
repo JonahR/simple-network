@@ -50,7 +50,10 @@ function modeLabel(req) {
 function statusHTML(rec) {
   if (rec.status === "pending") return `<span class="status pending">… Pending</span>`;
   const ok = rec.status === "approved";
-  return `<span class="status ${ok ? "good" : "critical"}"><span aria-hidden="true">${ok ? "✓" : "✕"}</span><span class="code">${escapeHTML(rec.response_code)}</span> ${escapeHTML(rec.response_text)}</span>`;
+  let html = `<span class="status ${ok ? "good" : "critical"}"><span aria-hidden="true">${ok ? "✓" : "✕"}</span><span class="code">${escapeHTML(rec.response_code)}</span> ${escapeHTML(rec.response_text)}</span>`;
+  // The issuer acknowledged a reversal (a void, or a timeout): its hold is released.
+  if (rec.reversed && ok) html += ` <span class="status reversed"><span aria-hidden="true">↩</span> Reversed</span>`;
+  return html;
 }
 
 // --- KPIs, response codes, issuers ----------------------------------------------

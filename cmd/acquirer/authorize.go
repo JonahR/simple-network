@@ -78,9 +78,23 @@ type Record struct {
 	Steps        []Step               `json:"steps"`
 	Changes      []Change             `json:"changes"`
 	TotalMS      float64              `json:"total_ms"`
-	// Reversal is the state of the 0420 the acquirer sends when the network
-	// did not answer: pending, acknowledged, or stopped (at shutdown).
+	// Reversal is the state of the 0420 the acquirer sends to undo this
+	// authorization: pending, acknowledged, stopped (at shutdown), or rejected.
+	// It sends one when the network did not answer, or when the terminal asks
+	// (a void, or the terminal's own timeout).
 	Reversal string `json:"reversal,omitempty"`
+	// ReversalReason is the 0420's DE39: 17 customer cancellation (a void),
+	// 68 response received too late, or 22 suspected malfunction.
+	ReversalReason string `json:"reversal_reason,omitempty"`
+}
+
+// leg is what the acquirer sent the network for one terminal request, so a
+// later 0420 from the terminal, which names the original by the terminal's
+// own STAN, can be translated to the network leg.
+type leg struct {
+	out    iso8583.AuthRequest // Unmasked; never shown
+	rec    *Record             // Nil while the network is still answering
+	reason string              // A terminal reversal that arrived before rec was set
 }
 
 // Reversal states.
@@ -120,6 +134,7 @@ type acquirer struct {
 	records   []*Record            // Oldest first, at most maxRecords
 	seen      map[string]seenEntry // Idempotency key -> the answer the terminal got
 	seenOrder []seenKey            // Keys of seen, oldest first
+	legs      map[string]*leg      // Same keys as seen: the network leg of each request
 	closed    bool                 // Set by Close; no new reversals start
 	bgCtx     context.Context      // Cancelled by Close
 	bgCancel  context.CancelFunc
@@ -130,7 +145,7 @@ func newAcquirer(id, name string, merchants []Merchant, network Network) *acquir
 	a := &acquirer{
 		id: id, name: name, merchants: merchants, network: network, now: time.Now,
 		reversalRetry: time.Second, reversalRetryMax: 30 * time.Second,
-		seen: map[string]seenEntry{},
+		seen: map[string]seenEntry{}, legs: map[string]*leg{},
 	}
 	a.bgCtx, a.bgCancel = context.WithCancel(context.Background())
 	// One counter serves every terminal, so it is rarely in step with any one
@@ -222,6 +237,12 @@ func (a *acquirer) Authorize(ctx context.Context, req iso8583.AuthRequest) iso85
 		MS: msSince(start),
 	})
 
+	// Remember the network leg before sending, so a reversal from the terminal
+	// can find it even while the network is still answering.
+	a.mu.Lock()
+	a.legs[key] = &leg{out: out}
+	a.mu.Unlock()
+
 	sent := time.Now()
 	nctx, cancel := context.WithTimeout(ctx, networkTimeout)
 	resp, err := a.network.Authorize(nctx, out)
@@ -248,13 +269,10 @@ func (a *acquirer) Authorize(ctx context.Context, req iso8583.AuthRequest) iso85
 			Detail: "The acquirer's own 0110 to terminal " + req.TerminalID + " with its STAN " + req.STAN,
 			MS:     msSince(back),
 		})
-		rec.Reversal = ReversalPending
+		rec.Reversal, rec.ReversalReason = ReversalPending, reason
 		resp, stored := a.finish(key, rec, req, resp, start)
-		if !a.background(func(ctx context.Context) { a.reverse(ctx, stored, out, reason) }) {
-			a.mu.Lock()
-			stored.Reversal = ReversalStopped
-			a.mu.Unlock()
-		}
+		a.attachLeg(key, stored) // Already reversing, so a pending terminal reversal adds nothing
+		a.startReversal(stored, out, reason)
 		return resp
 	}
 	rec.Steps = append(rec.Steps, Step{
@@ -275,8 +293,52 @@ func (a *acquirer) Authorize(ctx context.Context, req iso8583.AuthRequest) iso85
 		Detail: "Response passed back to terminal " + req.TerminalID + " with its original STAN " + req.STAN,
 		MS:     msSince(back),
 	})
-	resp, _ = a.finish(key, rec, req, resp, start)
+	resp, stored := a.finish(key, rec, req, resp, start)
+	// The terminal gave up and sent an 0420 while the network was answering.
+	if reason := a.attachLeg(key, stored); reason != "" {
+		a.reverseFor(stored, out, reason, "the terminal's 0420 arrived while the network was still answering")
+	}
 	return resp
+}
+
+// attachLeg links the stored record to its network leg and returns the
+// reason of any terminal reversal that arrived before the record existed.
+func (a *acquirer) attachLeg(key string, rec *Record) string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	l := a.legs[key]
+	if l == nil {
+		return ""
+	}
+	l.rec = rec
+	return l.reason
+}
+
+// startReversal sends the 0420 for rec in the background, retrying until the
+// network acknowledges it.
+func (a *acquirer) startReversal(rec *Record, out iso8583.AuthRequest, reason string) {
+	if !a.background(func(ctx context.Context) { a.reverse(ctx, rec, out, reason) }) {
+		a.setReversal(rec, ReversalStopped)
+	}
+}
+
+// reverseFor starts reversing rec for a terminal, unless it is already being
+// reversed. It reports whether it started.
+func (a *acquirer) reverseFor(rec *Record, out iso8583.AuthRequest, reason, why string) bool {
+	a.mu.Lock()
+	if rec.Reversal != "" {
+		a.mu.Unlock()
+		return false
+	}
+	rec.Reversal, rec.ReversalReason = ReversalPending, reason
+	rec.Steps = append(rec.Steps, Step{
+		From: PartyPOS, To: PartyAcquirer, MTI: iso8583.MTIReversalAdvice, Title: "Reversal advice from the terminal",
+		Detail: fmt.Sprintf("Terminal %s asks to undo its STAN %s: reason %s %s. %s",
+			rec.TerminalID, rec.TerminalSTAN, reason, iso8583.ResponseText(reason), why),
+	})
+	a.mu.Unlock()
+	a.startReversal(rec, out, reason)
+	return true
 }
 
 // finish stores the record and returns the response for the terminal, and
@@ -293,6 +355,7 @@ func (a *acquirer) finish(key string, rec Record, req iso8583.AuthRequest, resp 
 		old := a.seenOrder[0]
 		if e, ok := a.seen[old.key]; ok && e.at.Equal(old.at) {
 			delete(a.seen, old.key)
+			delete(a.legs, old.key)
 		}
 		a.seenOrder = a.seenOrder[1:]
 	}

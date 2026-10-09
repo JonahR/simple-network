@@ -68,6 +68,7 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /authorize", s.handleAuthorize)
+	mux.HandleFunc("POST /reverse", s.handleReverse)
 	mux.Handle("GET /", http.FileServerFS(static))
 	mux.HandleFunc("GET /api/overview", s.handleOverview)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
@@ -106,6 +107,22 @@ func (s *server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, s.acq.Authorize(r.Context(), req))
+}
+
+// handleReverse takes an 0420 reversal advice from a terminal (a void, or its
+// own timeout) and acknowledges it with an 0430.
+func (s *server) handleReverse(w http.ResponseWriter, r *http.Request) {
+	var adv iso8583.ReversalAdvice
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&adv); err != nil {
+		http.Error(w, "invalid 0420 message", http.StatusBadRequest)
+		return
+	}
+	ack, err := s.acq.TerminalReverse(adv)
+	if err != nil {
+		http.Error(w, "invalid 0420: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, http.StatusOK, ack)
 }
 
 // Totals is what a merchant has earned in one currency since start-up,
@@ -163,6 +180,9 @@ func (s *server) handleOverview(w http.ResponseWriter, _ *http.Request) {
 		}
 		st.Approved++
 		t.Approved++
+		if rec.Reversal != "" {
+			continue // Voided or reversed: the hold is released and the merchant isn't paid
+		}
 		if strings.HasPrefix(rec.Request.ProcessingCode, iso8583.TxnRefund) {
 			t.Refunds += rec.Response.Amount
 		} else {

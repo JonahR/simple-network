@@ -8,6 +8,7 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"log"
 	"net/http"
@@ -64,6 +65,10 @@ type SaleInput struct {
 	VehicleID        string `json:"vehicle_id"`
 	DriverID         string `json:"driver_id"`
 	HealthcareAmount string `json:"healthcare_amount"`
+
+	// Simulation: send the 0100 but drop the 0110, as if the line went dead.
+	// The terminal then reverses the sale it never heard back about.
+	LoseResponse bool `json:"lose_response"`
 }
 
 // StoredCard is a card the merchant keeps on file for a returning customer.
@@ -98,11 +103,16 @@ func cardOnFile(id string) (StoredCard, bool) {
 
 // Transaction is a sale as recorded by the terminal.
 type Transaction struct {
-	Status   string                `json:"status"` // APPROVED, PARTIAL, DECLINED, or NO_RESPONSE
+	Status   string                `json:"status"` // APPROVED, PARTIAL, DECLINED, NO_RESPONSE, or VOIDED
 	Message  string                `json:"message"`
 	Request  iso8583.AuthRequest   `json:"request"`            // Redacted
 	Response *iso8583.AuthResponse `json:"response,omitempty"` // Redacted; nil if the acquirer never answered
 	Created  time.Time             `json:"created"`
+	Reversal *Reversal             `json:"reversal,omitempty"` // Set once the terminal starts undoing the sale
+
+	// The 0100 as sent, unmasked, so a reversal can identify the sale. Never
+	// serialized; the PIN block, CVV, track data and cryptogram are dropped.
+	sent iso8583.AuthRequest
 }
 
 type server struct {
@@ -115,7 +125,9 @@ type server struct {
 	stan         atomic.Uint32
 
 	mu      sync.Mutex
-	history []Transaction
+	history []*Transaction
+
+	reversalRetry time.Duration // Wait between attempts to deliver an 0400
 }
 
 func main() {
@@ -147,6 +159,8 @@ func main() {
 		acquirer:     newAcquirerClient(env("ACQUIRER_URL", "http://localhost:8081")),
 		dashboardURL: env("NETWORK_DASHBOARD_URL", "http://localhost:8090"),
 		acquirerURL:  env("ACQUIRER_PUBLIC_URL", "http://localhost:8081"),
+
+		reversalRetry: 3 * time.Second,
 	}
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
@@ -160,6 +174,7 @@ func main() {
 	mux.HandleFunc("GET /api/terminal", s.handleTerminal)
 	mux.HandleFunc("GET /api/test-card", s.handleTestCard)
 	mux.HandleFunc("POST /api/sale", s.handleSale)
+	mux.HandleFunc("POST /api/void", s.handleVoid)
 	mux.HandleFunc("GET /api/transactions", s.handleTransactions)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	ui.Register(mux, ui.PagesFromEnv())
@@ -211,8 +226,11 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx := Transaction{Request: req.Redacted(card.Mask), Created: time.Now()}
+	tx := &Transaction{Request: req.Redacted(card.Mask), Created: time.Now(), sent: forReversal(req)}
 	resp, err := s.acquirer.authorize(r.Context(), req)
+	if err == nil && in.LoseResponse {
+		err = errors.New("the 0110 was lost on the way back (simulated)")
+	}
 	if err != nil {
 		tx.Status, tx.Message = "NO_RESPONSE", "No response from the acquirer: "+err.Error()
 	} else {
@@ -224,10 +242,16 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 	s.history = append(s.history, tx)
 	s.mu.Unlock()
 
+	// D9: a terminal that never hears back can't know whether the issuer
+	// approved and placed a hold, so it reverses the sale.
+	if tx.Status == "NO_RESPONSE" {
+		s.startReversal(r.Context(), tx, iso8583.RCLateResponse)
+	}
+
 	log.Printf("sale stan=%s rrn=%s pan=%s proc=%s amount=%d currency=%s entry=%s wallet=%s status=%s",
 		tx.Request.STAN, tx.Request.RRN, tx.Request.PAN, tx.Request.ProcessingCode, tx.Request.Amount,
 		tx.Request.Currency, tx.Request.EntryMode, tx.Request.WalletProvider, tx.Status)
-	writeJSON(w, http.StatusOK, tx)
+	writeJSON(w, http.StatusOK, s.snapshot(tx))
 }
 
 func (s *server) handleTransactions(w http.ResponseWriter, _ *http.Request) {
@@ -235,10 +259,27 @@ func (s *server) handleTransactions(w http.ResponseWriter, _ *http.Request) {
 	out := make([]Transaction, len(s.history))
 	// Newest first.
 	for i, tx := range s.history {
-		out[len(s.history)-1-i] = tx
+		out[len(s.history)-1-i] = copyTx(tx)
 	}
 	s.mu.Unlock()
 	writeJSON(w, http.StatusOK, out)
+}
+
+// snapshot copies a transaction under the lock, since a reversal may be
+// updating it in the background.
+func (s *server) snapshot(tx *Transaction) Transaction {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return copyTx(tx)
+}
+
+func copyTx(tx *Transaction) Transaction {
+	c := *tx
+	if tx.Reversal != nil {
+		r := *tx.Reversal
+		c.Reversal = &r
+	}
+	return c
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

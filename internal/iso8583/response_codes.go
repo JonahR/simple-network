@@ -8,6 +8,7 @@ const (
 	RCDoNotHonor        = "05"
 	RCInvalidCard       = "14"
 	RCNoSuchIssuer      = "15"
+	RCCustomerCancel    = "17" // Reversal reason: customer cancellation (a void)
 	RCSuspectedMalfunc  = "22" // Reversal reason: suspected malfunction
 	RCFormatError       = "30"
 	RCInsufficientFunds = "51"
@@ -39,6 +40,7 @@ var ResponseCodes = map[string]ResponseCode{
 	RCDoNotHonor:        {"Do not honor", false, "issuer"},
 	RCInvalidCard:       {"Invalid card number", false, "issuer"},
 	RCNoSuchIssuer:      {"No such issuer", false, "network"},
+	RCCustomerCancel:    {"Customer cancellation", false, "acquirer"},
 	RCSuspectedMalfunc:  {"Suspected malfunction", false, "network"},
 	RCFormatError:       {"Format error", false, "network"},
 	RCInsufficientFunds: {"Insufficient funds", false, "issuer"},

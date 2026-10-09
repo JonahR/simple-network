@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/JonahR/simple-network/internal/iso8583"
@@ -27,27 +29,48 @@ func newAcquirerClient(url string) *acquirerClient {
 
 func (c *acquirerClient) authorize(ctx context.Context, req iso8583.AuthRequest) (iso8583.AuthResponse, error) {
 	var resp iso8583.AuthResponse
-	body, err := json.Marshal(req)
+	return resp, c.post(ctx, "/authorize", req, &resp)
+}
+
+// reverse sends an 0420 reversal advice and returns the 0430.
+func (c *acquirerClient) reverse(ctx context.Context, adv iso8583.ReversalAdvice) (iso8583.ReversalResponse, error) {
+	var resp iso8583.ReversalResponse
+	return resp, c.post(ctx, "/reverse", adv, &resp)
+}
+
+// httpError is a non-200 answer from the acquirer.
+type httpError struct {
+	code int
+	body string
+}
+
+func (e *httpError) Error() string {
+	return fmt.Sprintf("acquirer returned HTTP %d %s", e.code, e.body)
+}
+
+func (c *acquirerClient) post(ctx context.Context, path string, in, out any) error {
+	body, err := json.Marshal(in)
 	if err != nil {
-		return resp, err
+		return err
 	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url+"/authorize", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url+path, bytes.NewReader(body))
 	if err != nil {
-		return resp, err
+		return err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	res, err := c.http.Do(httpReq)
 	if err != nil {
-		return resp, fmt.Errorf("acquirer unreachable at %s", c.url)
+		return fmt.Errorf("acquirer unreachable at %s", c.url)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("acquirer returned HTTP %d", res.StatusCode)
+		msg, _ := io.ReadAll(io.LimitReader(res.Body, 200))
+		return &httpError{code: res.StatusCode, body: strings.TrimSpace(string(msg))}
 	}
-	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
-		return resp, fmt.Errorf("unreadable acquirer response: %v", err)
+	if err := json.NewDecoder(res.Body).Decode(out); err != nil {
+		return fmt.Errorf("unreadable acquirer response: %v", err)
 	}
-	return resp, nil
+	return nil
 }
 
 // outcome turns an 0110 into the status and message the cashier sees.

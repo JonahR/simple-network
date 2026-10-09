@@ -220,8 +220,20 @@ type ReversalAdvice struct {
 	STAN             string        `json:"de11_stan"`                 // This 0420's own trace number, not the original's
 	AcquirerID       string        `json:"de32_acquirer_id,omitempty"`
 	RRN              string        `json:"de37_rrn"`
-	ResponseCode     string        `json:"de39_response_code"` // Reversal reason, e.g. 68 response received too late
+	ResponseCode     string        `json:"de39_response_code"`         // Reversal reason, e.g. 68 response received too late
+	TerminalID       string        `json:"de41_terminal_id,omitempty"` // Set by a terminal, so the acquirer knows whose STAN DE90 means
+	MerchantID       string        `json:"de42_merchant_id,omitempty"`
 	OriginalData     *OriginalData `json:"de90_original_data"` // The authorization being reversed
+}
+
+// Redacted returns a copy with the PAN masked.
+func (a ReversalAdvice) Redacted(mask func(string) string) ReversalAdvice {
+	a.PAN = mask(a.PAN)
+	if a.OriginalData != nil {
+		o := *a.OriginalData
+		a.OriginalData = &o
+	}
+	return a
 }
 
 // OriginalData is DE90: the fields that identify the original message. For

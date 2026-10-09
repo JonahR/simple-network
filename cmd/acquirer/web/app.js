@@ -53,7 +53,13 @@ function statusBadge(rec) {
   const code = rec.response.de39_response_code;
   const text = data.response_codes[code]?.text || "Unknown";
   const [cls, icon] = { APPROVED: ["good", "✓"], PARTIAL: ["", "◐"], DECLINED: ["bad", "✕"] }[rec.status] || ["", ""];
-  return `<span class="status ${cls}" data-term="de39"><span aria-hidden="true">${icon}</span> ${escapeHTML(code)} ${escapeHTML(text)}</span>`;
+  let html = `<span class="status ${cls}" data-term="de39"><span aria-hidden="true">${icon}</span> ${escapeHTML(code)} ${escapeHTML(text)}</span>`;
+  // An approved sale the terminal voided or reversed won't be paid.
+  if (rec.reversal && rec.status !== "DECLINED") {
+    const void_ = rec.reversal_reason === "17";
+    html += ` <span class="status" data-term="${void_ ? "void" : "timeout-reversal"}"><span aria-hidden="true">↩</span> ${void_ ? "Voided" : "Reversed"}</span>`;
+  }
+  return html;
 }
 
 function renderKPIs() {
@@ -151,7 +157,7 @@ function renderPath(rec) {
       <span><span data-term="latency">Total at acquirer</span> <b>${fmtMS(rec.total_ms)}</b></span>
       ${rec.response.de38_auth_code ? `<span><span data-term="de38">Auth code</span> <b class="mono">${escapeHTML(rec.response.de38_auth_code)}</b></span>` : ""}
       ${txnID ? `<span><span data-term="network-txn-id">Network txn</span> <b class="mono">${escapeHTML(txnID)}</b></span>` : ""}
-      ${rec.reversal ? `<span><span data-term="reversal">Reversal</span> <b>${escapeHTML(REVERSAL_TEXT[rec.reversal] || rec.reversal)}</b></span>` : ""}
+      ${rec.reversal ? `<span><span data-term="reversal">Reversal</span> <b>${escapeHTML(REVERSAL_TEXT[rec.reversal] || rec.reversal)}</b>${rec.reversal_reason ? ` · reason <b class="mono" data-term="reversal">${escapeHTML(rec.reversal_reason)}</b> ${escapeHTML(data.response_codes[rec.reversal_reason]?.text || "")}` : ""}</span>` : ""}
       ${link}
     </div>
     ${changes}`;

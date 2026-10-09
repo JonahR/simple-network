@@ -33,7 +33,11 @@
     }
 
     // Live feed: Time, Card, Mode, Issuer, Amount, Response, Latency.
-    document.querySelectorAll("#feed tr[data-id]").forEach((tr) => cols(tr, ["de12", "pan-masking", "de22", "issuer", "de4", "de39", "latency"]));
+    document.querySelectorAll("#feed tr[data-id]").forEach((tr) => {
+      cols(tr, ["de12", "pan-masking", "de22", "issuer", "de4", "de39", "latency"]);
+      tr.querySelectorAll(".status.reversed").forEach((el) => tag(el, "reversal"));
+    });
+    document.querySelectorAll("#trace .trace-head .status.reversed").forEach((el) => tag(el, "reversal"));
 
     // Trace: step names, the header, and the messages tables.
     const trace = document.getElementById("trace");
