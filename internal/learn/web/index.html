@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Learn the Network · simple-network</title>
-<link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="learn.css">
 <link rel="stylesheet" href="hub.css">
 </head>
 <body class="hub">
 <header>
-  <div class="brand"><a href="/"><b data-term="network">simple-network</b></a> <span>Learn</span></div>
+  <div class="brand"><a href="/learn/"><b data-term="network">simple-network</b></a> <span>Learn</span></div>
   <nav class="learn-nav" aria-label="Learning">
-    <a href="/">POS terminal</a>
+    <a href="/" data-link="pos">POS terminal</a>
+    <a href="/" data-link="dashboard">Network dashboard</a>
     <a href="#docs">Docs</a>
     <a href="#glossary">Glossary</a>
     <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" title="Click any label to learn what it is. Shortcut: ?">Explain mode</button>
@@ -22,7 +22,7 @@
 <main class="hub-main">
   <section class="hub-intro">
     <h1>How a card network works, one step at a time</h1>
-    <p>Every label on this page, in the <a href="/">POS terminal</a>, and in the docs' diagrams is clickable. Hover to preview a definition; click or tap to keep it open with links to the <span data-term="network">network</span> docs in this repo and to official sources. Turn on <b>Explain mode</b> (or press <kbd>?</kbd>) to make buttons explain themselves too.</p>
+    <p>Every label on this page, in the <a href="/" data-link="pos">POS terminal</a>, in the <a href="/" data-link="dashboard">network dashboard</a>, and in the docs' diagrams is clickable. Hover to preview a definition; click or tap to keep it open with links to the <span data-term="network">network</span> docs in this repo and to official sources. Turn on <b>Explain mode</b> (or press <kbd>?</kbd>) to make buttons explain themselves too.</p>
   </section>
 
   <ol class="steps">
@@ -41,7 +41,7 @@
         <p>At checkout the <span data-term="pos-terminal">terminal</span> builds an <span data-term="msg-0100">0100 authorization request</span>. The network routes it by <span data-term="bin">BIN</span> to the issuer, which answers with an <span data-term="msg-0110">0110</span> and places a <span data-term="auth-hold">hold</span>. No money moves yet.</p>
         <div class="cta-row">
           <a class="cta" href="kt/interactive/authorization-request.html">Take apart an 0100, field by field</a>
-          <a class="cta secondary" href="/">Build one in the POS</a>
+          <a class="cta secondary" href="/" data-link="pos">Build one in the POS</a>
         </div>
         <p class="step-links"><a href="doc.html?doc=03-transaction-lifecycle.md#stage-1-authorization">Doc 03: Stage 1</a> · <a href="doc.html?doc=04-authorization-deep-dive.md">Doc 04: Authorization deep dive</a></p>
       </div>

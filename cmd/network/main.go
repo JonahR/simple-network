@@ -23,6 +23,7 @@ import (
 	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/iso8583"
+	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/network"
 )
 
@@ -82,6 +83,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /authorize", s.handleAuthorize)
 	mux.Handle("GET /", http.FileServerFS(static))
+	// Definitions for every dashboard label, the learning hub, and the Network KT docs.
+	mux.Handle("GET /learn/", learn.Handler(learn.Links{POS: env("POS_URL", "http://localhost:8080"), Dashboard: "/"}))
 	mux.HandleFunc("GET /api/overview", s.handleOverview)
 	mux.HandleFunc("GET /api/transactions", s.handleTransactions)
 	mux.HandleFunc("GET /api/transactions/{id}", s.handleTransaction)

@@ -22,7 +22,12 @@ New services go under `cmd/<name>/`. `make serve` builds and starts every binary
 
 ## Learning labels
 
-Every label in the POS and in `Network KT/visuals/` must teach what it means. Give it `data-term="<id>"` with an id from `cmd/pos/web/learn/glossary.json`; each term has a definition, at least one Network KT link (file#heading) and one outside link. Labels app.js renders at runtime are tagged in `cmd/pos/web/learn/pos-terms.js`, and a new field name needs a matching glossary alias. `go test ./cmd/pos/` fails on untagged SVG text, unknown terms, missing links, or doc links to headings that don't exist. Learning pages are served at `/learn/` (hub, doc viewer, glossary).
+Every label in a UI (POS, network dashboard, any new service) and in `Network KT/visuals/` must teach what it means:
+
+- Give it `data-term="<id>"` with an id from `internal/learn/web/glossary.json`. Each term has a definition, at least one Network KT link (`file.md#heading`) and one outside link.
+- Labels a page renders at runtime are tagged by that service's terms script (`cmd/pos/web/pos-terms.js`, `cmd/network/web/dashboard-terms.js`), usually through glossary aliases, so a new label text needs a matching alias.
+- A new UI loads `/learn/learn.css` and `/learn/learn.js` and mounts `learn.Handler` at `/learn/`, which also serves the learning hub, the doc viewer and the KT docs.
+- `go test ./...` fails on untagged SVG text, unknown terms, labels without aliases, missing links, or doc links to headings that don't exist.
 
 ## Conventions
 

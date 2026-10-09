@@ -1,52 +1,30 @@
-package main
+package learn
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"io/fs"
-	"path"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"unicode"
 
 	simplenetwork "github.com/JonahR/simple-network"
-	"github.com/JonahR/simple-network/internal/iso8583"
 )
 
 // These tests keep the learning layer honest: every label someone can click
 // must have a definition, a link into the Network KT docs that lands on a real
 // heading, and a link to an outside source.
 
-type term struct {
-	Name    string      `json:"name"`
-	Def     string      `json:"def"`
-	KT      [][2]string `json:"kt"`
-	Ext     [][2]string `json:"ext"`
-	See     []string    `json:"see"`
-	Aliases []string    `json:"aliases"`
-}
-
-func loadGlossary(t *testing.T) map[string]term {
+func mustTerms(t *testing.T) map[string]Term {
 	t.Helper()
-	b, err := fs.ReadFile(webFS, "web/learn/glossary.json")
+	terms, err := Terms()
 	if err != nil {
-		t.Fatal(err)
-	}
-	var g struct {
-		Terms map[string]term `json:"terms"`
-	}
-	if err := json.Unmarshal(b, &g); err != nil {
 		t.Fatalf("glossary.json: %v", err)
 	}
-	return g.Terms
-}
-
-// normLabel mirrors norm() in learn.js.
-func normLabel(s string) string {
-	s = strings.Join(strings.Fields(s), " ")
-	s = strings.TrimRight(s, "·:…")
-	return strings.ToLower(strings.TrimSpace(s))
+	return terms
 }
 
 // githubSlug mirrors how GitHub (and doc.js) turn a heading into an anchor.
@@ -63,33 +41,33 @@ func githubSlug(h string) string {
 	return b.String()
 }
 
-var headingRE = regexp.MustCompile(`(?m)^#{1,6} +(.+?) *$`)
-var inlineMD = regexp.MustCompile("[`*]|\\[([^\\]]*)\\]\\([^)]*\\)")
+var (
+	headingRE = regexp.MustCompile(`^#{1,6} +(.+?) *$`)
+	inlineMD  = regexp.MustCompile("[`*]|\\[([^\\]]*)\\]\\([^)]*\\)")
+)
 
+// anchors lists a markdown file's heading anchors, skipping fenced code.
 func anchors(t *testing.T, kt fs.FS, file string) map[string]bool {
 	t.Helper()
 	b, err := fs.ReadFile(kt, file)
 	if err != nil {
 		t.Fatalf("read %s: %v", file, err)
 	}
-	// Ignore headings inside fenced code blocks.
-	var text strings.Builder
+	out := map[string]bool{}
+	seen := map[string]int{}
 	inFence := false
 	for _, line := range strings.Split(string(b), "\n") {
 		if strings.HasPrefix(line, "```") {
 			inFence = !inFence
 			continue
 		}
-		if !inFence {
-			text.WriteString(line + "\n")
+		m := headingRE.FindStringSubmatch(line)
+		if inFence || m == nil {
+			continue
 		}
-	}
-	out := map[string]bool{}
-	seen := map[string]int{}
-	for _, m := range headingRE.FindAllStringSubmatch(text.String(), -1) {
 		s := githubSlug(inlineMD.ReplaceAllString(m[1], "$1"))
 		if n := seen[s]; n > 0 {
-			out[s+"-"+string(rune('0'+n))] = true
+			out[s+"-"+strconv.Itoa(n)] = true
 		} else {
 			out[s] = true
 		}
@@ -99,7 +77,7 @@ func anchors(t *testing.T, kt fs.FS, file string) map[string]bool {
 }
 
 func TestGlossaryEntriesAreComplete(t *testing.T) {
-	terms := loadGlossary(t)
+	terms := mustTerms(t)
 	kt := simplenetwork.Knowledge()
 	anchorCache := map[string]map[string]bool{}
 	aliasOwner := map[string]string{}
@@ -141,7 +119,7 @@ func TestGlossaryEntriesAreComplete(t *testing.T) {
 			}
 		}
 		for _, a := range tm.Aliases {
-			n := normLabel(a)
+			n := Normalize(a)
 			if other, ok := aliasOwner[n]; ok && other != id {
 				t.Errorf("alias %q belongs to both %s and %s", a, other, id)
 			}
@@ -150,33 +128,19 @@ func TestGlossaryEntriesAreComplete(t *testing.T) {
 	}
 }
 
-var dataTermRE = regexp.MustCompile(`data-term="([^"]+)"`)
-
-// Every data-term in the POS pages and the KT visuals names a real term.
-func TestEveryLabelHasADefinition(t *testing.T) {
-	terms := loadGlossary(t)
-	check := func(fsys fs.FS, root string) {
-		fs.WalkDir(fsys, root, func(p string, d fs.DirEntry, err error) error {
-			if err != nil || d.IsDir() {
-				return err
-			}
-			if ext := path.Ext(p); ext != ".html" && ext != ".svg" && ext != ".js" {
-				return nil
-			}
-			b, _ := fs.ReadFile(fsys, p)
-			for _, m := range dataTermRE.FindAllStringSubmatch(string(b), -1) {
-				if strings.ContainsAny(m[1], "${<") {
-					continue // built at runtime in JS, or an example in a comment
-				}
-				if _, ok := terms[m[1]]; !ok {
-					t.Errorf("%s: data-term %q isn't in glossary.json", p, m[1])
-				}
-			}
-			return nil
-		})
+func TestLearningPagesAndVisualsUseKnownTerms(t *testing.T) {
+	for _, src := range []struct {
+		fsys fs.FS
+		root string
+	}{{Web(), "."}, {simplenetwork.Knowledge(), "visuals"}} {
+		bad, err := UnknownTerms(src.fsys, src.root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, b := range bad {
+			t.Errorf("unknown data-term: %s", b)
+		}
 	}
-	check(webFS, "web")
-	check(simplenetwork.Knowledge(), "visuals")
 }
 
 // Every <text> label in a KT visual is clickable: the <text> itself or its
@@ -208,60 +172,48 @@ func TestVisualLabelsAreTagged(t *testing.T) {
 	}
 }
 
-// Every field the POS can show in its 0100 table, and every entry mode, has a term.
-func TestPOSFieldsHaveTerms(t *testing.T) {
-	terms := loadGlossary(t)
-	alias := map[string]string{}
-	for id, tm := range terms {
-		for _, a := range tm.Aliases {
-			alias[normLabel(a)] = id
+func TestHandlerServesHubDocsAndConfig(t *testing.T) {
+	srv := httptest.NewServer(Handler(Links{POS: "http://pos", Dashboard: "http://dash"}))
+	defer srv.Close()
+	for path, want := range map[string]string{
+		"/learn/":                                          "How a card network works",
+		"/learn/learn.js":                                  "window.Learn",
+		"/learn/glossary.json":                             `"terms"`,
+		"/learn/config.json":                               `"dashboard_url":"http://dash"`,
+		"/learn/kt/07-cards-bins-and-tokens.md":            "Luhn algorithm",
+		"/learn/kt/visuals/pan-anatomy.svg":                `data-term="luhn"`,
+		"/learn/kt/interactive/authorization-request.html": "Anatomy of an",
+	} {
+		res, err := http.Get(srv.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b := new(strings.Builder)
+		buf := make([]byte, 1<<16)
+		for {
+			n, err := res.Body.Read(buf)
+			b.Write(buf[:n])
+			if err != nil {
+				break
+			}
+		}
+		res.Body.Close()
+		if res.StatusCode != 200 || !strings.Contains(b.String(), want) {
+			t.Errorf("GET %s: status %d, want body containing %q", path, res.StatusCode, want)
 		}
 	}
-	lookup := func(s string) bool {
-		if _, ok := alias[normLabel(s)]; ok {
-			return true
-		}
-		first := regexp.MustCompile(`\s*[(:]\s*`).Split(s, 2)[0]
-		_, ok := alias[normLabel(first)]
-		return ok
-	}
+}
 
-	app, err := fs.ReadFile(webFS, "web/app.js")
-	if err != nil {
-		t.Fatal(err)
-	}
-	block := regexp.MustCompile(`(?s)const FIELDS = \[(.*?)\n\];`).FindStringSubmatch(string(app))
-	if block == nil {
-		t.Fatal("couldn't find FIELDS in app.js")
-	}
-	rows := regexp.MustCompile(`\["[^"]*", "[^"]*", "([^"]+)"\]`).FindAllStringSubmatch(block[1], -1)
-	if len(rows) < 10 {
-		t.Fatalf("parsed only %d FIELDS rows", len(rows))
-	}
-	for _, r := range rows {
-		if !lookup(r[1]) {
-			t.Errorf("POS field %q has no glossary alias", r[1])
-		}
-	}
-	if !lookup("Device account number (token)") {
-		t.Error("token PAN label has no glossary alias")
-	}
-
-	posTerms, err := fs.ReadFile(webFS, "web/learn/pos-terms.js")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for code, name := range iso8583.EntryModes {
-		if !strings.Contains(string(posTerms), `"`+code+`"`) {
-			t.Errorf("entry mode %s (%s) isn't mapped in pos-terms.js", code, name)
-		}
-		if !lookup(name) {
-			t.Errorf("entry mode name %q has no glossary alias", name)
-		}
-	}
-	for _, name := range iso8583.Wallets {
-		if !lookup(name) {
-			t.Errorf("wallet %q has no glossary alias", name)
+func TestLookupMatchesLearnJS(t *testing.T) {
+	for label, want := range map[string]string{
+		"DE22":                 "de22",
+		"Expiration (YYMM)":    "de14",
+		"Amount (minor units)": "de4",
+		"Contactless read":     "contactless",
+		"Apple Pay":            "apple-pay",
+	} {
+		if got, ok := Lookup(label); !ok || got != want {
+			t.Errorf("Lookup(%q) = %q, want %q", label, got, want)
 		}
 	}
 }

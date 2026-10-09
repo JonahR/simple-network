@@ -30,6 +30,8 @@
       tag(valueCell, valueId);
     });
     root.querySelectorAll(".result-head .status").forEach((el) => tag(el, "txn-status"));
+    root.querySelectorAll("h3").forEach((h) => tag(h, Learn.lookup(h.textContent)));
+    root.querySelectorAll(".trace-link a").forEach((a) => tag(a, "switch-trace"));
   }
 
   function tagHistory(tbody) {

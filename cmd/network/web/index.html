@@ -5,13 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>simple-network Operations</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/learn/learn.css">
 </head>
 <body>
 <header>
-  <div class="brand">simple-network <span>Network</span></div>
+  <div class="brand"><b data-term="network">simple-network</b> <span data-term="auth-switch">Network</span></div>
   <nav class="tabs" role="tablist">
-    <button role="tab" aria-selected="true" data-tab="live">Live</button>
-    <button role="tab" aria-selected="false" data-tab="routing">Routing &amp; tokens</button>
+    <button role="tab" aria-selected="true" data-tab="live" data-term="switch-trace">Live</button>
+    <button role="tab" aria-selected="false" data-tab="routing" data-term="bin">Routing &amp; tokens</button>
+  </nav>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/learn/">Learn the network</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" title="Click any label or button to learn what it is. Shortcut: ?">Explain mode</button>
   </nav>
   <div id="conn" class="conn" aria-live="polite"><span class="dot"></span><span class="label">Connecting…</span></div>
 </header>
@@ -22,19 +27,19 @@
     <div class="kpis" id="kpis"></div>
 
     <section class="panel topo-panel">
-      <h2>Network</h2>
+      <h2><span data-term="network">Network</span></h2>
       <div class="topo-wrap"><svg id="topo" viewBox="0 20 1000 260" role="img" aria-label="Transactions moving from the acquirer through the network to issuers"></svg></div>
     </section>
 
     <div class="split">
       <section class="panel feed-panel">
         <div class="panel-head">
-          <h2>Transactions</h2>
+          <h2><span data-term="authorization">Transactions</span></h2>
           <span class="muted" id="feed-count"></span>
         </div>
         <div class="table-wrap feed-wrap">
           <table class="feed">
-            <thead><tr><th>Time</th><th>Card</th><th>Mode</th><th>Issuer</th><th class="num">Amount</th><th>Response</th><th class="num">Latency</th></tr></thead>
+            <thead><tr><th><span data-term="de12">Time</span></th><th><span data-term="pan-masking">Card</span></th><th><span data-term="de22">Mode</span></th><th><span data-term="issuer">Issuer</span></th><th class="num"><span data-term="de4">Amount</span></th><th><span data-term="de39">Response</span></th><th class="num"><span data-term="latency">Latency</span></th></tr></thead>
             <tbody id="feed"><tr><td colspan="7" class="empty">Waiting for transactions. Run a sale on the POS at <a href="http://localhost:8080" target="_blank" rel="noopener">localhost:8080</a>.</td></tr></tbody>
           </table>
         </div>
@@ -42,8 +47,8 @@
 
       <section class="panel trace-panel">
         <div class="panel-head">
-          <h2>Trace</h2>
-          <button type="button" id="follow" class="link" hidden>Follow latest</button>
+          <h2><span data-term="switch-trace">Trace</span></h2>
+          <button type="button" id="follow" class="link" data-term="switch-trace" hidden>Follow latest</button>
         </div>
         <div id="trace" class="empty">Select a transaction to see each step the network took.</div>
       </section>
@@ -51,13 +56,13 @@
 
     <div class="split even">
       <section class="panel">
-        <h2>Response codes</h2>
+        <h2><span data-term="de39">Response codes</span></h2>
         <div id="codes" class="empty">No responses yet.</div>
       </section>
       <section class="panel">
-        <h2>Issuers</h2>
+        <h2><span data-term="issuer">Issuers</span></h2>
         <div id="issuers"></div>
-        <p class="hint">Simulation: <b>Slow</b> answers after the <span id="timeout">5s</span> timeout, so the network declines with 91 and sends an 0420 reversal. <b>Down</b> refuses requests. Three failures in a row open the issuer's circuit breaker for 15s.</p>
+        <p class="hint"><span data-term="issuer-health">Simulation</span>: <b data-term="issuer-health">Slow</b> answers after the <span data-term="timeout"><span id="timeout">5s</span> timeout</span>, so the network declines with <span data-term="de39">91</span> and sends an <span data-term="reversal">0420 reversal</span>. <b data-term="issuer-health">Down</b> refuses requests. Three failures in a row open the issuer's <span data-term="circuit-breaker">circuit breaker</span> for 15s.</p>
       </section>
     </div>
   </section>
@@ -66,14 +71,14 @@
   <section id="tab-routing" class="tab" hidden>
     <div class="split even">
       <section class="panel">
-        <div class="panel-head"><h2>BIN table</h2><span class="muted" id="bin-version"></span></div>
-        <p class="hint">The network routes each card number by its longest matching prefix (6–8 digits). Token ranges go to the token vault first.</p>
-        <div class="table-wrap"><table><thead><tr><th>Prefix</th><th>Routes to</th><th>Product</th><th>Range</th></tr></thead><tbody id="bins"></tbody></table></div>
+        <div class="panel-head"><h2><span data-term="bin">BIN table</span></h2><span class="muted" id="bin-version"></span></div>
+        <p class="hint">The network routes each <span data-term="de2">card number</span> by its <span data-term="bin">longest matching prefix (6–8 digits)</span>. <span data-term="token-service">Token ranges go to the token vault first.</span></p>
+        <div class="table-wrap"><table><thead><tr><th><span data-term="bin">Prefix</span></th><th><span data-term="issuer">Routes to</span></th><th><span data-term="card-products">Product</span></th><th><span data-term="bin">Range</span></th></tr></thead><tbody id="bins"></tbody></table></div>
       </section>
       <section class="panel">
-        <h2>Token vault</h2>
-        <p class="hint">Device tokens provisioned to mobile wallets. The network swaps a token for its card number before sending to the issuer; the acquirer only ever sees the token. Suspend a token to simulate a lost phone.</p>
-        <div class="table-wrap"><table><thead><tr><th>Token</th><th>Wallet</th><th>Card</th><th>Expires</th><th>Status</th><th></th></tr></thead><tbody id="tokens"></tbody></table></div>
+        <h2><span data-term="token-service">Token vault</span></h2>
+        <p class="hint"><span data-term="device-token">Device tokens</span> provisioned to <span data-term="mobile-wallet">mobile wallets</span>. The network swaps a token for its card number before sending to the issuer; the acquirer only ever sees the token. <span data-term="token-status">Suspend a token to simulate a lost phone.</span></p>
+        <div class="table-wrap"><table><thead><tr><th><span data-term="device-token">Token</span></th><th><span data-term="mobile-wallet">Wallet</span></th><th><span data-term="pan-masking">Card</span></th><th><span data-term="device-token">Expires</span></th><th><span data-term="token-status">Status</span></th><th></th></tr></thead><tbody id="tokens"></tbody></table></div>
       </section>
     </div>
   </section>
@@ -81,5 +86,7 @@
 
 <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
 <script src="app.js"></script>
+<script src="/learn/learn.js"></script>
+<script src="dashboard-terms.js"></script>
 </body>
 </html>

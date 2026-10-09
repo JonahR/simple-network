@@ -145,7 +145,13 @@
         "Issuer I1",
         "Issuer bank",
         "Principal Issuer",
-        "Issuer ACS"
+        "Issuer ACS",
+        "To issuer",
+        "Routes to",
+        "FSB",
+        "UCB",
+        "First Simple Bank",
+        "Union Card Bank"
       ]
     },
     "network": {
@@ -189,7 +195,6 @@
         "Network",
         "NETWORK SWITCH",
         "Network switch",
-        "simple-network switch",
         "Network (simple-network)",
         "Network Settlement Engine",
         "Auth (network)"
@@ -341,7 +346,8 @@
         "Token Service",
         "Network Token Service",
         "TSP",
-        "Token vault"
+        "Token vault",
+        "Vault"
       ]
     },
     "pos-terminal": {
@@ -461,8 +467,10 @@
       "aliases": [
         "Authorization",
         "Authorized",
-        "Approved",
-        "Requested"
+        "Requested",
+        "Authorizations",
+        "Auths",
+        "Transactions"
       ]
     },
     "auth-hold": {
@@ -810,7 +818,9 @@
       "aliases": [
         "Reversed",
         "Reversal",
-        "Reversed: hold released"
+        "Reversed: hold released",
+        "Reversal 0420",
+        "0420"
       ]
     },
     "chargeback": {
@@ -956,7 +966,8 @@
       ],
       "aliases": [
         "ISO 8583",
-        "messages (auth, clearing)"
+        "messages (auth, clearing)",
+        "Messages"
       ]
     },
     "mti": {
@@ -1025,7 +1036,9 @@
         "0100 Authorization Request",
         "0100 Authorization request",
         "Authorization request",
-        "0100/0110"
+        "0100/0110",
+        "Request sent",
+        "From acquirer"
       ]
     },
     "msg-0110": {
@@ -1056,7 +1069,10 @@
         "0110",
         "0110 back",
         "0110 Response",
-        "Authorization response"
+        "Authorization response",
+        "Response from network",
+        "0110 to acquirer",
+        "Respond"
       ]
     },
     "bitmap": {
@@ -1107,7 +1123,8 @@
         "de11"
       ],
       "aliases": [
-        "Network transaction ID"
+        "Network transaction ID",
+        "Network txn ID"
       ]
     },
     "arn": {
@@ -1166,7 +1183,9 @@
         "DE2",
         "PAN",
         "Card number",
-        "Primary account number"
+        "Primary account number",
+        "DE2 Card / token",
+        "DE2 Returned"
       ]
     },
     "de3": {
@@ -1342,7 +1361,8 @@
         "DE14",
         "Expiry",
         "Expires",
-        "Expiration"
+        "Expiration",
+        "DE14 Expiry"
       ]
     },
     "de18": {
@@ -1417,7 +1437,10 @@
         "DE22",
         "Entry mode",
         "POS entry mode",
-        "Mode"
+        "Mode",
+        "DE22 Entry mode",
+        "Keyed",
+        "On file"
       ]
     },
     "de32-acquirer-id": {
@@ -1443,7 +1466,8 @@
         "acquirer"
       ],
       "aliases": [
-        "DE32"
+        "DE32",
+        "Acquirer ID"
       ]
     },
     "de35": {
@@ -1531,7 +1555,8 @@
       "aliases": [
         "DE38",
         "Auth code",
-        "Approval code"
+        "Approval code",
+        "DE38 Auth code"
       ]
     },
     "de39": {
@@ -1561,7 +1586,9 @@
       "aliases": [
         "DE39",
         "Response code",
-        "Declined"
+        "Declined",
+        "DE39 Response",
+        "Response"
       ]
     },
     "de41": {
@@ -1760,7 +1787,8 @@
       ],
       "aliases": [
         "DE52",
-        "PIN block"
+        "PIN block",
+        "DE52 PIN block"
       ]
     },
     "de54": {
@@ -1827,7 +1855,8 @@
       "aliases": [
         "DE55",
         "ARQC",
-        "Application cryptogram (ARQC)"
+        "Application cryptogram (ARQC)",
+        "DE55 Cryptogram"
       ]
     },
     "cardholder-name": {
@@ -1901,7 +1930,6 @@
       ],
       "aliases": [
         "Key in",
-        "Keyed",
         "Manual key entry"
       ]
     },
@@ -2478,7 +2506,8 @@
         "Device token",
         "device token",
         "DPAN",
-        "Device account number (token)"
+        "Device account number (token)",
+        "Token"
       ]
     },
     "cryptogram": {
@@ -2577,7 +2606,11 @@
         "BIN / IIN",
         "IIN",
         "BIN range attributes",
-        "BIN lookup"
+        "BIN lookup",
+        "Route",
+        "Prefix",
+        "Range",
+        "BIN table"
       ]
     },
     "luhn": {
@@ -2730,7 +2763,7 @@
         "debit-card"
       ],
       "aliases": [
-        "PIN"
+        "PIN entry"
       ]
     },
     "cashback": {
@@ -3530,7 +3563,9 @@
       ],
       "aliases": [
         "Auth switch · M3",
-        "Auth switch"
+        "Auth switch",
+        "simple-network switch",
+        "Send"
       ]
     },
     "fee-engine": {
@@ -3684,7 +3719,7 @@
     },
     "txn-status": {
       "name": "Transaction status",
-      "def": "Where this sale stands. NOT SENT means the POS built a valid 0100 but simple-network has no acquirer, switch or issuer yet to send it to (PLAN milestones 2 to 4). Later statuses will be approved or declined with the issuer's response code.",
+      "def": "Where a sale stands after the network answers: Approved (DE39 00), Partial approval (the issuer approved less than asked), Declined (with the issuer's response code), or No response (the network or issuer couldn't be reached). The icon and words carry the meaning, not just the color.",
       "kt": [
         [
           "The full state machine of a transaction",
@@ -3706,7 +3741,11 @@
         "de39"
       ],
       "aliases": [
-        "Status"
+        "Status",
+        "Approved",
+        "Partial approval",
+        "No response",
+        "Pending"
       ]
     },
     "card-products": {
@@ -3737,7 +3776,8 @@
       ],
       "aliases": [
         "Card products",
-        "2 · Card products"
+        "2 · Card products",
+        "Product"
       ]
     },
     "payment-flows": {
@@ -3829,6 +3869,344 @@
       "aliases": [
         "Core rails",
         "1 · Core rails"
+      ]
+    },
+    "partial-approval": {
+      "name": "Partial approval and approved amount",
+      "def": "An issuer can approve less than the amount requested, for example when a prepaid or debit card doesn't have enough for the whole sale. The 0110 carries response code 10 and the approved amount, and the merchant collects the rest another way.",
+      "kt": [
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ],
+        [
+          "Response codes (DE39)",
+          "04-authorization-deep-dive.md#response-codes-de39"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ],
+        [
+          "Stored-value card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Stored-value_card"
+        ]
+      ],
+      "see": [
+        "de4",
+        "de39",
+        "prepaid-card"
+      ],
+      "aliases": [
+        "Approved amount",
+        "DE4 Approved",
+        "Partial approval (10)"
+      ]
+    },
+    "latency": {
+      "name": "Latency (p50, p95)",
+      "def": "How long the network takes to answer, from the acquirer's request in to the response out. p50 is the median; p95 means 95% of authorizations were at least this fast. The slowest part is usually the issuer, so networks watch each hop separately.",
+      "kt": [
+        [
+          "D19: Observability",
+          "12-design-decisions.md#d19-observability-feeds-the-m8-dashboard"
+        ],
+        [
+          "Performance targets",
+          "04-authorization-deep-dive.md#performance-targets-for-reference"
+        ]
+      ],
+      "ext": [
+        [
+          "Latency (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Latency_(engineering)"
+        ],
+        [
+          "Percentile (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Percentile"
+        ]
+      ],
+      "see": [
+        "timeout",
+        "switch-trace"
+      ],
+      "aliases": [
+        "Latency",
+        "Latency p50",
+        "Latency p95",
+        "Avg time"
+      ]
+    },
+    "approval-rate": {
+      "name": "Approval rate",
+      "def": "The share of authorizations the issuers approved. It is the first number a network operator watches: a sudden drop usually means an issuer outage, a fraud attack, or a bad rule.",
+      "kt": [
+        [
+          "D19: Observability",
+          "12-design-decisions.md#d19-observability-feeds-the-m8-dashboard"
+        ],
+        [
+          "Response codes (DE39)",
+          "04-authorization-deep-dive.md#response-codes-de39"
+        ]
+      ],
+      "ext": [
+        [
+          "Observability (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Observability_(software)"
+        ],
+        [
+          "Monitoring distributed systems (Google SRE book)",
+          "https://sre.google/sre-book/monitoring-distributed-systems/"
+        ]
+      ],
+      "see": [
+        "de39",
+        "latency"
+      ],
+      "aliases": [
+        "Approval rate",
+        "Approved %"
+      ]
+    },
+    "circuit-breaker": {
+      "name": "Circuit breaker",
+      "def": "A safety switch per issuer. After several failures in a row the network stops sending to that issuer for a while (open) and answers straight away, instead of making every cardholder wait for a timeout. Then it lets one request through to test (half open) and closes again if it works.",
+      "kt": [
+        [
+          "D8: Timeouts and stand-in",
+          "12-design-decisions.md#d8-timeouts-and-stand-in"
+        ],
+        [
+          "Operational resilience",
+          "09-risk-fraud-and-security.md#operational-resilience"
+        ]
+      ],
+      "ext": [
+        [
+          "Circuit breaker pattern (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern"
+        ],
+        [
+          "Circuit Breaker (Martin Fowler)",
+          "https://martinfowler.com/bliki/CircuitBreaker.html"
+        ]
+      ],
+      "see": [
+        "timeout",
+        "issuer-health",
+        "stip"
+      ],
+      "aliases": [
+        "Breaker",
+        "Breaker open",
+        "Breaker testing",
+        "circuit breaker"
+      ]
+    },
+    "timeout": {
+      "name": "Issuer timeout",
+      "def": "How long the network waits for an issuer before giving up. Then it declines with 91 (issuer unavailable) or stands in, and if the issuer's answer arrives late it sends an 0420 reversal advice so the issuer drops its hold.",
+      "kt": [
+        [
+          "Timeouts and late responses",
+          "04-authorization-deep-dive.md#timeouts-and-late-responses"
+        ],
+        [
+          "D8: Timeouts and stand-in",
+          "12-design-decisions.md#d8-timeouts-and-stand-in"
+        ]
+      ],
+      "ext": [
+        [
+          "Timeout (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Timeout_(computing)"
+        ]
+      ],
+      "see": [
+        "reversal",
+        "stip",
+        "circuit-breaker"
+      ],
+      "aliases": [
+        "Timeout",
+        "timeout"
+      ]
+    },
+    "issuer-health": {
+      "name": "Issuer health and simulation",
+      "def": "Whether each issuer is answering. Healthy issuers respond in time; Slow ones answer after the timeout; Down ones refuse requests; a Breaker-open issuer is temporarily skipped. The dashboard's Normal / Slow / Down buttons simulate these so you can watch timeouts, 91 declines, reversals and the circuit breaker.",
+      "kt": [
+        [
+          "Stand-in processing",
+          "04-authorization-deep-dive.md#stand-in-processing-stip"
+        ],
+        [
+          "D8: Timeouts and stand-in",
+          "12-design-decisions.md#d8-timeouts-and-stand-in"
+        ]
+      ],
+      "ext": [
+        [
+          "Fault tolerance (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Fault_tolerance"
+        ]
+      ],
+      "see": [
+        "circuit-breaker",
+        "timeout",
+        "stip"
+      ],
+      "aliases": [
+        "Health",
+        "Healthy",
+        "Slow",
+        "Down",
+        "Unreachable",
+        "Issuers healthy",
+        "Simulate",
+        "Normal"
+      ]
+    },
+    "switch-trace": {
+      "name": "Transaction trace",
+      "def": "Every step the switch took for one authorization, with how long each took: validate, route, token vault, PIN translation, circuit breaker, send to issuer, issuer answer, respond. It's built from the network's append-only event log, so any transaction can be explained later.",
+      "kt": [
+        [
+          "The pipeline inside the switch",
+          "04-authorization-deep-dive.md#the-authorization-pipeline-inside-the-switch"
+        ],
+        [
+          "D4: Append-only event log",
+          "12-design-decisions.md#d4-append-only-event-log"
+        ]
+      ],
+      "ext": [
+        [
+          "Tracing (software) (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Tracing_(software)"
+        ],
+        [
+          "Traces (OpenTelemetry)",
+          "https://opentelemetry.io/docs/concepts/signals/traces/"
+        ]
+      ],
+      "see": [
+        "auth-switch",
+        "latency",
+        "network-txn-id"
+      ],
+      "aliases": [
+        "Trace",
+        "Follow latest",
+        "View in network →",
+        "View in network"
+      ]
+    },
+    "switch-validate": {
+      "name": "Validate (switch step)",
+      "def": "The switch's first checks on an 0100 before routing it: is the message well formed, does the card number pass Luhn, is the amount valid, and is it a duplicate of a request already answered. Failures are declined inside the network without bothering the issuer.",
+      "kt": [
+        [
+          "The pipeline inside the switch",
+          "04-authorization-deep-dive.md#the-authorization-pipeline-inside-the-switch"
+        ]
+      ],
+      "ext": [
+        [
+          "Data validation (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Data_validation"
+        ]
+      ],
+      "see": [
+        "duplicate-detection",
+        "luhn",
+        "auth-switch"
+      ],
+      "aliases": [
+        "Validate"
+      ]
+    },
+    "pin-translation": {
+      "name": "PIN translation",
+      "def": "The PIN block arrives encrypted under the acquirer's key. Inside a hardware security module the network decrypts it and re-encrypts it under the issuer's key, so the PIN is never visible in software and each party only holds its own keys.",
+      "kt": [
+        [
+          "Cryptography and keys",
+          "09-risk-fraud-and-security.md#cryptography-and-keys"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 9564 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_9564"
+        ],
+        [
+          "PCI PIN Security",
+          "https://www.pcisecuritystandards.org/standards/pin-security/"
+        ]
+      ],
+      "see": [
+        "de52",
+        "hsm",
+        "pin"
+      ],
+      "aliases": [
+        "PIN translate",
+        "PIN"
+      ]
+    },
+    "duplicate-detection": {
+      "name": "Duplicate detection (idempotency)",
+      "def": "If an acquirer resends the same request (same acquirer, STAN and transmission time), the network returns the answer it already gave instead of asking the issuer again. That way a retry can never place a second hold on the cardholder's card.",
+      "kt": [
+        [
+          "D3: Transaction identity and idempotency",
+          "12-design-decisions.md#d3-transaction-identity-and-idempotency"
+        ]
+      ],
+      "ext": [
+        [
+          "Idempotence (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Idempotence"
+        ]
+      ],
+      "see": [
+        "de11",
+        "de7",
+        "switch-validate"
+      ],
+      "aliases": [
+        "duplicates answered from cache",
+        "Duplicate"
+      ]
+    },
+    "token-status": {
+      "name": "Token status (active, suspended)",
+      "def": "A device token can be suspended, for example when a phone is lost, without cancelling the card: the network then declines that token while the plastic card and other devices keep working. Reactivating it restores payments.",
+      "kt": [
+        [
+          "Token states",
+          "07-cards-bins-and-tokens.md#token-states"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo payment tokenisation",
+          "https://www.emvco.com/emv-technologies/payment-tokenisation/"
+        ]
+      ],
+      "see": [
+        "device-token",
+        "token-service"
+      ],
+      "aliases": [
+        "Active",
+        "Suspended",
+        "Suspend",
+        "Reactivate"
       ]
     }
   }

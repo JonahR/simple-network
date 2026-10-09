@@ -1,4 +1,29 @@
-/* hub.css: layout for the /learn/ pages (hub and doc viewer). Colors come from ../style.css. */
+/* hub.css: the /learn/ pages (hub and doc viewer). Self-contained, because the
+   pages are served by more than one service. */
+/* Base tokens and chrome, so the learning pages look the same on every service. */
+:root {
+  --bg: #f5f5f2; --panel: #ffffff; --text: #1c1c1a; --muted: #6b6b66; --border: #e2e2dc;
+  --accent: #1f5eff; --accent-text: #ffffff; --err: #c62828; --code-bg: #f0f0eb;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --panel: #1e1e1c; --text: #ececea; --muted: #9a9a94; --border: #2f2f2c;
+    --accent: #5b8cff; --accent-text: #0c0c0b; --err: #ff6b6b; --code-bg: #252522;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --panel: #1e1e1c; --text: #ececea; --muted: #9a9a94; --border: #2f2f2c;
+  --accent: #5b8cff; --accent-text: #0c0c0b; --err: #ff6b6b; --code-bg: #252522;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+body.hub > header { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--border); }
+.brand { font-weight: 700; font-size: 18px; }
+.brand span { color: var(--accent); }
 body.hub { min-height: 100vh; }
 body.hub header a { color: inherit; text-decoration: none; }
 

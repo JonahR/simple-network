@@ -16,10 +16,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	simplenetwork "github.com/JonahR/simple-network"
 	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/iso8583"
+	"github.com/JonahR/simple-network/internal/learn"
 )
 
 //go:embed web
@@ -140,8 +140,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /", http.FileServerFS(static))
-	// Network KT docs, visuals, and interactive pages for the /learn/ pages.
-	mux.Handle("GET /learn/kt/", http.StripPrefix("/learn/kt/", http.FileServerFS(simplenetwork.Knowledge())))
+	// Definitions for every label, the learning hub, and the Network KT docs.
+	mux.Handle("GET /learn/", learn.Handler(learn.Links{POS: "/", Dashboard: s.dashboardURL}))
 	mux.HandleFunc("GET /api/terminal", s.handleTerminal)
 	mux.HandleFunc("GET /api/test-card", s.handleTestCard)
 	mux.HandleFunc("POST /api/sale", s.handleSale)

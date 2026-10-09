@@ -26,7 +26,18 @@
     })
     .catch((err) => console.error("learn.js: could not load glossary", err));
 
-  const INTERACTIVE = "button, a[href], input, select, textarea, summary, [role=tab], [role=radio], [role=button]:not([data-term])";
+  // Links to the other apps (POS, dashboard) come from the serving service.
+  fetch(BASE + "config.json")
+    .then((r) => (r.ok ? r.json() : {}))
+    .then((cfg) => {
+      document.querySelectorAll("[data-link]").forEach((a) => {
+        const url = cfg[a.dataset.link + "_url"];
+        if (url) a.href = url;
+      });
+    })
+    .catch(() => {});
+
+  const INTERACTIVE ="button, a[href], input, select, textarea, summary, [role=tab], [role=radio], [role=button]:not([data-term])";
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function norm(s) { return String(s).replace(/\s+/g, " ").replace(/[·:…]+$/g, "").trim().toLowerCase(); }
 
