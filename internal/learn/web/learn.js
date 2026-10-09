@@ -158,13 +158,13 @@
     e.preventDefault();
   }, true);
   // explainable is what a click in Help mode explains, as [element, term id]:
-  // the nearest marked element; else the area it sits in, either one that
-  // names its subject with data-term-scope or a panel through the term on its
-  // heading. So any widget answers when clicked.
+  // the nearest marked element; else the nearest area around it, either one
+  // that names its subject with data-term-scope or one whose own heading
+  // carries a term. So any widget answers when clicked.
   function explainable(t) {
     const el = t.closest("[data-term]");
     if (el && terms[el.dataset.term]) return [el, el.dataset.term];
-    for (let area = t.closest("section, .panel, [data-term-scope]"); area; area = area.parentElement?.closest("section, .panel, [data-term-scope]")) {
+    for (let area = t; area && area !== document.body; area = area.parentElement) {
       if (terms[area.dataset.termScope]) return [area, area.dataset.termScope];
       const heading = area.querySelector(":scope > h2 [data-term], :scope > h2[data-term], :scope > .panel-head h2 [data-term], :scope > .panel-head h2[data-term]");
       if (heading && terms[heading.dataset.term]) return [heading, heading.dataset.term];

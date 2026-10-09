@@ -91,7 +91,7 @@ function renderKPIs(c) {
     ["Money moved", "net-settlement", c.transfers.length ? money(moved) : "—", gross && c.transfers.length ? `${c.transfers.length} payments instead of ${c.items.length} gross` : "after netting"],
   ];
   document.getElementById("kpis").innerHTML = kpis
-    .map(([label, term, value, sub]) => `<div class="kpi"><small><span data-term="${term}">${label}</span></small><b>${value}</b><span class="sub">${escapeHTML(sub)}</span></div>`)
+    .map(([label, term, value, sub]) => `<div class="kpi" data-term="${term}"><small><span data-term="${term}">${label}</span></small><b>${value}</b><span class="sub">${escapeHTML(sub)}</span></div>`)
     .join("");
 }
 
