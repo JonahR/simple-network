@@ -38,87 +38,87 @@
   </defs>
 
   <rect class="bg" x="0" y="0" width="1000" height="640"/>
-  <text class="t1" x="500" y="36" text-anchor="middle" font-size="22" font-weight="700">The Four-Party Model: one $100 purchase</text>
+  <text class="t1" x="500" y="36" text-anchor="middle" font-size="22" font-weight="700" data-term="four-party-model">The Four-Party Model: one $100 purchase</text>
 
   <!-- Cardholder -->
   <rect class="box" x="60" y="70" width="230" height="96" rx="12"/>
-  <text class="t1" x="175" y="108" text-anchor="middle" font-size="18" font-weight="700">Cardholder</text>
-  <text class="t2" x="175" y="132" text-anchor="middle" font-size="13">holds the card, owes the issuer</text>
+  <text class="t1" x="175" y="108" text-anchor="middle" font-size="18" font-weight="700" data-term="cardholder">Cardholder</text>
+  <text class="t2" x="175" y="132" text-anchor="middle" font-size="13" data-term="cardholder">holds the card, owes the issuer</text>
 
   <!-- Merchant -->
   <rect class="box" x="710" y="70" width="230" height="96" rx="12"/>
-  <text class="t1" x="825" y="108" text-anchor="middle" font-size="18" font-weight="700">Merchant</text>
-  <text class="t2" x="825" y="132" text-anchor="middle" font-size="13">accepts the card</text>
+  <text class="t1" x="825" y="108" text-anchor="middle" font-size="18" font-weight="700" data-term="merchant">Merchant</text>
+  <text class="t2" x="825" y="132" text-anchor="middle" font-size="13" data-term="merchant">accepts the card</text>
 
   <!-- Issuer -->
   <rect class="box" x="60" y="400" width="230" height="110" rx="12"/>
-  <text class="t1" x="175" y="438" text-anchor="middle" font-size="18" font-weight="700">Issuer</text>
-  <text class="t2" x="175" y="461" text-anchor="middle" font-size="13">cardholder's bank</text>
-  <text class="t2" x="175" y="481" text-anchor="middle" font-size="13">approves · lends · bears credit risk</text>
+  <text class="t1" x="175" y="438" text-anchor="middle" font-size="18" font-weight="700" data-term="issuer">Issuer</text>
+  <text class="t2" x="175" y="461" text-anchor="middle" font-size="13" data-term="issuer">cardholder's bank</text>
+  <text class="t2" x="175" y="481" text-anchor="middle" font-size="13" data-term="issuer">approves · lends · bears credit risk</text>
 
   <!-- Network -->
   <rect class="netbox" x="385" y="390" width="230" height="130" rx="12"/>
-  <text class="t1" x="500" y="425" text-anchor="middle" font-size="18" font-weight="700">Network</text>
-  <text class="t2" x="500" y="448" text-anchor="middle" font-size="13">BIN routing · rules</text>
-  <text class="t2" x="500" y="467" text-anchor="middle" font-size="13">clearing · settlement</text>
-  <text class="t2" x="500" y="486" text-anchor="middle" font-size="13">disputes · risk · tokens</text>
-  <text class="moneytxt" x="500" y="508" text-anchor="middle" font-size="13" font-weight="700">keeps ≈ $0.16 in fees</text>
+  <text class="t1" x="500" y="425" text-anchor="middle" font-size="18" font-weight="700" data-term="network">Network</text>
+  <text class="t2" x="500" y="448" text-anchor="middle" font-size="13"><tspan data-term="bin">BIN routing</tspan> · <tspan data-term="rules-compliance">rules</tspan></text>
+  <text class="t2" x="500" y="467" text-anchor="middle" font-size="13"><tspan data-term="clearing">clearing</tspan> · <tspan data-term="settlement">settlement</tspan></text>
+  <text class="t2" x="500" y="486" text-anchor="middle" font-size="13"><tspan data-term="chargeback">disputes</tspan> · <tspan data-term="fraud-scoring">risk</tspan> · <tspan data-term="network-token">tokens</tspan></text>
+  <text class="moneytxt" x="500" y="508" text-anchor="middle" font-size="13" font-weight="700" data-term="network-fees">keeps ≈ $0.16 in fees</text>
 
   <!-- Acquirer -->
   <rect class="box" x="710" y="400" width="230" height="110" rx="12"/>
-  <text class="t1" x="825" y="438" text-anchor="middle" font-size="18" font-weight="700">Acquirer</text>
-  <text class="t2" x="825" y="461" text-anchor="middle" font-size="13">merchant's bank</text>
-  <text class="t2" x="825" y="481" text-anchor="middle" font-size="13">signs up merchants</text>
-  <text class="t2" x="825" y="499" text-anchor="middle" font-size="13">bears merchant risk</text>
+  <text class="t1" x="825" y="438" text-anchor="middle" font-size="18" font-weight="700" data-term="acquirer">Acquirer</text>
+  <text class="t2" x="825" y="461" text-anchor="middle" font-size="13" data-term="acquirer">merchant's bank</text>
+  <text class="t2" x="825" y="481" text-anchor="middle" font-size="13" data-term="acquirer">signs up merchants</text>
+  <text class="t2" x="825" y="499" text-anchor="middle" font-size="13" data-term="acquirer">bears merchant risk</text>
 
   <!-- Cardholder -> Merchant: presents card -->
   <path class="rel" d="M295,118 L705,118" marker-end="url(#aRel)"/>
   <rect class="pill" x="420" y="100" width="160" height="22"/>
-  <text class="t2" x="500" y="116" text-anchor="middle" font-size="13">1 · presents card</text>
+  <text class="t2" x="500" y="116" text-anchor="middle" font-size="13" data-term="card-present">1 · presents card</text>
 
   <!-- Merchant -> Acquirer (message, down) -->
   <path class="msg" d="M800,170 L800,395" marker-end="url(#aMsg)"/>
-  <text class="msgtxt" x="790" y="270" text-anchor="end" font-size="13" font-weight="600">2 · auth request</text>
-  <text class="msgtxt" x="790" y="288" text-anchor="end" font-size="13">later: capture</text>
+  <text class="msgtxt" x="790" y="270" text-anchor="end" font-size="13" font-weight="600" data-term="msg-0100">2 · auth request</text>
+  <text class="msgtxt" x="790" y="288" text-anchor="end" font-size="13" data-term="capture">later: capture</text>
   <!-- Acquirer -> Merchant (money, up) -->
   <path class="money" d="M855,397 L855,172" marker-end="url(#aMoney)"/>
-  <text class="moneytxt" x="866" y="270" font-size="13" font-weight="600">funding</text>
-  <text class="moneytxt" x="866" y="288" font-size="13" font-weight="700">$97.50</text>
+  <text class="moneytxt" x="866" y="270" font-size="13" font-weight="600" data-term="funding">funding</text>
+  <text class="moneytxt" x="866" y="288" font-size="13" font-weight="700" data-term="funding">$97.50</text>
 
   <!-- Acquirer -> Network (message) -->
   <path class="msg" d="M706,428 L619,428" marker-end="url(#aMsg)"/>
-  <text class="msgtxt" x="662" y="418" text-anchor="middle" font-size="12" font-weight="600">3 · 0100</text>
+  <text class="msgtxt" x="662" y="418" text-anchor="middle" font-size="12" font-weight="600" data-term="msg-0100">3 · 0100</text>
   <!-- Network -> Acquirer (money) -->
   <path class="money" d="M619,486 L706,486" marker-end="url(#aMoney)"/>
-  <text class="moneytxt" x="662" y="506" text-anchor="middle" font-size="12" font-weight="700">$97.94</text>
+  <text class="moneytxt" x="662" y="506" text-anchor="middle" font-size="12" font-weight="700" data-term="net-settlement">$97.94</text>
 
   <!-- Network -> Issuer (message) -->
   <path class="msg" d="M381,428 L294,428" marker-end="url(#aMsg)"/>
-  <text class="msgtxt" x="338" y="418" text-anchor="middle" font-size="12" font-weight="600">4 · 0100</text>
+  <text class="msgtxt" x="338" y="418" text-anchor="middle" font-size="12" font-weight="600" data-term="msg-0100">4 · 0100</text>
   <!-- Issuer -> Network (money) -->
   <path class="money" d="M294,486 L381,486" marker-end="url(#aMoney)"/>
-  <text class="moneytxt" x="338" y="506" text-anchor="middle" font-size="12" font-weight="700">$98.10</text>
+  <text class="moneytxt" x="338" y="506" text-anchor="middle" font-size="12" font-weight="700" data-term="net-settlement">$98.10</text>
 
   <!-- Issuer -> Cardholder (card/statement) -->
   <path class="rel" d="M140,396 L140,172" marker-end="url(#aRel)"/>
-  <text class="t2" x="130" y="270" text-anchor="end" font-size="13">issues card,</text>
-  <text class="t2" x="130" y="288" text-anchor="end" font-size="13">sends statement</text>
+  <text class="t2" x="130" y="270" text-anchor="end" font-size="13" data-term="issuer">issues card,</text>
+  <text class="t2" x="130" y="288" text-anchor="end" font-size="13" data-term="statement">sends statement</text>
   <!-- Cardholder -> Issuer (money) -->
   <path class="money" d="M200,172 L200,396" marker-end="url(#aMoney)"/>
-  <text class="moneytxt" x="211" y="270" font-size="13" font-weight="600">pays bill</text>
-  <text class="moneytxt" x="211" y="288" font-size="13" font-weight="700">$100.00</text>
+  <text class="moneytxt" x="211" y="270" font-size="13" font-weight="600" data-term="statement">pays bill</text>
+  <text class="moneytxt" x="211" y="288" font-size="13" font-weight="700" data-term="statement">$100.00</text>
 
   <!-- Response note -->
-  <text class="msgtxt" x="500" y="560" text-anchor="middle" font-size="13">5 · 0110 approval travels back Issuer → Network → Acquirer → Merchant in under 2 seconds</text>
+  <text class="msgtxt" x="500" y="560" text-anchor="middle" font-size="13" data-term="msg-0110">5 · 0110 approval travels back Issuer → Network → Acquirer → Merchant in under 2 seconds</text>
 
   <!-- Legend -->
   <g transform="translate(205,592)">
     <path class="msg" d="M0,0 L44,0" marker-end="url(#aMsg)"/>
-    <text class="t1" x="54" y="5" font-size="13">messages (auth, clearing)</text>
+    <text class="t1" x="54" y="5" font-size="13" data-term="iso8583">messages (auth, clearing)</text>
     <path class="money" d="M240,0 L284,0" marker-end="url(#aMoney)"/>
-    <text class="t1" x="294" y="5" font-size="13">money (settlement, funding)</text>
+    <text class="t1" x="294" y="5" font-size="13" data-term="settlement">money (settlement, funding)</text>
     <path class="rel" d="M490,0 L534,0" marker-end="url(#aRel)"/>
-    <text class="t1" x="544" y="5" font-size="13">relationship</text>
+    <text class="t1" x="544" y="5" font-size="13" data-term="four-party-model">relationship</text>
   </g>
-  <text class="t2" x="500" y="626" text-anchor="middle" font-size="11">Illustrative: 1.80% + $0.10 interchange ($1.90) · network fees $0.16 · acquirer margin $0.44 · MDR 2.50%</text>
+  <text class="t2" x="500" y="626" text-anchor="middle" font-size="11">Illustrative: <tspan data-term="interchange">1.80% + $0.10 interchange ($1.90)</tspan> · <tspan data-term="network-fees">network fees $0.16</tspan> · <tspan data-term="acquirer-margin">acquirer margin $0.44</tspan> · <tspan data-term="mdr">MDR 2.50%</tspan></text>
 </svg>

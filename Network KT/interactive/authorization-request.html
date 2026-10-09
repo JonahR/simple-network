@@ -482,7 +482,7 @@ pre.json .c { color: var(--muted); font-style: italic; }
       plain: "The card data that a magnetic stripe stores on track 2. A contactless chip sends an equivalent. It repeats the PAN and expiry and adds a service code.",
       parts: [["4000001234567899", "PAN", ""], ["=", "separator", ""], ["2812", "expiry", "YYMM"], ["201", "service code", "2 = chip card, use chip; 0 = normal auth; 1 = no restrictions"], ["000001234", "discretionary", "Issuer data (incl. CVV/iCVV)"]],
       who: "Read from the card by the terminal. Never typed.",
-      sn: "Not in AuthRequest. The POS today keys card data by hand (no track data).",
+      sn: "json: de35_track2 (sent on a swipe)\nGo:   AuthRequest.Track2",
       watch: ["PCI DSS forbids storing track data after authorization, even encrypted.", "Chip track-2 data carries an iCVV, so copying it onto a stripe fails verification."],
       links: ["k07sec", "k09pci", "stripe", "pci"], rel: ["de2", "de14", "de22"] },
     de37: { g: "trace", tag: "DE37", fmt: "an12", name: "Retrieval reference number (RRN)",
@@ -533,7 +533,7 @@ pre.json .c { color: var(--muted); font-style: italic; }
         ? "Data from the chip, as tag-length-value (TLV) records. The key part is the cryptogram the chip computed for this one transaction. It proves the card is genuine and the message isn't a replay. \"020\" says 20 bytes follow. Click each record."
         : "In the response the issuer sends back its own cryptogram (tag 91), so the card can check the answer really came from its issuer.",
       who: "The chip generates it. The terminal passes it through unchanged.",
-      sn: "Not in AuthRequest. The POS keys cards by hand, so it has no chip data.",
+      sn: "json: de55_arqc (chip insert, tap, or mobile wallet)\nGo:   AuthRequest.ARQC\nsimple-network sends just the cryptogram, not the full TLV list.",
       watch: ["Real messages carry 15–20 tags (amount, unpredictable number, terminal verification results, and more). This sample keeps the three that matter most.", "The issuer checks the cryptogram with card keys kept in an HSM."],
       links: ["k07emv", "k09keys", "emvco", "emvw"], rel: ["tlv-9F26", "tlv-9F36", "tlv-9F27", "de22"] },
     "tlv-9F26": { g: "card", tag: "EMV 9F26", fmt: "b8", name: "Application cryptogram (ARQC)",
@@ -690,8 +690,8 @@ pre.json .c { color: var(--muted); font-style: italic; }
     let lines;
     if (mode === "req") {
       const d = REQ.de;
-      lines = [["mti", "mti", "0100"], ["de2", "de2_pan", d[2]], ["de3", "de3_processing_code", d[3]], ["de4", "de4_amount", 5420], ["de7", "de7_transmission_datetime", d[7]], ["de11", "de11_stan", d[11]], ["de12", "de12_local_time", d[12]], ["de13", "de13_local_date", d[13]], ["de14", "de14_expiry", d[14]], ["de18", "de18_mcc", d[18]], ["de22", "de22_pos_entry_mode", d[22]], ["de37", "de37_rrn", d[37]], ["de41", "de41_terminal_id", d[41]], ["de42", "de42_merchant_id", d[42]], ["de43", "de43_merchant_name_location", "JOE'S DINER AUSTIN TX US"], ["de49", "de49_currency", d[49]], ["cvv2", "cvv2", "123"], ["cardholder_name", "cardholder_name", "ALEX MORGAN"]];
-      document.getElementById("json-note").innerHTML = "Not in the struct yet, but on the wire: DE25, DE32, DE35, DE55. The POS keys cards by hand, so it has no track or chip data. <code>cvv2</code> and <code>cardholder_name</code> are simple-network extras with no standard field number.";
+      lines = [["mti", "mti", "0100"], ["de2", "de2_pan", d[2]], ["de3", "de3_processing_code", d[3]], ["de4", "de4_amount", 5420], ["de7", "de7_transmission_datetime", d[7]], ["de11", "de11_stan", d[11]], ["de12", "de12_local_time", d[12]], ["de13", "de13_local_date", d[13]], ["de14", "de14_expiry", d[14]], ["de18", "de18_mcc", d[18]], ["de22", "de22_pos_entry_mode", d[22]], ["de37", "de37_rrn", d[37]], ["de41", "de41_terminal_id", d[41]], ["de42", "de42_merchant_id", d[42]], ["de43", "de43_merchant_name_location", "JOE'S DINER AUSTIN TX US"], ["de49", "de49_currency", d[49]], ["de55", "de55_arqc", "1A2B3C4D5E6F7081"]];
+      document.getElementById("json-note").innerHTML = "Not in the struct yet, but on the wire: DE25, DE32. A tap sends the chip cryptogram (<code>de55_arqc</code>) instead of a CVV2, and contactless reads don't include the cardholder's name. <code>cvv2</code>, <code>cardholder_name</code> and <code>wallet_provider</code> are simple-network extras with no standard field number.";
       document.getElementById("json-sub").innerHTML = 'This is <code>iso8583.AuthRequest</code> from <a href="' + GH + 'internal/iso8583/message.go" target="_blank" rel="noopener">internal/iso8583/message.go</a>, serialized as JSON. The keys keep the ISO numbering.';
     } else {
       const d = RESP.de;

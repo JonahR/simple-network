@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn the Network · simple-network</title>
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="learn.css">
+<link rel="stylesheet" href="hub.css">
+</head>
+<body class="hub">
+<header>
+  <div class="brand"><a href="/"><b data-term="network">simple-network</b></a> <span>Learn</span></div>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/">POS terminal</a>
+    <a href="#docs">Docs</a>
+    <a href="#glossary">Glossary</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" title="Click any label to learn what it is. Shortcut: ?">Explain mode</button>
+  </nav>
+</header>
+
+<main class="hub-main">
+  <section class="hub-intro">
+    <h1>How a card network works, one step at a time</h1>
+    <p>Every label on this page, in the <a href="/">POS terminal</a>, and in the docs' diagrams is clickable. Hover to preview a definition; click or tap to keep it open with links to the <span data-term="network">network</span> docs in this repo and to official sources. Turn on <b>Explain mode</b> (or press <kbd>?</kbd>) to make buttons explain themselves too.</p>
+  </section>
+
+  <ol class="steps">
+    <li class="step" id="parties">
+      <div class="step-text">
+        <h2>Who's involved</h2>
+        <p>A purchase connects four parties through the network: the <span data-term="cardholder">cardholder</span> and their <span data-term="issuer">issuer</span>, the <span data-term="merchant">merchant</span> and its <span data-term="acquirer">acquirer</span>. Blue arrows are messages; green ones are money.</p>
+        <p class="step-links"><a href="doc.html?doc=01-what-is-a-card-network.md">Doc 01: What is a card network</a> · <a href="doc.html?doc=02-participants-and-roles.md">Doc 02: Participants and roles</a></p>
+      </div>
+      <figure class="visual" data-svg="kt/visuals/four-party-model.svg"></figure>
+    </li>
+
+    <li class="step" id="authorization">
+      <div class="step-text">
+        <h2>Authorization: asking the issuer</h2>
+        <p>At checkout the <span data-term="pos-terminal">terminal</span> builds an <span data-term="msg-0100">0100 authorization request</span>. The network routes it by <span data-term="bin">BIN</span> to the issuer, which answers with an <span data-term="msg-0110">0110</span> and places a <span data-term="auth-hold">hold</span>. No money moves yet.</p>
+        <div class="cta-row">
+          <a class="cta" href="kt/interactive/authorization-request.html">Take apart an 0100, field by field</a>
+          <a class="cta secondary" href="/">Build one in the POS</a>
+        </div>
+        <p class="step-links"><a href="doc.html?doc=03-transaction-lifecycle.md#stage-1-authorization">Doc 03: Stage 1</a> · <a href="doc.html?doc=04-authorization-deep-dive.md">Doc 04: Authorization deep dive</a></p>
+      </div>
+    </li>
+
+    <li class="step" id="lifecycle">
+      <div class="step-text">
+        <h2>Clearing, settlement and funding</h2>
+        <p>That night the acquirer sends the final amounts (<span data-term="clearing">clearing</span>). The next day banks pay each other one <span data-term="net-settlement">net amount</span> (<span data-term="settlement">settlement</span>), and the acquirer pays the merchant (<span data-term="funding">funding</span>). Disputes can follow for months.</p>
+        <p class="step-links"><a href="doc.html?doc=05-clearing-and-settlement.md">Doc 05: Clearing and settlement</a> · <a href="doc.html?doc=08-exceptions-and-disputes.md">Doc 08: Exceptions and disputes</a></p>
+      </div>
+      <figure class="visual" data-svg="kt/visuals/transaction-timeline.svg"></figure>
+    </li>
+
+    <li class="step" id="money">
+      <div class="step-text">
+        <h2>Where the money goes</h2>
+        <p>The merchant pays a <span data-term="mdr">merchant discount rate</span>. Most of it is <span data-term="interchange">interchange</span> to the issuer; the network keeps a small <span data-term="network-fees">fee</span>; the acquirer keeps the rest.</p>
+        <p class="step-links"><a href="doc.html?doc=06-economics-and-fees.md">Doc 06: Economics and fees</a></p>
+      </div>
+      <figure class="visual" data-svg="kt/visuals/money-waterfall.svg"></figure>
+    </li>
+
+    <li class="step" id="card">
+      <div class="step-text">
+        <h2>The card number</h2>
+        <p>The <span data-term="de2">card number</span> routes the payment: its <span data-term="bin">BIN</span> picks the issuer and its last digit is a <span data-term="luhn">Luhn check</span>. Chips and phones add a <span data-term="cryptogram">one-time cryptogram</span>, and wallets swap the number for a <span data-term="network-token">token</span>.</p>
+        <p class="step-links"><a href="doc.html?doc=07-cards-bins-and-tokens.md">Doc 07: Cards, BINs and tokens</a> · <a href="doc.html?doc=09-risk-fraud-and-security.md">Doc 09: Risk, fraud and security</a></p>
+      </div>
+      <figure class="visual" data-svg="kt/visuals/pan-anatomy.svg"></figure>
+    </li>
+
+    <li class="step" id="capabilities">
+      <div class="step-text">
+        <h2>What a network supports</h2>
+        <p>On top of the <span data-term="core-rails">core rails</span> sit <span data-term="card-products">card products</span>, <span data-term="payment-flows">payment flows</span>, <span data-term="value-added-services">value-added services</span> and data. Each tag shows where simple-network builds it.</p>
+        <p class="step-links"><a href="doc.html?doc=11-network-products-and-services.md">Doc 11: Products and services</a> · <a href="doc.html?doc=10-rules-governance-and-regulation.md">Doc 10: Rules and regulation</a> · <a href="doc.html?doc=12-design-decisions.md">Doc 12: Design decisions</a></p>
+      </div>
+      <figure class="visual" data-svg="kt/visuals/network-capability-map.svg"></figure>
+    </li>
+  </ol>
+
+  <section id="docs" class="hub-section">
+    <h2>Read the docs</h2>
+    <p class="sub">The full Network KT, rendered here with clickable diagrams. Read in order for the complete picture.</p>
+    <div class="doc-grid" id="doc-grid"></div>
+  </section>
+
+  <section id="glossary" class="hub-section">
+    <h2>Glossary</h2>
+    <p class="sub"><span id="term-count"></span> terms. Click a name for links to the docs and official sources.</p>
+    <label class="search"><span class="visually-hidden">Filter terms</span><input id="term-filter" type="search" placeholder="Filter terms, e.g. BIN, chargeback, DE22" autocomplete="off"></label>
+    <dl class="glossary" id="glossary-list"></dl>
+  </section>
+</main>
+
+<script src="learn.js"></script>
+<script src="hub.js"></script>
+</body>
+</html>

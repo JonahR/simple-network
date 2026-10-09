@@ -20,6 +20,10 @@ A card network PoC in Go (see PLAN.md). Several agents often work on this repo a
 
 New services go under `cmd/<name>/`. `make serve` builds and starts every binary there, so give each one its own port in `serve.env` and `docker-compose.yml`.
 
+## Learning labels
+
+Every label in the POS and in `Network KT/visuals/` must teach what it means. Give it `data-term="<id>"` with an id from `cmd/pos/web/learn/glossary.json`; each term has a definition, at least one Network KT link (file#heading) and one outside link. Labels app.js renders at runtime are tagged in `cmd/pos/web/learn/pos-terms.js`, and a new field name needs a matching glossary alias. `go test ./cmd/pos/` fails on untagged SVG text, unknown terms, missing links, or doc links to headings that don't exist. Learning pages are served at `/learn/` (hub, doc viewer, glossary).
+
 ## Conventions
 
 - Card data: simulation only. Mask PANs in logs (`card.Mask`), never store CVV.

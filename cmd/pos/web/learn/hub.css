@@ -1,0 +1,71 @@
+/* hub.css: layout for the /learn/ pages (hub and doc viewer). Colors come from ../style.css. */
+body.hub { min-height: 100vh; }
+body.hub header a { color: inherit; text-decoration: none; }
+
+.hub-main { display: block; max-width: 1160px; margin: 0 auto; padding: 28px 24px 80px; }
+.hub-intro h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.1; margin: 0 0 10px; text-wrap: balance; }
+.hub-intro p { max-width: 72ch; color: var(--muted); font-size: 15.5px; margin: 0; }
+kbd { font: 600 12px ui-monospace, Menlo, monospace; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--panel); }
+
+.steps { list-style: none; counter-reset: step; margin: 32px 0 0; padding: 0; display: grid; gap: 28px; }
+.step { counter-increment: step; display: grid; gap: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px; min-width: 0; }
+.step-text { display: grid; gap: 8px; max-width: 78ch; min-width: 0; }
+.step h2 { margin: 0; font-size: 20px; display: flex; align-items: baseline; gap: 10px; }
+.step h2::before { content: counter(step); flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-size: 13px; }
+.step p { margin: 0; line-height: 1.6; }
+.step-links { font-size: 13px; color: var(--muted); }
+.step-links a, .hub-section a { color: var(--accent); }
+.visual { margin: 0; overflow-x: auto; border-top: 1px solid var(--border); padding-top: 14px; min-width: 0; }
+.visual svg { display: block; width: 100%; height: auto; min-width: 640px; max-width: 1100px; }
+.visual .err { color: var(--err); }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.cta { display: inline-block; background: var(--accent); color: var(--accent-text); padding: 9px 16px; border-radius: 999px; font-weight: 600; text-decoration: none; font-size: 14px; }
+.cta.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+
+.hub-section { margin-top: 48px; }
+.hub-section h2 { font-size: 22px; margin: 0 0 4px; }
+.hub-section .sub { color: var(--muted); margin: 0 0 14px; }
+.doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.doc-card { display: grid; gap: 3px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: var(--text); }
+.doc-card:hover { border-color: var(--accent); }
+.doc-card span { color: var(--muted); font-size: 13px; }
+
+.search input { width: min(100%, 420px); padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
+.glossary { margin: 16px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.glossary .entry { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.glossary dt { font-weight: 650; margin-bottom: 4px; }
+.glossary dd { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Doc viewer */
+.doc-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; max-width: 1240px; margin: 0 auto; padding: 24px; }
+.doc-nav { position: sticky; top: 16px; align-self: start; display: grid; gap: 2px; font-size: 13.5px; }
+.doc-nav a { color: var(--muted); text-decoration: none; padding: 5px 8px; border-radius: 6px; }
+.doc-nav a:hover { color: var(--text); background: var(--code-bg); }
+.doc-nav a[aria-current="page"] { color: var(--text); background: var(--code-bg); font-weight: 600; }
+.doc-body { min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 28px 32px; line-height: 1.65; font-size: 15px; }
+.doc-body h1 { font-size: 30px; line-height: 1.15; margin-top: 0; }
+.doc-body h2 { margin-top: 2em; padding-top: .6em; border-top: 1px solid var(--border); }
+.doc-body h2, .doc-body h3 { scroll-margin-top: 16px; }
+.doc-body a { color: var(--accent); }
+.doc-body table { border-collapse: collapse; display: block; overflow-x: auto; margin: 1em 0; font-size: 14px; }
+.doc-body th, .doc-body td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+.doc-body th { background: var(--code-bg); }
+.doc-body code { background: var(--code-bg); border-radius: 4px; padding: 1px 5px; font-size: 13px; }
+.doc-body pre { background: var(--code-bg); border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
+.doc-body pre code { background: none; padding: 0; }
+.doc-body blockquote { margin: 1em 0; padding: 4px 14px; border-left: 3px solid var(--accent); color: var(--muted); }
+.doc-body img, .doc-body .learn-svg { max-width: 100%; height: auto; }
+.doc-body .doc-visual { overflow-x: auto; margin: 1em 0; }
+.doc-body .doc-visual svg { display: block; width: 100%; min-width: 600px; height: auto; }
+.doc-body .mermaid { background: var(--panel); text-align: center; overflow-x: auto; }
+.doc-pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); }
+.doc-hint { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+
+@media (max-width: 860px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .doc-nav { position: static; display: flex; flex-wrap: wrap; gap: 4px; }
+  .doc-body { padding: 20px 18px; }
+  .hub-main { padding-inline: 16px; }
+  .step { padding: 16px; }
+}

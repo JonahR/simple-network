@@ -45,6 +45,8 @@ The documents embed Mermaid diagrams, which render on GitHub and in most Markdow
 
 ## Interactive
 
+Run `make serve` (or `make run-pos`) and open **http://localhost:8080/learn/**. The learning hub walks through every step of a network with these visuals, and every label in them is clickable: hover for a definition, click for links to these docs and to official sources. The same works in the POS terminal at http://localhost:8080 (turn on **Explain mode** to make buttons explain themselves), and in the Mermaid diagrams when you read these docs at http://localhost:8080/learn/doc.html.
+
 [`interactive/authorization-request.html`](interactive/authorization-request.html) is a clickable anatomy of an authorization request (`0100`) and response (`0110`). Every MTI digit, bitmap bit, data element, EMV tag, and party opens a popover with a definition, the simple-network field, and links to official docs and these KT docs. Open it in a browser.
 
 ## Five ideas to remember

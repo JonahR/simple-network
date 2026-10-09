@@ -1,0 +1,64 @@
+/* learn.css: styles for [data-term] labels and the definition popover.
+   Uses the host page's tokens when present (POS style.css), with fallbacks. */
+:root {
+  --learn-panel: var(--panel, #ffffff);
+  --learn-text: var(--text, #1c1c1a);
+  --learn-muted: var(--muted, #6b6b66);
+  --learn-border: var(--border, #e2e2dc);
+  --learn-accent: var(--accent, #1f5eff);
+  --learn-soft: var(--code-bg, #f0f0eb);
+  --learn-shadow: 0 16px 44px -10px rgba(20, 24, 40, .3), 0 2px 6px rgba(20, 24, 40, .1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --learn-shadow: 0 16px 44px -10px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .4); }
+}
+
+/* Labels you can learn from: a dotted underline, like a glossary link. */
+[data-term] { cursor: help; }
+:where(span, td, th, h2, h3, small, em, strong, label, legend, div, p, b, i, code)[data-term] {
+  text-decoration: underline dotted color-mix(in srgb, var(--learn-accent) 60%, transparent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+[data-term]:focus-visible { outline: 2px solid var(--learn-accent); outline-offset: 2px; border-radius: 3px; }
+svg [data-term] { cursor: pointer; }
+svg [data-term]:hover, svg [data-term]:focus-visible, svg .learn-active { outline: none; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--learn-accent) 70%, transparent)); }
+svg text[data-term] { text-decoration: underline dotted; text-underline-offset: 2px; }
+.learn-active:not(svg *) { background: color-mix(in srgb, var(--learn-accent) 12%, transparent); border-radius: 3px; }
+
+/* Explain mode: everything learnable gets a visible outline; clicks explain. */
+.learn-explain [data-term]:not(svg *) { outline: 1.5px dashed color-mix(in srgb, var(--learn-accent) 70%, transparent); outline-offset: 2px; border-radius: 3px; }
+.learn-explain svg [data-term] { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--learn-accent) 80%, transparent)); }
+.learn-toggle { border: 1px solid var(--learn-border); background: var(--learn-panel); color: var(--learn-text); border-radius: 999px; padding: 5px 12px; font: 600 12.5px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer; }
+.learn-toggle[aria-pressed="true"] { background: var(--learn-accent); border-color: var(--learn-accent); color: var(--accent-text, #fff); }
+
+/* Popover */
+.learn-pop { position: absolute; z-index: 1000; width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); display: grid; grid-template-rows: auto 1fr;
+  background: var(--learn-panel); color: var(--learn-text); border: 1px solid var(--learn-border); border-radius: 12px; box-shadow: var(--learn-shadow);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; text-align: left; }
+.learn-pop[hidden] { display: none; }
+.learn-pop-head { display: flex; align-items: start; gap: 8px; padding: 14px 14px 8px 16px; border-bottom: 1px solid var(--learn-border); }
+.learn-pop-title { margin: 0; flex: 1; font-size: 16px; line-height: 1.25; text-wrap: balance; }
+.learn-pop-close { border: 0; background: none; color: var(--learn-muted); font-size: 20px; line-height: 1; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; flex: none; }
+.learn-pop-close:hover { background: var(--learn-soft); color: var(--learn-text); }
+.learn-pop-body { padding: 10px 16px 14px; overflow-y: auto; display: grid; gap: 8px; min-width: 0; }
+.learn-pop-body p { margin: 0; }
+.learn-pop-body h4 { margin: 4px 0 0; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--learn-muted); }
+.learn-links { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.learn-links a { display: flex; gap: 8px; align-items: baseline; color: var(--learn-accent); text-decoration: none; }
+.learn-links a:hover { text-decoration: underline; }
+.learn-tag { flex: none; min-width: 26px; text-align: center; font: 600 10px/1.6 ui-monospace, Menlo, monospace; color: var(--learn-muted); border: 1px solid var(--learn-border); border-radius: 4px; padding: 0 4px; }
+.learn-related { display: flex; flex-wrap: wrap; gap: 6px; }
+.learn-related button { border: 1px solid var(--learn-border); background: var(--learn-soft); color: var(--learn-text); border-radius: 999px; padding: 3px 10px; font: 12.5px/1.4 system-ui, -apple-system, sans-serif; cursor: pointer; }
+.learn-related button:hover { border-color: var(--learn-accent); }
+.learn-all { justify-self: start; font-size: 12.5px; color: var(--learn-muted); margin-top: 2px; }
+
+@media (max-width: 640px) {
+  .learn-pop { position: fixed; left: 0; right: 0; bottom: 0; top: auto !important; width: 100%; max-height: 70vh; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+@media (prefers-reduced-motion: reduce) { .learn-pop { transition: none; } }
+
+/* Learning links in page headers */
+.learn-nav { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 13px; }
+.learn-nav a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.learn-nav a:hover { text-decoration: underline; }

@@ -1,0 +1,3835 @@
+{
+  "about": "Definitions for every learnable label in simple-network. kt links are Network KT docs (file#anchor); ext links are official or reference sources. Validated by cmd/pos/glossary_test.go.",
+  "terms": {
+    "cardholder": {
+      "name": "Cardholder",
+      "def": "The person or business a card was issued to. The cardholder presents the card at checkout and later pays the issuer back. In a four-party network the cardholder is the issuer's customer; the network never deals with them directly.",
+      "kt": [
+        [
+          "The four-party model",
+          "01-what-is-a-card-network.md#the-four-party-model-visa-mastercard-and-simple-network"
+        ],
+        [
+          "Core members",
+          "02-participants-and-roles.md#core-members"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_card"
+        ],
+        [
+          "Credit card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Credit_card"
+        ]
+      ],
+      "see": [
+        "issuer",
+        "card-present"
+      ],
+      "aliases": [
+        "Cardholder",
+        "Cardholder and card",
+        "CH"
+      ]
+    },
+    "merchant": {
+      "name": "Merchant",
+      "def": "The business that accepts the card. It is the acquirer's customer, and the network knows it by its merchant ID (DE42), category code (DE18) and name/location (DE43). It is paid at funding, minus the merchant discount rate.",
+      "kt": [
+        [
+          "Core members",
+          "02-participants-and-roles.md#core-members"
+        ],
+        [
+          "Identifiers each party carries",
+          "02-participants-and-roles.md#identifiers-each-party-carries"
+        ]
+      ],
+      "ext": [
+        [
+          "Merchant account (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Merchant_account"
+        ]
+      ],
+      "see": [
+        "acquirer",
+        "de42",
+        "de18",
+        "mdr"
+      ],
+      "aliases": [
+        "Merchant",
+        "Merchants",
+        "Direct merchants",
+        "Sub-merchants"
+      ]
+    },
+    "acquirer": {
+      "name": "Acquirer (merchant's bank)",
+      "def": "The bank that signs up merchants and connects them to the network. It sends their authorizations and clearing files, receives settlement, and pays the merchant. It is liable for its merchants, so if one goes bust and customers charge back, the acquirer pays.",
+      "kt": [
+        [
+          "Acquirer",
+          "02-participants-and-roles.md#acquirer-merchant-bank"
+        ],
+        [
+          "Stage 1: Authorization",
+          "03-transaction-lifecycle.md#stage-1-authorization"
+        ]
+      ],
+      "ext": [
+        [
+          "Acquiring bank (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Acquiring_bank"
+        ],
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "merchant",
+        "processor",
+        "de32-acquirer-id",
+        "funding"
+      ],
+      "aliases": [
+        "Acquirer",
+        "Acquirers",
+        "Acquirer A",
+        "Acquirer B",
+        "Acquirer C",
+        "Acquirer A1",
+        "Principal Acquirer",
+        "Acquiring bank",
+        "Acquirer (sponsor bank)"
+      ]
+    },
+    "issuer": {
+      "name": "Issuer (cardholder's bank)",
+      "def": "The bank that issued the card. It decides whether to approve each authorization, places the hold, owns the credit line or deposit account, bills the cardholder, and carries the credit and fraud risk on its cards.",
+      "kt": [
+        [
+          "Issuer",
+          "02-participants-and-roles.md#issuer"
+        ],
+        [
+          "Response codes (DE39)",
+          "04-authorization-deep-dive.md#response-codes-de39"
+        ]
+      ],
+      "ext": [
+        [
+          "Issuing bank (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Issuing_bank"
+        ],
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "cardholder",
+        "de39",
+        "auth-hold",
+        "statement"
+      ],
+      "aliases": [
+        "Issuer",
+        "Issuers",
+        "Issuer 1",
+        "Issuer 2",
+        "Issuer 3",
+        "Issuer I1",
+        "Issuer bank",
+        "Principal Issuer",
+        "Issuer ACS"
+      ]
+    },
+    "network": {
+      "name": "Card network (the switch)",
+      "def": "The switch and rulebook that connect thousands of issuers and acquirers. It routes authorizations by BIN, runs clearing and settlement, sets interchange and fees, arbitrates disputes, and sells risk services. It doesn't lend money or decide approvals (except in stand-in). simple-network is building one.",
+      "kt": [
+        [
+          "The one-sentence definition",
+          "01-what-is-a-card-network.md#the-one-sentence-definition"
+        ],
+        [
+          "What a network does",
+          "01-what-is-a-card-network.md#what-a-network-does"
+        ],
+        [
+          "The pipeline inside the switch",
+          "04-authorization-deep-dive.md#the-authorization-pipeline-inside-the-switch"
+        ]
+      ],
+      "ext": [
+        [
+          "Card scheme (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_scheme"
+        ],
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ],
+        [
+          "Mastercard Rules",
+          "https://www.mastercard.us/en-us/business/overview/support/rules.html"
+        ]
+      ],
+      "see": [
+        "four-party-model",
+        "bin",
+        "stip",
+        "rules-compliance"
+      ],
+      "aliases": [
+        "Network",
+        "NETWORK SWITCH",
+        "Network switch",
+        "simple-network switch",
+        "Network (simple-network)",
+        "Network Settlement Engine",
+        "Auth (network)"
+      ]
+    },
+    "processor": {
+      "name": "Processor",
+      "def": "A company that runs the technology for a bank. Issuer processors host card databases and authorization decisions; acquirer processors connect merchants and terminals to the network. A network often talks to processors rather than to banks directly.",
+      "kt": [
+        [
+          "Processors and intermediaries",
+          "02-participants-and-roles.md#processors-and-intermediaries"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment processor (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_processor"
+        ]
+      ],
+      "see": [
+        "acquirer",
+        "issuer",
+        "gateway"
+      ],
+      "aliases": [
+        "Issuer Processor",
+        "Acquirer Processor",
+        "Processor"
+      ]
+    },
+    "gateway": {
+      "name": "Payment gateway",
+      "def": "Software that takes card details from a website or app and forwards them to the acquirer's processor. Gateways create most e-commerce traffic and often handle 3-D Secure and tokenization for merchants.",
+      "kt": [
+        [
+          "Processors and intermediaries",
+          "02-participants-and-roles.md#processors-and-intermediaries"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment gateway (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_gateway"
+        ]
+      ],
+      "see": [
+        "ecommerce",
+        "three-ds"
+      ],
+      "aliases": [
+        "Payment Gateway",
+        "Gateway"
+      ]
+    },
+    "payfac": {
+      "name": "PayFac / ISO",
+      "def": "A payment facilitator signs up many small 'sub-merchants' under one master merchant account at an acquirer. An ISO (independent sales organization) resells an acquirer's merchant accounts. Both act on the acquirer's behalf, and the acquirer stays liable.",
+      "kt": [
+        [
+          "Processors and intermediaries",
+          "02-participants-and-roles.md#processors-and-intermediaries"
+        ],
+        [
+          "Who is a member?",
+          "02-participants-and-roles.md#who-is-a-member"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment service provider (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_service_provider"
+        ]
+      ],
+      "see": [
+        "acquirer",
+        "merchant"
+      ],
+      "aliases": [
+        "PayFac / ISO",
+        "PayFac",
+        "ISO / MSP",
+        "Program manager / fintech",
+        "Program Manager"
+      ]
+    },
+    "settlement-bank": {
+      "name": "Settlement bank",
+      "def": "The bank that holds settlement accounts and actually moves money when the network instructs it. The network calculates who owes what; the settlement bank debits net payers and credits net receivers (in the US, over Fedwire).",
+      "kt": [
+        [
+          "Settlement mechanics",
+          "05-clearing-and-settlement.md#settlement-mechanics"
+        ]
+      ],
+      "ext": [
+        [
+          "Settlement (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Settlement_(finance)"
+        ],
+        [
+          "Fedwire (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Fedwire"
+        ]
+      ],
+      "see": [
+        "settlement",
+        "net-settlement"
+      ],
+      "aliases": [
+        "Settlement Bank",
+        "Settlement bank",
+        "Network settlement account"
+      ]
+    },
+    "token-service": {
+      "name": "Token service provider (TSP) and token vault",
+      "def": "The network service that issues network tokens, stores the token-to-PAN mapping in a secure vault, checks token cryptograms, and swaps the token back to the real card number before the issuer sees the authorization.",
+      "kt": [
+        [
+          "Network tokenization",
+          "07-cards-bins-and-tokens.md#network-tokenization"
+        ],
+        [
+          "Should simple-network build one?",
+          "07-cards-bins-and-tokens.md#should-simple-network-build-a-tokenization-service"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo payment tokenisation",
+          "https://www.emvco.com/emv-technologies/payment-tokenisation/"
+        ],
+        [
+          "Visa Token Service (developer)",
+          "https://developer.visa.com/capabilities/vts"
+        ],
+        [
+          "Mastercard Digital Enablement Service",
+          "https://developer.mastercard.com/mdes-digital-enablement/documentation/"
+        ]
+      ],
+      "see": [
+        "network-token",
+        "device-token",
+        "cryptogram"
+      ],
+      "aliases": [
+        "Token Service",
+        "Network Token Service",
+        "TSP",
+        "Token vault"
+      ]
+    },
+    "pos-terminal": {
+      "name": "POS terminal",
+      "def": "The point-of-sale device or checkout software. It reads the card (tap, chip, swipe or keyed), prompts for anything the card needs (PIN, cash back, fleet data), and builds the authorization request. In this repo the POS is cmd/pos.",
+      "kt": [
+        [
+          "Stage 1: Authorization",
+          "03-transaction-lifecycle.md#stage-1-authorization"
+        ],
+        [
+          "Card-present vs card-not-present",
+          "03-transaction-lifecycle.md#card-present-vs-card-not-present"
+        ]
+      ],
+      "ext": [
+        [
+          "Point of sale (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Point_of_sale"
+        ],
+        [
+          "EMVCo contact chip",
+          "https://www.emvco.com/emv-technologies/emv-contact-chip/"
+        ]
+      ],
+      "see": [
+        "de22",
+        "de41",
+        "terminal-prompts"
+      ],
+      "aliases": [
+        "Merchant POS",
+        "POS",
+        "Terminal / Checkout",
+        "Terminal",
+        "Merchant terminal (POS)"
+      ]
+    },
+    "four-party-model": {
+      "name": "Four-party model",
+      "def": "The open-loop design used by Visa, Mastercard and simple-network: cardholder, issuer, merchant and acquirer, connected by a network. Issuers and acquirers are different banks that trust each other through the network's rules.",
+      "kt": [
+        [
+          "The four-party model",
+          "01-what-is-a-card-network.md#the-four-party-model-visa-mastercard-and-simple-network"
+        ],
+        [
+          "D1: Four-party, dual-message",
+          "12-design-decisions.md#d1-four-party-dual-message"
+        ]
+      ],
+      "ext": [
+        [
+          "Card scheme (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_scheme"
+        ]
+      ],
+      "see": [
+        "three-party-model",
+        "network"
+      ],
+      "aliases": [
+        "Four-party model"
+      ]
+    },
+    "three-party-model": {
+      "name": "Three-party model (closed loop)",
+      "def": "A network that is also the issuer and usually the acquirer, such as American Express. It earns the full merchant discount and sees both sides of every transaction, but has to sign up cardholders and merchants itself.",
+      "kt": [
+        [
+          "The three-party model",
+          "01-what-is-a-card-network.md#the-three-party-model-american-express-discover-diners"
+        ]
+      ],
+      "ext": [
+        [
+          "Card scheme (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_scheme"
+        ]
+      ],
+      "see": [
+        "four-party-model"
+      ],
+      "aliases": [
+        "Network = Issuer = Acquirer"
+      ]
+    },
+    "authorization": {
+      "name": "Authorization",
+      "def": "The real-time step at checkout. The acquirer asks the issuer, through the network, whether it will pay. If approved, the issuer places a hold on the cardholder's available credit. No money moves yet; that happens at clearing and settlement.",
+      "kt": [
+        [
+          "Stage 1: Authorization",
+          "03-transaction-lifecycle.md#stage-1-authorization"
+        ],
+        [
+          "Authorization deep dive",
+          "04-authorization-deep-dive.md#iso-8583-in-five-minutes"
+        ]
+      ],
+      "ext": [
+        [
+          "Authorization hold (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Authorization_hold"
+        ],
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "msg-0100",
+        "msg-0110",
+        "auth-hold",
+        "clearing"
+      ],
+      "aliases": [
+        "Authorization",
+        "Authorized",
+        "Approved",
+        "Requested"
+      ]
+    },
+    "auth-hold": {
+      "name": "Authorization hold (pending charge)",
+      "def": "The amount the issuer reserves when it approves an authorization. It lowers the cardholder's available credit and shows as 'pending'. Clearing turns it into a posted charge; if the merchant never clears, the hold expires (often after about 7 days).",
+      "kt": [
+        [
+          "Stage 1: Authorization",
+          "03-transaction-lifecycle.md#stage-1-authorization"
+        ],
+        [
+          "Stage 2: Capture and clearing",
+          "03-transaction-lifecycle.md#stage-2-capture-and-clearing"
+        ]
+      ],
+      "ext": [
+        [
+          "Authorization hold (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Authorization_hold"
+        ]
+      ],
+      "see": [
+        "authorization",
+        "clearing",
+        "reversal"
+      ],
+      "aliases": [
+        "Hold",
+        "Expired",
+        "Incremented"
+      ]
+    },
+    "capture": {
+      "name": "Capture",
+      "def": "The merchant's decision to ask for the money, after the final amount is known: when the tip is added, the hotel guest checks out, or the order ships. Captured sales go into the acquirer's end-of-day clearing file.",
+      "kt": [
+        [
+          "Stage 2: Capture and clearing",
+          "03-transaction-lifecycle.md#stage-2-capture-and-clearing"
+        ]
+      ],
+      "ext": [
+        [
+          "Clearing (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Clearing_(finance)"
+        ]
+      ],
+      "see": [
+        "clearing",
+        "presentment"
+      ],
+      "aliases": [
+        "Capture"
+      ]
+    },
+    "clearing": {
+      "name": "Clearing",
+      "def": "The batch step, usually end of day, where acquirers send final transaction records. The network matches them to authorizations, calculates interchange and fees, and forwards each issuer its records. Clearing sets what is owed; settlement pays it.",
+      "kt": [
+        [
+          "Stage 2: Capture and clearing",
+          "03-transaction-lifecycle.md#stage-2-capture-and-clearing"
+        ],
+        [
+          "Clearing: exchanging the final records",
+          "05-clearing-and-settlement.md#clearing-exchanging-the-final-records"
+        ],
+        [
+          "Matching clearing records to auths",
+          "05-clearing-and-settlement.md#matching-clearing-records-to-authorizations"
+        ]
+      ],
+      "ext": [
+        [
+          "Clearing (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Clearing_(finance)"
+        ],
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "presentment",
+        "interchange",
+        "settlement",
+        "arn"
+      ],
+      "aliases": [
+        "Clearing",
+        "Cleared",
+        "Clearing · M5",
+        "Clearing ledger"
+      ]
+    },
+    "presentment": {
+      "name": "Presentment (clearing record)",
+      "def": "The record an acquirer sends at clearing to say 'this sale happened, for this final amount'. It carries the auth code, network transaction ID, final amount and qualification data, and gets an acquirer reference number (ARN) for its lifetime.",
+      "kt": [
+        [
+          "What a clearing record contains",
+          "05-clearing-and-settlement.md#what-a-clearing-record-contains"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "clearing",
+        "arn",
+        "capture"
+      ],
+      "aliases": [
+        "Presentment",
+        "Clearing record"
+      ]
+    },
+    "cutoff": {
+      "name": "Cutoff",
+      "def": "The fixed time that closes a clearing cycle. Everything received before it settles in that cycle; anything after rolls to the next. It turns a continuous stream of payments into business days the banks can reconcile.",
+      "kt": [
+        [
+          "Settlement mechanics",
+          "05-clearing-and-settlement.md#settlement-mechanics"
+        ],
+        [
+          "D10 and D11: Clearing and settlement cycles",
+          "12-design-decisions.md#d10-and-d11-clearing-and-settlement-cycles"
+        ]
+      ],
+      "ext": [
+        [
+          "Settlement (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Settlement_(finance)"
+        ]
+      ],
+      "see": [
+        "clearing",
+        "settlement",
+        "t-plus"
+      ],
+      "aliases": [
+        "Cutoff",
+        "Cutoff + clearing run"
+      ]
+    },
+    "settlement": {
+      "name": "Settlement",
+      "def": "The step where money actually moves between banks, usually the next business day (T+1). The network adds up each member's cleared sales, interchange and fees into one net amount, and the settlement bank moves the funds.",
+      "kt": [
+        [
+          "Stage 3: Settlement",
+          "03-transaction-lifecycle.md#stage-3-settlement"
+        ],
+        [
+          "Settlement: moving the money",
+          "05-clearing-and-settlement.md#settlement-moving-the-money"
+        ]
+      ],
+      "ext": [
+        [
+          "Settlement (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Settlement_(finance)"
+        ],
+        [
+          "Netting (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Netting"
+        ]
+      ],
+      "see": [
+        "net-settlement",
+        "settlement-bank",
+        "funding"
+      ],
+      "aliases": [
+        "Settlement",
+        "Settled",
+        "Settlement · M6",
+        "Settlement engine"
+      ]
+    },
+    "net-settlement": {
+      "name": "Net settlement",
+      "def": "Combining all of a bank's activity into one payment per day per currency. Issuers pay in what their cardholders spent minus interchange they earn; acquirers are paid out what their merchants sold minus interchange and fees. All net positions plus network revenue sum to zero.",
+      "kt": [
+        [
+          "Gross vs net",
+          "05-clearing-and-settlement.md#gross-vs-net"
+        ],
+        [
+          "Worked example: one day, three banks",
+          "05-clearing-and-settlement.md#worked-example-one-day-three-banks"
+        ]
+      ],
+      "ext": [
+        [
+          "Netting (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Netting"
+        ]
+      ],
+      "see": [
+        "settlement",
+        "interchange",
+        "network-fees"
+      ],
+      "aliases": [
+        "Net settlement",
+        "Net positions + invariant check"
+      ]
+    },
+    "funding": {
+      "name": "Merchant funding",
+      "def": "The acquirer paying the merchant: gross sales minus the merchant discount rate, refunds, chargebacks and any reserve. It happens outside the network, typically one to two days after the sale.",
+      "kt": [
+        [
+          "Stage 4: Merchant funding",
+          "03-transaction-lifecycle.md#stage-4-merchant-funding"
+        ],
+        [
+          "The $100 purchase waterfall",
+          "06-economics-and-fees.md#the-100-purchase-waterfall"
+        ]
+      ],
+      "ext": [
+        [
+          "Merchant account (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Merchant_account"
+        ]
+      ],
+      "see": [
+        "mdr",
+        "acquirer",
+        "settlement"
+      ],
+      "aliases": [
+        "Funding",
+        "Merchant funding"
+      ]
+    },
+    "t-plus": {
+      "name": "T+0, T+1, T+2",
+      "def": "Days after the transaction date (T). Authorization happens at T+0, clearing usually that night, bank settlement around T+1, and merchant funding around T+1 to T+2. The exact timing depends on the network, region and acquirer.",
+      "kt": [
+        [
+          "Transaction lifecycle",
+          "03-transaction-lifecycle.md#stage-3-settlement"
+        ],
+        [
+          "Settlement mechanics",
+          "05-clearing-and-settlement.md#settlement-mechanics"
+        ]
+      ],
+      "ext": [
+        [
+          "Settlement date (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Settlement_date"
+        ]
+      ],
+      "see": [
+        "settlement",
+        "funding",
+        "cutoff"
+      ],
+      "aliases": [
+        "T+0",
+        "T+1",
+        "T+2"
+      ]
+    },
+    "statement": {
+      "name": "Cardholder statement and payment",
+      "def": "The issuer bills the cardholder for posted charges, usually monthly. Paying in full within the grace period avoids interest; carrying a balance (revolving) is a major source of issuer revenue. This is the issuer's business, not the network's.",
+      "kt": [
+        [
+          "Issuer economics",
+          "06-economics-and-fees.md#issuer-economics-why-issuers-love-credit"
+        ]
+      ],
+      "ext": [
+        [
+          "Revolving credit (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Revolving_credit"
+        ]
+      ],
+      "see": [
+        "issuer",
+        "credit-card"
+      ],
+      "aliases": [
+        "Statement"
+      ]
+    },
+    "refund": {
+      "name": "Refund",
+      "def": "A new transaction, started by the merchant after clearing, that moves money back to the cardholder. It is a credit, not an undo: it has its own record, fees and timing. Before clearing, a reversal is cheaper and faster.",
+      "kt": [
+        [
+          "The four ways to undo money",
+          "08-exceptions-and-disputes.md#the-four-ways-to-undo-money"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "reversal",
+        "chargeback",
+        "de3"
+      ],
+      "aliases": [
+        "Refund",
+        "Refunded",
+        "Refund: new credit txn"
+      ]
+    },
+    "reversal": {
+      "name": "Reversal (void)",
+      "def": "Undoing an authorization before clearing (MTI 0400/0420). It releases the issuer's hold. Because no money has moved, nothing needs to be refunded. The network also sends reversals to clean up late issuer responses after a timeout.",
+      "kt": [
+        [
+          "Reversal mechanics",
+          "08-exceptions-and-disputes.md#reversal-mechanics"
+        ],
+        [
+          "Timeouts and late responses",
+          "04-authorization-deep-dive.md#timeouts-and-late-responses"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "auth-hold",
+        "refund"
+      ],
+      "aliases": [
+        "Reversed",
+        "Reversal",
+        "Reversed: hold released"
+      ]
+    },
+    "chargeback": {
+      "name": "Chargeback (dispute)",
+      "def": "The issuer forcing a settled transaction back from the acquirer under the network's dispute rules, for example fraud or goods not received. The acquirer can accept it or fight it with evidence (representment); the network arbitrates if they still disagree.",
+      "kt": [
+        [
+          "Chargebacks: the dispute lifecycle",
+          "08-exceptions-and-disputes.md#chargebacks-the-dispute-lifecycle"
+        ],
+        [
+          "Reason code categories",
+          "08-exceptions-and-disputes.md#reason-code-categories"
+        ]
+      ],
+      "ext": [
+        [
+          "Chargeback (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Chargeback"
+        ],
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "dispute-window",
+        "refund",
+        "dispute-prevention"
+      ],
+      "aliases": [
+        "Chargeback",
+        "Disputed",
+        "Disputes",
+        "Disputes · M7",
+        "Represented",
+        "PreArbitration",
+        "Arbitration",
+        "ChargebackAccepted"
+      ]
+    },
+    "dispute-window": {
+      "name": "Dispute window",
+      "def": "How long a cardholder's issuer has to file a chargeback, typically about 120 days from processing (or from the expected delivery date). Each later dispute stage has its own deadline, enforced by the network.",
+      "kt": [
+        [
+          "Dispute stages and time limits",
+          "08-exceptions-and-disputes.md#dispute-stages-and-typical-time-limits"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "chargeback"
+      ],
+      "aliases": [
+        "Dispute window"
+      ]
+    },
+    "dual-message": {
+      "name": "Dual-message vs single-message",
+      "def": "Dual-message (credit cards) sends an authorization now and a separate clearing record later, so the final amount can change. Single-message (PIN debit, ATM) authorizes and posts in one 0200 message.",
+      "kt": [
+        [
+          "Dual-message vs single-message",
+          "03-transaction-lifecycle.md#dual-message-vs-single-message"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "authorization",
+        "clearing"
+      ],
+      "aliases": [
+        "Dual-message"
+      ]
+    },
+    "card-present": {
+      "name": "Card-present vs card-not-present",
+      "def": "Card-present means the card is at a terminal (tap, chip, swipe), where chip cryptograms make fraud hard. Card-not-present means online, phone or stored-card payments, where most fraud now happens and interchange is higher.",
+      "kt": [
+        [
+          "Card-present vs card-not-present",
+          "03-transaction-lifecycle.md#card-present-vs-card-not-present"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "Card not present transaction (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_not_present_transaction"
+        ]
+      ],
+      "see": [
+        "de22",
+        "ecommerce",
+        "three-ds"
+      ],
+      "aliases": [
+        "Card-present",
+        "presents card"
+      ]
+    },
+    "iso8583": {
+      "name": "ISO 8583",
+      "def": "The international standard for card payment messages: a 4-digit message type, a bitmap of which fields are present, then numbered data elements (DE2, DE3, ...). Every network runs its own variant. The current edition is ISO 8583:2023, but most networks still use the 1987 layout.",
+      "kt": [
+        [
+          "ISO 8583 in five minutes",
+          "04-authorization-deep-dive.md#iso-8583-in-five-minutes"
+        ],
+        [
+          "D2: ISO 8583-shaped JSON",
+          "12-design-decisions.md#d2-iso-8583-shaped-json"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583:2023 (iso.org)",
+          "https://www.iso.org/standard/79451.html"
+        ],
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "mti",
+        "bitmap",
+        "msg-0100"
+      ],
+      "aliases": [
+        "ISO 8583",
+        "messages (auth, clearing)"
+      ]
+    },
+    "mti": {
+      "name": "MTI: message type indicator",
+      "def": "The first four digits of every ISO 8583 message: version, class, function and origin. 0100 is a 1987-version authorization request from the acquirer; the issuer answers with 0110. Reversals are 0400, network management 0800.",
+      "kt": [
+        [
+          "MTI: Message Type Indicator",
+          "04-authorization-deep-dive.md#mti-message-type-indicator"
+        ],
+        [
+          "The messages you need",
+          "04-authorization-deep-dive.md#the-messages-you-need"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ],
+        [
+          "ISO 8583:2023 (iso.org)",
+          "https://www.iso.org/standard/79451.html"
+        ]
+      ],
+      "see": [
+        "msg-0100",
+        "msg-0110",
+        "iso8583"
+      ],
+      "aliases": [
+        "MTI",
+        "Message type"
+      ]
+    },
+    "msg-0100": {
+      "name": "0100 authorization request",
+      "def": "The message that asks the issuer to approve a purchase and place a hold. The terminal and acquirer fill in the card, amount, merchant and trace fields; the network routes it by BIN. The interactive anatomy page lets you click through every part of one.",
+      "kt": [
+        [
+          "The messages you need",
+          "04-authorization-deep-dive.md#the-messages-you-need"
+        ],
+        [
+          "Stage 1: Authorization",
+          "03-transaction-lifecycle.md#stage-1-authorization"
+        ],
+        [
+          "Interactive 0100 anatomy",
+          "interactive/authorization-request.html"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "mti",
+        "msg-0110",
+        "authorization"
+      ],
+      "aliases": [
+        "0100",
+        "0100 Authorization Request",
+        "0100 Authorization request",
+        "Authorization request",
+        "0100/0110"
+      ]
+    },
+    "msg-0110": {
+      "name": "0110 authorization response",
+      "def": "The issuer's answer, routed back through the network to the acquirer. It echoes the request's trace fields and adds the response code (DE39) and, if approved, the approval code (DE38).",
+      "kt": [
+        [
+          "The messages you need",
+          "04-authorization-deep-dive.md#the-messages-you-need"
+        ],
+        [
+          "Response codes (DE39)",
+          "04-authorization-deep-dive.md#response-codes-de39"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de39",
+        "de38",
+        "msg-0100"
+      ],
+      "aliases": [
+        "0110",
+        "0110 back",
+        "0110 Response",
+        "Authorization response"
+      ]
+    },
+    "bitmap": {
+      "name": "Bitmap",
+      "def": "A 64-bit map after the MTI saying which data elements are present: bit n set means DE n follows. It lets each message carry only the fields it needs. If bit 1 is set, a second bitmap follows for DE65 to DE128.",
+      "kt": [
+        [
+          "ISO 8583 in five minutes",
+          "04-authorization-deep-dive.md#iso-8583-in-five-minutes"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "iso8583",
+        "mti"
+      ],
+      "aliases": [
+        "Bitmap"
+      ]
+    },
+    "network-txn-id": {
+      "name": "Network transaction ID",
+      "def": "A unique ID the network assigns to each authorization and returns to both sides. Clearing, reversals, disputes and later stored-credential payments all reference it, so any step can find the original months later.",
+      "kt": [
+        [
+          "D3: Transaction identity and idempotency",
+          "12-design-decisions.md#d3-transaction-identity-and-idempotency"
+        ],
+        [
+          "Identifiers each party carries",
+          "02-participants-and-roles.md#identifiers-each-party-carries"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "arn",
+        "de37",
+        "de11"
+      ],
+      "aliases": [
+        "Network transaction ID"
+      ]
+    },
+    "arn": {
+      "name": "ARN: acquirer reference number",
+      "def": "The ID a clearing record gets for its whole life. Cardholders, issuers and dispute teams use it to find a cleared transaction. It doesn't exist at authorization; clearing links back to the auth through the network transaction ID, RRN and approval code.",
+      "kt": [
+        [
+          "What a clearing record contains",
+          "05-clearing-and-settlement.md#what-a-clearing-record-contains"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "presentment",
+        "network-txn-id"
+      ],
+      "aliases": [
+        "ARN"
+      ]
+    },
+    "de2": {
+      "name": "DE2 · Primary account number (PAN)",
+      "def": "The card number, 12 to 19 digits. Its first 6 to 8 digits (the BIN) tell the network which issuer to route to, and the last digit is a Luhn check digit. With a mobile wallet or network token this field carries the token instead of the real number. Logs must mask it.",
+      "kt": [
+        [
+          "Anatomy of a card number",
+          "07-cards-bins-and-tokens.md#anatomy-of-a-card-number-pan"
+        ],
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment card number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_card_number"
+        ],
+        [
+          "ISO/IEC 7812 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO/IEC_7812"
+        ]
+      ],
+      "see": [
+        "bin",
+        "luhn",
+        "pan-masking",
+        "device-token"
+      ],
+      "aliases": [
+        "DE2",
+        "PAN",
+        "Card number",
+        "Primary account number"
+      ]
+    },
+    "de3": {
+      "name": "DE3 · Processing code",
+      "def": "Six digits saying what kind of transaction this is and which accounts it moves money between. Digits 1-2: 00 purchase, 09 purchase with cash back, 20 refund. Digits 3-4 (from account): 00 default, 20 checking, 30 credit. Digits 5-6: to account.",
+      "kt": [
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ],
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de4",
+        "cashback",
+        "refund"
+      ],
+      "aliases": [
+        "DE3",
+        "Processing code"
+      ]
+    },
+    "de4": {
+      "name": "DE4 · Amount, transaction",
+      "def": "The amount requested, in the currency's smallest unit and zero-padded to 12 digits: 5420 means $54.20. The currency is in DE49. The final charge can differ at clearing (tips, hotels, fuel); this is the hold amount.",
+      "kt": [
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ],
+        [
+          "D5 and D6: Money and ledger",
+          "12-design-decisions.md#d5-and-d6-money-and-ledger"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 4217 minor units (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_4217"
+        ]
+      ],
+      "see": [
+        "de49",
+        "auth-hold",
+        "de54"
+      ],
+      "aliases": [
+        "DE4",
+        "Amount"
+      ]
+    },
+    "de7": {
+      "name": "DE7 · Transmission date and time",
+      "def": "When the sender transmitted this message, in UTC, as MMDDhhmmss (there's no year). Each hop stamps its own. Together with the acquirer ID and STAN it identifies a request, which lets the switch reject duplicates.",
+      "kt": [
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ],
+        [
+          "D3: Transaction identity and idempotency",
+          "12-design-decisions.md#d3-transaction-identity-and-idempotency"
+        ]
+      ],
+      "ext": [
+        [
+          "Coordinated Universal Time (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Coordinated_Universal_Time"
+        ],
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de11",
+        "de12"
+      ],
+      "aliases": [
+        "DE7",
+        "Transmission date/time"
+      ]
+    },
+    "de11": {
+      "name": "DE11 · STAN (system trace audit number)",
+      "def": "A 6-digit number the sender gives each message, usually counting up. The response echoes it so answers can be matched to requests on a busy link. It's only unique per sender for a period, which is why networks add their own transaction ID.",
+      "kt": [
+        [
+          "Identifiers each party carries",
+          "02-participants-and-roles.md#identifiers-each-party-carries"
+        ],
+        [
+          "D3: Transaction identity and idempotency",
+          "12-design-decisions.md#d3-transaction-identity-and-idempotency"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de37",
+        "de7",
+        "network-txn-id"
+      ],
+      "aliases": [
+        "DE11",
+        "STAN",
+        "System trace audit number"
+      ]
+    },
+    "de12": {
+      "name": "DE12 / DE13 · Local transaction time and date",
+      "def": "The time (hhmmss) and date (MMDD) on the merchant's clock when the card was used. They appear on receipts and statements and help in disputes. This simulator uses the POS server's local clock.",
+      "kt": [
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de7"
+      ],
+      "aliases": [
+        "DE12",
+        "DE13",
+        "Local time",
+        "Local date",
+        "Time"
+      ]
+    },
+    "de14": {
+      "name": "DE14 · Expiration date",
+      "def": "When the card expires, sent year-first as YYMM: 2812 is December 2028 (the card face prints 12/28). The issuer checks it against its records; an expired card is declined with response code 54.",
+      "kt": [
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ],
+        [
+          "Anatomy of a card number",
+          "07-cards-bins-and-tokens.md#anatomy-of-a-card-number-pan"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment card number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_card_number"
+        ]
+      ],
+      "see": [
+        "de2",
+        "de39"
+      ],
+      "aliases": [
+        "DE14",
+        "Expiry",
+        "Expires",
+        "Expiration"
+      ]
+    },
+    "de18": {
+      "name": "DE18 · Merchant category code (MCC)",
+      "def": "A 4-digit code for the merchant's type of business, such as 5812 restaurants or 5814 fast food. The acquirer assigns it. It drives interchange rates, issuer risk rules, blocked categories and clearing tolerances. The codes come from ISO 18245.",
+      "kt": [
+        [
+          "Common MCCs",
+          "13-glossary.md#common-mccs-for-test-data"
+        ],
+        [
+          "Interchange drivers",
+          "06-economics-and-fees.md#interchange-acquirer--issuer"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 18245 (iso.org)",
+          "https://www.iso.org/standard/79450.html"
+        ],
+        [
+          "Merchant category code (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Merchant_category_code"
+        ]
+      ],
+      "see": [
+        "merchant",
+        "interchange"
+      ],
+      "aliases": [
+        "DE18",
+        "MCC",
+        "Merchant category code"
+      ]
+    },
+    "de22": {
+      "name": "DE22 · POS entry mode",
+      "def": "How the card number was captured, plus whether the terminal can take a PIN. In this POS: 010 keyed, 901 swipe, 051 chip, 071 contactless, 812 e-commerce, 100 card on file. It tells the issuer how much to trust the card data, and decides who is liable for fraud.",
+      "kt": [
+        [
+          "Card-present vs card-not-present",
+          "03-transaction-lifecycle.md#card-present-vs-card-not-present"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ],
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ],
+        [
+          "EMVCo contact chip",
+          "https://www.emvco.com/emv-technologies/emv-contact-chip/"
+        ]
+      ],
+      "see": [
+        "manual-entry",
+        "magstripe",
+        "chip-emv",
+        "contactless",
+        "ecommerce",
+        "credential-on-file"
+      ],
+      "aliases": [
+        "DE22",
+        "Entry mode",
+        "POS entry mode",
+        "Mode"
+      ]
+    },
+    "de32-acquirer-id": {
+      "name": "DE32 · Acquiring institution ID",
+      "def": "Identifies the acquirer that sent the request. The network uses it to route the 0110 back and to know who is owed money at settlement. The switch should check it matches the signed sender.",
+      "kt": [
+        [
+          "Identifiers each party carries",
+          "02-participants-and-roles.md#identifiers-each-party-carries"
+        ],
+        [
+          "D14 and D15: Trust and card data",
+          "12-design-decisions.md#d14-and-d15-trust-and-card-data"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "acquirer"
+      ],
+      "aliases": [
+        "DE32"
+      ]
+    },
+    "de35": {
+      "name": "DE35 · Track 2 data",
+      "def": "The data a magnetic stripe stores on track 2: card number, '=', expiry (YYMM), a 3-digit service code and issuer data including the CVV. It's sent on a swipe. PCI DSS forbids storing it after authorization.",
+      "kt": [
+        [
+          "Card security values",
+          "07-cards-bins-and-tokens.md#card-security-values"
+        ],
+        [
+          "PCI DSS",
+          "09-risk-fraud-and-security.md#pci-dss-payment-card-industry-data-security-standard"
+        ]
+      ],
+      "ext": [
+        [
+          "Magnetic stripe card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Magnetic_stripe_card"
+        ],
+        [
+          "PCI DSS",
+          "https://www.pcisecuritystandards.org/standards/pci-dss/"
+        ]
+      ],
+      "see": [
+        "magstripe",
+        "de2",
+        "de14"
+      ],
+      "aliases": [
+        "DE35",
+        "Track 2",
+        "Track 2 data"
+      ]
+    },
+    "de37": {
+      "name": "DE37 · RRN (retrieval reference number)",
+      "def": "A 12-character reference the acquirer assigns. It stays with the transaction from authorization through clearing and disputes. A common layout is year digit, day of year, hour, then the STAN.",
+      "kt": [
+        [
+          "Identifiers each party carries",
+          "02-participants-and-roles.md#identifiers-each-party-carries"
+        ],
+        [
+          "Matching clearing records to auths",
+          "05-clearing-and-settlement.md#matching-clearing-records-to-authorizations"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de11",
+        "network-txn-id"
+      ],
+      "aliases": [
+        "DE37",
+        "RRN",
+        "Retrieval reference number"
+      ]
+    },
+    "de38": {
+      "name": "DE38 · Approval code",
+      "def": "The 6-character code the issuer returns when it approves (or the network, in stand-in). It's printed on the receipt and carried into clearing as proof of approval.",
+      "kt": [
+        [
+          "Stage 1: Authorization",
+          "03-transaction-lifecycle.md#stage-1-authorization"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de39",
+        "msg-0110"
+      ],
+      "aliases": [
+        "DE38",
+        "Auth code",
+        "Approval code"
+      ]
+    },
+    "de39": {
+      "name": "DE39 · Response code",
+      "def": "The issuer's answer in the 0110. 00 approved; 05 do not honor; 51 insufficient funds; 54 expired card; 91 issuer unavailable. The code also tells the merchant whether a retry could ever succeed.",
+      "kt": [
+        [
+          "Response codes (DE39)",
+          "04-authorization-deep-dive.md#response-codes-de39"
+        ],
+        [
+          "Stand-in processing",
+          "04-authorization-deep-dive.md#stand-in-processing-stip"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "msg-0110",
+        "de38",
+        "stip"
+      ],
+      "aliases": [
+        "DE39",
+        "Response code",
+        "Declined"
+      ]
+    },
+    "de41": {
+      "name": "DE41 · Terminal ID",
+      "def": "Which terminal or checkout lane the sale came from, exactly 8 characters, assigned by the acquirer.",
+      "kt": [
+        [
+          "Identifiers each party carries",
+          "02-participants-and-roles.md#identifiers-each-party-carries"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de42",
+        "pos-terminal"
+      ],
+      "aliases": [
+        "DE41",
+        "Terminal ID",
+        "TID"
+      ]
+    },
+    "de42": {
+      "name": "DE42 · Merchant ID (MID)",
+      "def": "Which merchant is asking, exactly 15 characters, assigned by the acquirer when it signs up the merchant. Fraud and dispute monitoring programs track merchants by it.",
+      "kt": [
+        [
+          "Identifiers each party carries",
+          "02-participants-and-roles.md#identifiers-each-party-carries"
+        ],
+        [
+          "Compliance monitoring",
+          "08-exceptions-and-disputes.md#compliance-monitoring"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ],
+        [
+          "Merchant account (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Merchant_account"
+        ]
+      ],
+      "see": [
+        "merchant",
+        "de41",
+        "de43"
+      ],
+      "aliases": [
+        "DE42",
+        "Merchant ID",
+        "MID"
+      ]
+    },
+    "de43": {
+      "name": "DE43 · Merchant name and location",
+      "def": "The merchant's name, city and country, padded to exactly 40 characters. This is what the cardholder sees on their statement, so an unclear name leads to 'I don't recognize this charge' disputes.",
+      "kt": [
+        [
+          "Identifiers each party carries",
+          "02-participants-and-roles.md#identifiers-each-party-carries"
+        ],
+        [
+          "Pre-dispute services",
+          "08-exceptions-and-disputes.md#pre-dispute-services"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "merchant",
+        "de42"
+      ],
+      "aliases": [
+        "DE43",
+        "Merchant name/location"
+      ]
+    },
+    "de48-fleet": {
+      "name": "DE48 · Fleet data (odometer, vehicle, driver)",
+      "def": "Extra data a fleet card asks the terminal for: odometer reading, vehicle ID and driver ID. The fleet issuer uses it to enforce spending controls (e.g. fuel only, per-driver limits) and to give the business detailed reports. DE48 is a field for additional, network-defined data.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ],
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ]
+      ],
+      "ext": [
+        [
+          "Fleet card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Fleet_card"
+        ]
+      ],
+      "see": [
+        "fleet-card",
+        "terminal-prompts"
+      ],
+      "aliases": [
+        "Fleet data",
+        "Odometer",
+        "Vehicle ID",
+        "Driver ID"
+      ]
+    },
+    "de48-cof": {
+      "name": "DE48 · Credential-on-file indicator",
+      "def": "Marks a payment made with a stored card and says who started it: the customer (CIT, e.g. one-click checkout) or the merchant (MIT, e.g. a subscription renewal or a no-show fee). Issuers approve MITs more readily because the cardholder already agreed, and the flag decides chargeback rights.",
+      "kt": [
+        [
+          "Merchant-initiated and stored-credential transactions",
+          "03-transaction-lifecycle.md#merchant-initiated-and-stored-credential-transactions"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "credential-on-file",
+        "account-updater"
+      ],
+      "aliases": [
+        "Credential on file",
+        "Initiated by",
+        "CIT",
+        "MIT"
+      ]
+    },
+    "de49": {
+      "name": "DE49 · Currency code",
+      "def": "The currency of the amount in DE4, as an ISO 4217 three-digit number: 840 USD, 978 EUR, 826 GBP, 124 CAD. The currency also sets how many decimal places DE4 has.",
+      "kt": [
+        [
+          "Cross-border and currency",
+          "05-clearing-and-settlement.md#cross-border-and-currency"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 4217 (iso.org)",
+          "https://www.iso.org/iso-4217-currency-codes.html"
+        ],
+        [
+          "ISO 4217 code list (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_4217"
+        ]
+      ],
+      "see": [
+        "de4"
+      ],
+      "aliases": [
+        "DE49",
+        "Currency",
+        "Currency code"
+      ]
+    },
+    "de52": {
+      "name": "DE52 · PIN block",
+      "def": "The cardholder's PIN, combined with the card number and encrypted on the PIN pad (ISO 9564 format). Each hop re-encrypts it inside a hardware security module, so the clear PIN never exists in software. Only the issuer can verify it.",
+      "kt": [
+        [
+          "Cryptography and keys",
+          "09-risk-fraud-and-security.md#cryptography-and-keys"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 9564 PIN blocks (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_9564"
+        ],
+        [
+          "PCI PIN Security",
+          "https://www.pcisecuritystandards.org/standards/pin-security/"
+        ]
+      ],
+      "see": [
+        "pin",
+        "hsm"
+      ],
+      "aliases": [
+        "DE52",
+        "PIN block"
+      ]
+    },
+    "de54": {
+      "name": "DE54 · Additional amounts",
+      "def": "Extra amounts inside the total. In this POS: type 40 cash back, and type 4S the healthcare-eligible portion for an HSA/FSA card. Issuers also use it to return a balance or a partially approved amount.",
+      "kt": [
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ],
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ],
+        [
+          "Inventory information approval system (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Inventory_information_approval_system"
+        ]
+      ],
+      "see": [
+        "cashback",
+        "healthcare-amount",
+        "de4"
+      ],
+      "aliases": [
+        "DE54",
+        "Additional amounts"
+      ]
+    },
+    "de55": {
+      "name": "DE55 · Chip data / cryptogram (ARQC)",
+      "def": "Data from the chip or phone, including a one-time cryptogram computed from the amount, date, a random number and a counter with a key that never leaves the card. The issuer recomputes it to prove the card is genuine and the message isn't a replay.",
+      "kt": [
+        [
+          "EMV chip",
+          "07-cards-bins-and-tokens.md#emv-chip-why-counterfeit-fraud-collapsed"
+        ],
+        [
+          "Card security values",
+          "07-cards-bins-and-tokens.md#card-security-values"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo contact chip",
+          "https://www.emvco.com/emv-technologies/emv-contact-chip/"
+        ],
+        [
+          "EMV (Wikipedia)",
+          "https://en.wikipedia.org/wiki/EMV"
+        ]
+      ],
+      "see": [
+        "cryptogram",
+        "chip-emv",
+        "contactless"
+      ],
+      "aliases": [
+        "DE55",
+        "ARQC",
+        "Application cryptogram (ARQC)"
+      ]
+    },
+    "cardholder-name": {
+      "name": "Cardholder name",
+      "def": "The name on the card. It's optional in an authorization: on a card it lives in track 1, contactless reads and mobile wallets usually don't share it, and issuers don't rely on it to approve. simple-network carries it as an extra field for display.",
+      "kt": [
+        [
+          "simple-network JSON model",
+          "04-authorization-deep-dive.md#simple-network-json-model"
+        ]
+      ],
+      "ext": [
+        [
+          "Magnetic stripe tracks (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Magnetic_stripe_card"
+        ]
+      ],
+      "see": [
+        "de35"
+      ],
+      "aliases": [
+        "Cardholder name",
+        "Cardholder name (optional)"
+      ]
+    },
+    "wallet-provider": {
+      "name": "Wallet provider",
+      "def": "Which mobile wallet supplied the device token (Apple Pay, Google Pay, Samsung Pay). simple-network sends it as an extra field so you can see where a token came from; real networks know it from the token's records.",
+      "kt": [
+        [
+          "Network tokenization",
+          "07-cards-bins-and-tokens.md#network-tokenization"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo payment tokenisation",
+          "https://www.emvco.com/emv-technologies/payment-tokenisation/"
+        ]
+      ],
+      "see": [
+        "mobile-wallet",
+        "device-token"
+      ],
+      "aliases": [
+        "Wallet provider"
+      ]
+    },
+    "manual-entry": {
+      "name": "Key in (manual entry)",
+      "def": "Typing the card number by hand (entry mode 010). Nothing proves the card is present, so the terminal asks for the CVV2. Keyed sales carry the highest fraud risk and usually the highest interchange.",
+      "kt": [
+        [
+          "Card-present vs card-not-present",
+          "03-transaction-lifecycle.md#card-present-vs-card-not-present"
+        ],
+        [
+          "Card security values",
+          "07-cards-bins-and-tokens.md#card-security-values"
+        ]
+      ],
+      "ext": [
+        [
+          "Card security code (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_security_code"
+        ]
+      ],
+      "see": [
+        "cvv2",
+        "de22"
+      ],
+      "aliases": [
+        "Key in",
+        "Keyed",
+        "Manual key entry"
+      ]
+    },
+    "magstripe": {
+      "name": "Swipe (magnetic stripe)",
+      "def": "Reading the card's magnetic stripe (entry mode 901). The stripe holds static data that is easy to copy, so a swiped chip card shifts counterfeit fraud liability to the merchant. Terminals should only swipe a chip card if the chip fails.",
+      "kt": [
+        [
+          "Card security values",
+          "07-cards-bins-and-tokens.md#card-security-values"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "Magnetic stripe card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Magnetic_stripe_card"
+        ]
+      ],
+      "see": [
+        "de35",
+        "chip-emv"
+      ],
+      "aliases": [
+        "Swipe",
+        "Stripe read",
+        "Magnetic stripe"
+      ]
+    },
+    "chip-emv": {
+      "name": "Insert (EMV chip)",
+      "def": "Reading the chip (entry mode 051). The chip computes a one-time cryptogram for each transaction with a key it never reveals, so copied card data can't be reused. This is why counterfeit card fraud collapsed after chip rollout.",
+      "kt": [
+        [
+          "EMV chip",
+          "07-cards-bins-and-tokens.md#emv-chip-why-counterfeit-fraud-collapsed"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo contact chip",
+          "https://www.emvco.com/emv-technologies/emv-contact-chip/"
+        ],
+        [
+          "EMV (Wikipedia)",
+          "https://en.wikipedia.org/wiki/EMV"
+        ]
+      ],
+      "see": [
+        "de55",
+        "cryptogram"
+      ],
+      "aliases": [
+        "Insert",
+        "Chip read",
+        "Chip (EMV)",
+        "Chip"
+      ]
+    },
+    "contactless": {
+      "name": "Tap (contactless)",
+      "def": "Holding the card or phone near the reader (entry mode 071), using NFC radio. It runs the same chip cryptogram as an insert. PINs are usually skipped below a contactless limit, and contactless reads don't include the cardholder's name.",
+      "kt": [
+        [
+          "EMV chip",
+          "07-cards-bins-and-tokens.md#emv-chip-why-counterfeit-fraud-collapsed"
+        ],
+        [
+          "Card-present vs card-not-present",
+          "03-transaction-lifecycle.md#card-present-vs-card-not-present"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo contactless",
+          "https://www.emvco.com/emv-technologies/emv-contactless-chip/"
+        ],
+        [
+          "Contactless payment (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Contactless_payment"
+        ],
+        [
+          "Near-field communication (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Near-field_communication"
+        ]
+      ],
+      "see": [
+        "de55",
+        "mobile-wallet"
+      ],
+      "aliases": [
+        "Tap",
+        "Contactless read",
+        "Contactless",
+        "tap"
+      ]
+    },
+    "ecommerce": {
+      "name": "E-commerce",
+      "def": "An online payment (entry mode 812) with the card not present. The merchant relies on CVV2, address checks, 3-D Secure or network tokens. Fraud liability stays with the merchant unless the cardholder was authenticated, for example with 3-D Secure.",
+      "kt": [
+        [
+          "Card-present vs card-not-present",
+          "03-transaction-lifecycle.md#card-present-vs-card-not-present"
+        ],
+        [
+          "3-D Secure",
+          "09-risk-fraud-and-security.md#3-d-secure-emv-3ds-2x"
+        ]
+      ],
+      "ext": [
+        [
+          "Card not present transaction (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_not_present_transaction"
+        ],
+        [
+          "EMVCo 3-D Secure",
+          "https://www.emvco.com/emv-technologies/3-d-secure/"
+        ]
+      ],
+      "see": [
+        "three-ds",
+        "cvv2",
+        "card-present"
+      ],
+      "aliases": [
+        "E-commerce"
+      ]
+    },
+    "credential-on-file": {
+      "name": "Card on file",
+      "def": "A card the merchant saved earlier, with the cardholder's consent, for future payments (entry mode 100). The first payment stores it; later ones point back to that original transaction and say who started them (customer or merchant).",
+      "kt": [
+        [
+          "Merchant-initiated and stored-credential transactions",
+          "03-transaction-lifecycle.md#merchant-initiated-and-stored-credential-transactions"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ],
+        [
+          "Visa Account Updater (developer)",
+          "https://developer.visa.com/capabilities/vau"
+        ]
+      ],
+      "see": [
+        "de48-cof",
+        "account-updater",
+        "network-token"
+      ],
+      "aliases": [
+        "Card on file",
+        "Saved card",
+        "Recurring / MIT"
+      ]
+    },
+    "terminal-prompts": {
+      "name": "Terminal prompts",
+      "def": "Extra questions a terminal asks only when the card needs them: a PIN for debit, cash back, fleet vehicle and driver details, or the healthcare-eligible amount for an HSA/FSA card. The terminal knows which to ask from the card's BIN range.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ],
+        [
+          "The BIN table",
+          "07-cards-bins-and-tokens.md#the-bin-table-the-routing-core"
+        ]
+      ],
+      "ext": [
+        [
+          "Point of sale (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Point_of_sale"
+        ]
+      ],
+      "see": [
+        "pin",
+        "cashback",
+        "de48-fleet",
+        "healthcare-amount"
+      ],
+      "aliases": [
+        "Terminal prompts"
+      ]
+    },
+    "credit-card": {
+      "name": "Credit card",
+      "def": "A card backed by a revolving credit line from the issuer. The cardholder pays later, often with a grace period. Credit carries the highest interchange, which funds rewards and covers the issuer's credit risk.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ],
+        [
+          "Issuer economics",
+          "06-economics-and-fees.md#issuer-economics-why-issuers-love-credit"
+        ]
+      ],
+      "ext": [
+        [
+          "Credit card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Credit_card"
+        ],
+        [
+          "Revolving credit (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Revolving_credit"
+        ]
+      ],
+      "see": [
+        "interchange",
+        "rewards",
+        "debit-card"
+      ],
+      "aliases": [
+        "Credit",
+        "Consumer credit",
+        "Everyday Credit",
+        "Rewards Plus"
+      ]
+    },
+    "debit-card": {
+      "name": "Debit card",
+      "def": "A card that draws from the cardholder's bank account. It may use a PIN (often single-message) or a signature (dual-message). In the US, debit interchange from large issuers is capped by Regulation II, and every debit card must support two unaffiliated networks.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ],
+        [
+          "Regulation of fees",
+          "06-economics-and-fees.md#regulation-of-fees-summary"
+        ]
+      ],
+      "ext": [
+        [
+          "Debit card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Debit_card"
+        ],
+        [
+          "Regulation II (Federal Reserve)",
+          "https://www.federalreserve.gov/paymentsystems/regii-about.htm"
+        ]
+      ],
+      "see": [
+        "pin",
+        "cashback",
+        "dual-message"
+      ],
+      "aliases": [
+        "Debit",
+        "Checking Debit"
+      ]
+    },
+    "prepaid-card": {
+      "name": "Prepaid / gift card",
+      "def": "A card loaded with money in advance. It can only spend what's on it, so partial approvals and balance inquiries are common. Gift cards are often swipe or keyed only.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ],
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "Stored-value card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Stored-value_card"
+        ],
+        [
+          "Gift card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Gift_card"
+        ]
+      ],
+      "see": [
+        "de54",
+        "terminal-prompts"
+      ],
+      "aliases": [
+        "Prepaid",
+        "Gift Card"
+      ]
+    },
+    "fleet-card": {
+      "name": "Fleet card",
+      "def": "A commercial card for company vehicles, mostly used for fuel and maintenance. The terminal asks for odometer, vehicle and driver details so the business can control and track spending.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "Fleet card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Fleet_card"
+        ]
+      ],
+      "see": [
+        "de48-fleet",
+        "commercial-card"
+      ],
+      "aliases": [
+        "Fleet",
+        "Fleet Card"
+      ]
+    },
+    "hsa-fsa-card": {
+      "name": "HSA / FSA card",
+      "def": "A debit-style card tied to a health savings or flexible spending account. Only eligible medical items may be paid from it, so the terminal reports the eligible portion of the basket (DE54 type 4S), which merchants compute with an inventory approval system (IIAS).",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "IRS Publication 969 (HSA/FSA rules)",
+          "https://www.irs.gov/publications/p969"
+        ],
+        [
+          "Health savings account (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Health_savings_account"
+        ],
+        [
+          "Flexible spending account (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Flexible_spending_account"
+        ]
+      ],
+      "see": [
+        "healthcare-amount",
+        "de54"
+      ],
+      "aliases": [
+        "HSA/FSA",
+        "Health Savings"
+      ]
+    },
+    "virtual-card": {
+      "name": "Virtual card",
+      "def": "A card number with no plastic, often single-use or locked to one merchant. Pay-later providers and business payment platforms issue a fresh virtual card per purchase, so a leaked number is useless afterwards.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "Controlled payment number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Controlled_payment_number"
+        ]
+      ],
+      "see": [
+        "bnpl",
+        "network-token"
+      ],
+      "aliases": [
+        "Virtual / single-use",
+        "Virtual credit",
+        "Virtual"
+      ]
+    },
+    "bnpl": {
+      "name": "Buy now, pay later (Pay Later card)",
+      "def": "A provider pays the merchant now and the shopper repays in installments. At a regular card terminal, many BNPL apps work by issuing a single-use virtual card for the purchase, so the network sees a normal card transaction.",
+      "kt": [
+        [
+          "Layer 4: Value-added services",
+          "11-network-products-and-services.md#layer-4-value-added-services"
+        ]
+      ],
+      "ext": [
+        [
+          "Buy now, pay later (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Buy_now,_pay_later"
+        ]
+      ],
+      "see": [
+        "virtual-card",
+        "installments"
+      ],
+      "aliases": [
+        "Pay Later"
+      ]
+    },
+    "commercial-card": {
+      "name": "Commercial card",
+      "def": "Cards for businesses: corporate travel, purchasing and fleet cards. They support spending controls and extra transaction detail (tax, line items), and carry higher interchange.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "Purchasing card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Purchasing_card"
+        ]
+      ],
+      "see": [
+        "fleet-card",
+        "interchange"
+      ],
+      "aliases": [
+        "Commercial / fleet",
+        "Commercial"
+      ]
+    },
+    "mobile-wallet": {
+      "name": "Mobile wallet",
+      "def": "A phone app that stores cards as device tokens instead of real card numbers. At checkout the phone sends the token plus a one-time cryptogram, after the owner unlocks it with Face ID, a fingerprint or a passcode. The real card number never leaves the issuer and network.",
+      "kt": [
+        [
+          "Network tokenization",
+          "07-cards-bins-and-tokens.md#network-tokenization"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "Mobile payment (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Mobile_payment"
+        ],
+        [
+          "Digital wallet (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Digital_wallet"
+        ],
+        [
+          "EMVCo payment tokenisation",
+          "https://www.emvco.com/emv-technologies/payment-tokenisation/"
+        ]
+      ],
+      "see": [
+        "device-token",
+        "cryptogram",
+        "cdcvm",
+        "apple-pay"
+      ],
+      "aliases": [
+        "Mobile Wallets",
+        "Mobile wallet",
+        "Wallet / Token Requestor",
+        "Token Requestor",
+        "Token requestor"
+      ]
+    },
+    "apple-pay": {
+      "name": "Apple Pay",
+      "def": "Apple's mobile wallet. Each card added gets a device account number (a network token) stored in the iPhone's secure element, and every payment carries a one-time cryptogram after Face ID, Touch ID or passcode.",
+      "kt": [
+        [
+          "Network tokenization",
+          "07-cards-bins-and-tokens.md#network-tokenization"
+        ]
+      ],
+      "ext": [
+        [
+          "Apple Pay security and privacy (Apple)",
+          "https://support.apple.com/en-us/101554"
+        ],
+        [
+          "Apple Pay (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Apple_Pay"
+        ]
+      ],
+      "see": [
+        "mobile-wallet",
+        "device-token"
+      ],
+      "aliases": [
+        "Apple Pay",
+        "Apple"
+      ]
+    },
+    "google-pay": {
+      "name": "Google Pay",
+      "def": "Google's mobile wallet for Android phones. Cards are stored as network tokens and each tap sends a one-time cryptogram after the phone is unlocked.",
+      "kt": [
+        [
+          "Network tokenization",
+          "07-cards-bins-and-tokens.md#network-tokenization"
+        ]
+      ],
+      "ext": [
+        [
+          "Google Pay (Google)",
+          "https://pay.google.com/about/"
+        ],
+        [
+          "Google Pay (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Google_Pay"
+        ]
+      ],
+      "see": [
+        "mobile-wallet",
+        "device-token"
+      ],
+      "aliases": [
+        "Google Pay",
+        "Google"
+      ]
+    },
+    "samsung-pay": {
+      "name": "Samsung Pay (Samsung Wallet)",
+      "def": "Samsung's mobile wallet. Like the others it pays with a network token and a one-time cryptogram, verified on the phone with a fingerprint, PIN or face scan.",
+      "kt": [
+        [
+          "Network tokenization",
+          "07-cards-bins-and-tokens.md#network-tokenization"
+        ]
+      ],
+      "ext": [
+        [
+          "Samsung Wallet (Samsung)",
+          "https://www.samsung.com/us/apps/samsung-wallet/"
+        ],
+        [
+          "Samsung Wallet (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Samsung_Wallet"
+        ]
+      ],
+      "see": [
+        "mobile-wallet",
+        "device-token"
+      ],
+      "aliases": [
+        "Samsung Pay",
+        "Samsung"
+      ]
+    },
+    "device-token": {
+      "name": "Device token (DPAN)",
+      "def": "A network token issued to one phone for one card. It looks like a card number and comes from a separate token BIN range. The network maps it back to the real card number before the issuer sees the request, so a stolen token is useless on another device.",
+      "kt": [
+        [
+          "Network tokenization",
+          "07-cards-bins-and-tokens.md#network-tokenization"
+        ],
+        [
+          "Token states",
+          "07-cards-bins-and-tokens.md#token-states"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo payment tokenisation",
+          "https://www.emvco.com/emv-technologies/payment-tokenisation/"
+        ],
+        [
+          "Tokenization (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Tokenization_(data_security)"
+        ]
+      ],
+      "see": [
+        "network-token",
+        "token-service",
+        "cryptogram"
+      ],
+      "aliases": [
+        "Device token",
+        "device token",
+        "DPAN",
+        "Device account number (token)"
+      ]
+    },
+    "cryptogram": {
+      "name": "One-time cryptogram",
+      "def": "A code computed fresh for each payment from the transaction data and a secret key: by the chip (ARQC) or the phone's wallet. It proves the card or device is genuine and that this exact payment isn't a replay. The issuer or network verifies it with keys held in HSMs.",
+      "kt": [
+        [
+          "Card security values",
+          "07-cards-bins-and-tokens.md#card-security-values"
+        ],
+        [
+          "EMV chip",
+          "07-cards-bins-and-tokens.md#emv-chip-why-counterfeit-fraud-collapsed"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo payment tokenisation",
+          "https://www.emvco.com/emv-technologies/payment-tokenisation/"
+        ],
+        [
+          "EMV (Wikipedia)",
+          "https://en.wikipedia.org/wiki/EMV"
+        ]
+      ],
+      "see": [
+        "de55",
+        "device-token",
+        "hsm"
+      ],
+      "aliases": [
+        "One-time cryptogram",
+        "cryptogram",
+        "Cryptogram"
+      ]
+    },
+    "cdcvm": {
+      "name": "On-device verification (CDCVM)",
+      "def": "Consumer device cardholder verification: the phone confirms its owner with Face ID, a fingerprint or a passcode before releasing a payment. Networks treat it like a PIN, which is why wallet payments rarely need one at the terminal.",
+      "kt": [
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "Apple Pay security and privacy (Apple)",
+          "https://support.apple.com/en-us/101554"
+        ],
+        [
+          "Biometrics (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Biometrics"
+        ]
+      ],
+      "see": [
+        "mobile-wallet",
+        "pin"
+      ],
+      "aliases": [
+        "Face ID…",
+        "Fingerprint…",
+        "Unlock phone…"
+      ]
+    },
+    "bin": {
+      "name": "BIN / IIN (bank identification number)",
+      "def": "The first 6 to 8 digits of the card number. The network looks it up in its BIN table to find the issuer, product (credit, debit, prepaid), country and whether it's a token range. ISO/IEC 7812-1:2017 introduced 8-digit BINs; networks migrated by April 2022.",
+      "kt": [
+        [
+          "The BIN table",
+          "07-cards-bins-and-tokens.md#the-bin-table-the-routing-core"
+        ],
+        [
+          "D7: BIN routing",
+          "12-design-decisions.md#d7-bin-routing"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO/IEC 7812 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO/IEC_7812"
+        ],
+        [
+          "Payment card number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_card_number"
+        ]
+      ],
+      "see": [
+        "de2",
+        "mii",
+        "bin-registry"
+      ],
+      "aliases": [
+        "BIN",
+        "BIN / IIN",
+        "IIN",
+        "BIN range attributes",
+        "BIN lookup"
+      ]
+    },
+    "luhn": {
+      "name": "Luhn check digit",
+      "def": "The last digit of a card number, chosen so a simple mod-10 checksum passes. It catches typos and most swapped digits. It is not security: anyone can generate Luhn-valid numbers.",
+      "kt": [
+        [
+          "Luhn algorithm",
+          "07-cards-bins-and-tokens.md#luhn-algorithm"
+        ]
+      ],
+      "ext": [
+        [
+          "Luhn algorithm (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Luhn_algorithm"
+        ]
+      ],
+      "see": [
+        "de2",
+        "test-card"
+      ],
+      "aliases": [
+        "Luhn",
+        "Luhn check digit"
+      ]
+    },
+    "mii": {
+      "name": "MII (major industry identifier)",
+      "def": "The first digit of a card number, naming the industry: 3 travel and entertainment (Amex, Diners), 4 and 5 banking (Visa, Mastercard), 6 merchandising and banking (Discover, UnionPay), 9 national use.",
+      "kt": [
+        [
+          "Anatomy of a card number",
+          "07-cards-bins-and-tokens.md#anatomy-of-a-card-number-pan"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO/IEC 7812 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO/IEC_7812"
+        ]
+      ],
+      "see": [
+        "bin",
+        "brand-prefixes"
+      ],
+      "aliases": [
+        "MII"
+      ]
+    },
+    "account-id": {
+      "name": "Account identifier",
+      "def": "The digits between the BIN and the check digit. The issuer chooses them to point at one cardholder account.",
+      "kt": [
+        [
+          "Anatomy of a card number",
+          "07-cards-bins-and-tokens.md#anatomy-of-a-card-number-pan"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment card number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_card_number"
+        ]
+      ],
+      "see": [
+        "bin",
+        "luhn"
+      ],
+      "aliases": [
+        "Account identifier"
+      ]
+    },
+    "brand-prefixes": {
+      "name": "Card brand prefixes",
+      "def": "Which number ranges belong to which brand: Visa starts with 4; Mastercard 51-55 and 2221-2720; Amex 34 and 37; Discover 6011, 644-649 and 65; UnionPay 62. simple-network should use its own range so its cards are clearly fake.",
+      "kt": [
+        [
+          "Known brand ranges",
+          "07-cards-bins-and-tokens.md#known-brand-ranges-for-recognizing-cards"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment card number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_card_number"
+        ]
+      ],
+      "see": [
+        "bin",
+        "mii"
+      ],
+      "aliases": [
+        "Brand prefixes"
+      ]
+    },
+    "cvv2": {
+      "name": "CVV2 / CVC2 (card security code)",
+      "def": "The 3 or 4 digits printed on the card. They show the person has the physical card when it isn't at a terminal (keyed, online, phone). Only the issuer can check them, and PCI DSS forbids storing them after authorization.",
+      "kt": [
+        [
+          "Card security values",
+          "07-cards-bins-and-tokens.md#card-security-values"
+        ],
+        [
+          "PCI DSS",
+          "09-risk-fraud-and-security.md#pci-dss-payment-card-industry-data-security-standard"
+        ]
+      ],
+      "ext": [
+        [
+          "Card security code (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_security_code"
+        ],
+        [
+          "PCI DSS",
+          "https://www.pcisecuritystandards.org/standards/pci-dss/"
+        ]
+      ],
+      "see": [
+        "manual-entry",
+        "ecommerce"
+      ],
+      "aliases": [
+        "CVV",
+        "CVV2",
+        "CVV2 / CVC2"
+      ]
+    },
+    "pin": {
+      "name": "PIN (personal identification number)",
+      "def": "A secret number the cardholder enters on the PIN pad. It proves the cardholder, not just the card, is present. Debit cards usually require it; contactless and wallet payments often skip it. The pad encrypts it straight away into a PIN block (DE52).",
+      "kt": [
+        [
+          "Cryptography and keys",
+          "09-risk-fraud-and-security.md#cryptography-and-keys"
+        ]
+      ],
+      "ext": [
+        [
+          "Personal identification number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Personal_identification_number"
+        ],
+        [
+          "PCI PIN Security",
+          "https://www.pcisecuritystandards.org/standards/pin-security/"
+        ]
+      ],
+      "see": [
+        "de52",
+        "debit-card"
+      ],
+      "aliases": [
+        "PIN"
+      ]
+    },
+    "cashback": {
+      "name": "Cash back",
+      "def": "Cash handed over at the register on top of a debit purchase. The total in DE4 includes it, DE54 shows the cash part (type 40), and DE3 becomes 09 (purchase with cash back). It needs a PIN.",
+      "kt": [
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "Debit card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Debit_card"
+        ]
+      ],
+      "see": [
+        "de54",
+        "de3",
+        "debit-card"
+      ],
+      "aliases": [
+        "Cash back",
+        "Cash back (optional, up to $200)"
+      ]
+    },
+    "healthcare-amount": {
+      "name": "HSA/FSA-eligible amount",
+      "def": "The part of the basket that is eligible medical spending, which the terminal sends in DE54 (type 4S). Merchants work it out with an inventory information approval system (IIAS). The issuer can approve just that part.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "Inventory information approval system (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Inventory_information_approval_system"
+        ],
+        [
+          "IRS Publication 969",
+          "https://www.irs.gov/publications/p969"
+        ]
+      ],
+      "see": [
+        "hsa-fsa-card",
+        "de54"
+      ],
+      "aliases": [
+        "HSA/FSA-eligible amount"
+      ]
+    },
+    "pan-masking": {
+      "name": "Masked card number",
+      "def": "Showing only part of the card number, such as 400000******5995. PCI DSS allows displaying at most the BIN and the last four digits; the rest stays hidden in logs, receipts and screens.",
+      "kt": [
+        [
+          "PCI DSS",
+          "09-risk-fraud-and-security.md#pci-dss-payment-card-industry-data-security-standard"
+        ],
+        [
+          "D14 and D15: Trust and card data",
+          "12-design-decisions.md#d14-and-d15-trust-and-card-data"
+        ]
+      ],
+      "ext": [
+        [
+          "PCI DSS",
+          "https://www.pcisecuritystandards.org/standards/pci-dss/"
+        ]
+      ],
+      "see": [
+        "de2",
+        "security"
+      ],
+      "aliases": [
+        "Masked card number"
+      ]
+    },
+    "test-card": {
+      "name": "Test card",
+      "def": "A made-up card number that passes the Luhn check but belongs to no real account. Simulators use well-known test ranges; never use real card numbers here.",
+      "kt": [
+        [
+          "Luhn algorithm",
+          "07-cards-bins-and-tokens.md#luhn-algorithm"
+        ],
+        [
+          "D14 and D15: Trust and card data",
+          "12-design-decisions.md#d14-and-d15-trust-and-card-data"
+        ]
+      ],
+      "ext": [
+        [
+          "Luhn algorithm (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Luhn_algorithm"
+        ],
+        [
+          "Payment card number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_card_number"
+        ]
+      ],
+      "see": [
+        "luhn",
+        "bin"
+      ],
+      "aliases": [
+        "Fill test card"
+      ]
+    },
+    "network-token": {
+      "name": "Network token",
+      "def": "A substitute card number the network issues to a specific wallet, merchant or device, usable only there. When a card is reissued the network updates the mapping, so stored tokens keep working. Real networks call this tokenization.",
+      "kt": [
+        [
+          "Network tokenization",
+          "07-cards-bins-and-tokens.md#network-tokenization"
+        ],
+        [
+          "Layer 4: Value-added services",
+          "11-network-products-and-services.md#layer-4-value-added-services"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo payment tokenisation",
+          "https://www.emvco.com/emv-technologies/payment-tokenisation/"
+        ],
+        [
+          "Visa Token Service (developer)",
+          "https://developer.visa.com/capabilities/vts"
+        ],
+        [
+          "Mastercard Digital Enablement Service",
+          "https://developer.mastercard.com/mdes-digital-enablement/documentation/"
+        ]
+      ],
+      "see": [
+        "device-token",
+        "token-service"
+      ],
+      "aliases": [
+        "Tokenization",
+        "Network tokens",
+        "tokens"
+      ]
+    },
+    "hsm": {
+      "name": "HSM (hardware security module)",
+      "def": "Tamper-resistant hardware that stores the network's and banks' secret keys and does PIN translation and cryptogram checks inside itself, so keys and clear PINs never appear in ordinary software.",
+      "kt": [
+        [
+          "Cryptography and keys",
+          "09-risk-fraud-and-security.md#cryptography-and-keys"
+        ]
+      ],
+      "ext": [
+        [
+          "Hardware security module (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Hardware_security_module"
+        ],
+        [
+          "PCI PIN Security",
+          "https://www.pcisecuritystandards.org/standards/pin-security/"
+        ]
+      ],
+      "see": [
+        "de52",
+        "cryptogram",
+        "security"
+      ],
+      "aliases": [
+        "HSM"
+      ]
+    },
+    "mdr": {
+      "name": "MDR (merchant discount rate)",
+      "def": "The total percentage a merchant pays to accept cards, for example 2.50% of a $100 sale. It splits into interchange (to the issuer, the biggest part), network fees, and the acquirer's margin.",
+      "kt": [
+        [
+          "The $100 purchase waterfall",
+          "06-economics-and-fees.md#the-100-purchase-waterfall"
+        ],
+        [
+          "Acquirer pricing to merchants",
+          "06-economics-and-fees.md#acquirer-pricing-to-merchants"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa interchange and merchant fees",
+          "https://usa.visa.com/support/small-business/regulations-fees.html"
+        ],
+        [
+          "Interchange fee (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Interchange_fee"
+        ]
+      ],
+      "see": [
+        "interchange",
+        "network-fees",
+        "acquirer-margin"
+      ],
+      "aliases": [
+        "MDR",
+        "Merchant discount rate"
+      ]
+    },
+    "interchange": {
+      "name": "Interchange",
+      "def": "The fee the acquirer pays the issuer on each sale, set by the network and passed on to the merchant. It's the largest part of the merchant's cost and depends on card type, merchant category, channel and data quality. It funds card rewards; regulators cap it in some places.",
+      "kt": [
+        [
+          "Interchange (acquirer → issuer)",
+          "06-economics-and-fees.md#interchange-acquirer--issuer"
+        ],
+        [
+          "Interchange qualification",
+          "05-clearing-and-settlement.md#interchange-qualification"
+        ]
+      ],
+      "ext": [
+        [
+          "Interchange fee (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Interchange_fee"
+        ],
+        [
+          "Visa interchange and merchant fees",
+          "https://usa.visa.com/support/small-business/regulations-fees.html"
+        ],
+        [
+          "Regulation II (Federal Reserve)",
+          "https://www.federalreserve.gov/paymentsystems/regii-about.htm"
+        ]
+      ],
+      "see": [
+        "mdr",
+        "rewards",
+        "de18"
+      ],
+      "aliases": [
+        "Interchange",
+        "Interchange to issuer"
+      ]
+    },
+    "network-fees": {
+      "name": "Network fees (assessments)",
+      "def": "What the network charges both issuers and acquirers: a small percentage of volume (assessment) plus per-message and per-record fees, with extra fees for cross-border payments and services. It's the smallest slice of the merchant discount, earned on huge volume.",
+      "kt": [
+        [
+          "Network fees",
+          "06-economics-and-fees.md#network-fees-to-the-network-from-both-sides"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa interchange and merchant fees",
+          "https://usa.visa.com/support/small-business/regulations-fees.html"
+        ],
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "mdr",
+        "fee-engine"
+      ],
+      "aliases": [
+        "Network fees",
+        "Network revenue",
+        "Network fee revenue"
+      ]
+    },
+    "acquirer-margin": {
+      "name": "Acquirer margin",
+      "def": "What the acquirer or processor keeps from the merchant discount after paying interchange and network fees. It covers its processing, support and merchant risk.",
+      "kt": [
+        [
+          "Acquirer pricing to merchants",
+          "06-economics-and-fees.md#acquirer-pricing-to-merchants"
+        ]
+      ],
+      "ext": [
+        [
+          "Merchant account (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Merchant_account"
+        ]
+      ],
+      "see": [
+        "mdr",
+        "interchange-plus"
+      ],
+      "aliases": [
+        "Acquirer margin"
+      ]
+    },
+    "interchange-plus": {
+      "name": "Interchange-plus pricing",
+      "def": "A merchant pricing model: pay actual interchange and network fees at cost, plus a fixed acquirer markup. It's transparent but varies per sale. The alternative, blended pricing (such as 2.9% + 30¢), is simpler but less clear.",
+      "kt": [
+        [
+          "Acquirer pricing to merchants",
+          "06-economics-and-fees.md#acquirer-pricing-to-merchants"
+        ]
+      ],
+      "ext": [
+        [
+          "Interchange fee (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Interchange_fee"
+        ]
+      ],
+      "see": [
+        "mdr",
+        "acquirer-margin"
+      ],
+      "aliases": [
+        "Interchange-plus"
+      ]
+    },
+    "rewards": {
+      "name": "Card rewards",
+      "def": "Points, miles or cash back the issuer gives cardholders. They are mostly paid for by interchange, which is why rewards shrink where regulators cap interchange.",
+      "kt": [
+        [
+          "Issuer economics",
+          "06-economics-and-fees.md#issuer-economics-why-issuers-love-credit"
+        ]
+      ],
+      "ext": [
+        [
+          "Rewards card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Rewards_card"
+        ]
+      ],
+      "see": [
+        "interchange",
+        "credit-card"
+      ],
+      "aliases": [
+        "Rewards"
+      ]
+    },
+    "stip": {
+      "name": "Stand-in processing (STIP)",
+      "def": "When an issuer is down or too slow, the network decides for it using limits the issuer set in advance (maximum amount, daily limits, blocked categories), then sends the issuer advices (0120) when it's back. The issuer is liable for those approvals.",
+      "kt": [
+        [
+          "Stand-in processing",
+          "04-authorization-deep-dive.md#stand-in-processing-stip"
+        ],
+        [
+          "D8: Timeouts and stand-in",
+          "12-design-decisions.md#d8-timeouts-and-stand-in"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "see": [
+        "de39",
+        "issuer"
+      ],
+      "aliases": [
+        "Stand-in (STIP)",
+        "STIP",
+        "StandInApproved",
+        "TimedOut"
+      ]
+    },
+    "fraud-scoring": {
+      "name": "Network fraud scoring",
+      "def": "A risk score the network adds to each authorization, built from activity across all issuers and merchants, which no single bank can see. It can spot card-testing attacks hitting hundreds of issuers at once. The issuer still makes the decision.",
+      "kt": [
+        [
+          "Layered fraud defense",
+          "09-risk-fraud-and-security.md#layered-fraud-defense"
+        ],
+        [
+          "A simple risk score",
+          "09-risk-fraud-and-security.md#a-simple-network-risk-score-for-simple-network"
+        ]
+      ],
+      "ext": [
+        [
+          "Credit card fraud (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Credit_card_fraud"
+        ]
+      ],
+      "see": [
+        "three-ds",
+        "issuer"
+      ],
+      "aliases": [
+        "Fraud scoring",
+        "risk"
+      ]
+    },
+    "three-ds": {
+      "name": "3-D Secure (3DS)",
+      "def": "A protocol that lets the issuer authenticate the cardholder during online checkout, usually invisibly from device data, sometimes with a challenge such as a code or bank-app approval. The network runs the directory server that routes it. Authenticated payments shift fraud liability to the issuer.",
+      "kt": [
+        [
+          "3-D Secure",
+          "09-risk-fraud-and-security.md#3-d-secure-emv-3ds-2x"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo 3-D Secure",
+          "https://www.emvco.com/emv-technologies/3-d-secure/"
+        ],
+        [
+          "Visa Secure",
+          "https://www.visa.com/en-us/products/visa-secure"
+        ],
+        [
+          "3-D Secure (Wikipedia)",
+          "https://en.wikipedia.org/wiki/3-D_Secure"
+        ]
+      ],
+      "see": [
+        "ecommerce",
+        "fraud-scoring"
+      ],
+      "aliases": [
+        "3DS directory",
+        "3DS Directory Server",
+        "3-D Secure"
+      ]
+    },
+    "account-updater": {
+      "name": "Account updater",
+      "def": "A network service that tells merchants when a stored card has a new number or expiry date, so subscriptions keep working after a card is reissued.",
+      "kt": [
+        [
+          "Layer 4: Value-added services",
+          "11-network-products-and-services.md#layer-4-value-added-services"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Account Updater (developer)",
+          "https://developer.visa.com/capabilities/vau"
+        ]
+      ],
+      "see": [
+        "credential-on-file",
+        "network-token"
+      ],
+      "aliases": [
+        "Account updater"
+      ]
+    },
+    "card-controls": {
+      "name": "Card controls and alerts",
+      "def": "Services that let cardholders (or businesses) lock a card, limit categories or amounts, and get alerts for each purchase. The network can enforce the rules during authorization.",
+      "kt": [
+        [
+          "Layer 4: Value-added services",
+          "11-network-products-and-services.md#layer-4-value-added-services"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Developer Center",
+          "https://developer.visa.com/"
+        ],
+        [
+          "Mastercard Developers",
+          "https://developer.mastercard.com/"
+        ]
+      ],
+      "see": [
+        "fraud-scoring"
+      ],
+      "aliases": [
+        "Card controls"
+      ]
+    },
+    "dispute-prevention": {
+      "name": "Dispute prevention",
+      "def": "Services that settle a problem before it becomes a chargeback: showing the issuer receipt details while the cardholder is on the phone, or alerting the merchant so it can refund first.",
+      "kt": [
+        [
+          "Pre-dispute services",
+          "08-exceptions-and-disputes.md#pre-dispute-services"
+        ]
+      ],
+      "ext": [
+        [
+          "Chargeback (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Chargeback"
+        ]
+      ],
+      "see": [
+        "chargeback",
+        "refund"
+      ],
+      "aliases": [
+        "Dispute prevention"
+      ]
+    },
+    "click-to-pay": {
+      "name": "Click to Pay",
+      "def": "A checkout button, based on the EMVCo Secure Remote Commerce standard, that lets shoppers pay online with a card already enrolled with the network, without typing card details.",
+      "kt": [
+        [
+          "Layer 4: Value-added services",
+          "11-network-products-and-services.md#layer-4-value-added-services"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo Secure Remote Commerce",
+          "https://www.emvco.com/emv-technologies/secure-remote-commerce/"
+        ]
+      ],
+      "see": [
+        "ecommerce",
+        "network-token"
+      ],
+      "aliases": [
+        "Click to Pay"
+      ]
+    },
+    "installments": {
+      "name": "Installments",
+      "def": "Splitting a card purchase into fixed payments, offered by the issuer or through network installment services, to compete with buy-now-pay-later apps.",
+      "kt": [
+        [
+          "Layer 4: Value-added services",
+          "11-network-products-and-services.md#layer-4-value-added-services"
+        ]
+      ],
+      "ext": [
+        [
+          "Buy now, pay later (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Buy_now,_pay_later"
+        ]
+      ],
+      "see": [
+        "bnpl"
+      ],
+      "aliases": [
+        "Installments"
+      ]
+    },
+    "offers-loyalty": {
+      "name": "Offers and loyalty",
+      "def": "Card-linked offers and loyalty programs: merchants fund discounts that apply automatically when a cardholder pays with an enrolled card.",
+      "kt": [
+        [
+          "Layer 4: Value-added services",
+          "11-network-products-and-services.md#layer-4-value-added-services"
+        ]
+      ],
+      "ext": [
+        [
+          "Loyalty program (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Loyalty_program"
+        ]
+      ],
+      "see": [
+        "rewards"
+      ],
+      "aliases": [
+        "Offers / loyalty"
+      ]
+    },
+    "oct": {
+      "name": "Push payment (OCT)",
+      "def": "An original credit transaction pushes money to a card in near real time: payouts to gig workers, insurance claims, person-to-person transfers. It runs on the card rails instead of a bank transfer.",
+      "kt": [
+        [
+          "Layer 3: Payment flows",
+          "11-network-products-and-services.md#layer-3-payment-flows-beyond-buy-something"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Direct",
+          "https://www.visa.com/en-us/products/visa-direct"
+        ],
+        [
+          "Visa Direct (developer)",
+          "https://developer.visa.com/capabilities/visa_direct"
+        ]
+      ],
+      "see": [
+        "aft"
+      ],
+      "aliases": [
+        "Push (OCT)",
+        "Push payments",
+        "OCT"
+      ]
+    },
+    "aft": {
+      "name": "Account funding transaction (AFT)",
+      "def": "Pulling money from a card to fund another account, such as loading a wallet or the sending side of a person-to-person transfer. It is flagged so issuers know it isn't an ordinary purchase.",
+      "kt": [
+        [
+          "Layer 3: Payment flows",
+          "11-network-products-and-services.md#layer-3-payment-flows-beyond-buy-something"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Direct (developer)",
+          "https://developer.visa.com/capabilities/visa_direct"
+        ]
+      ],
+      "see": [
+        "oct"
+      ],
+      "aliases": [
+        "Funding (AFT)",
+        "AFT"
+      ]
+    },
+    "purchase": {
+      "name": "Purchase",
+      "def": "The basic card payment: pull money from the cardholder's account for goods or services (processing code 00).",
+      "kt": [
+        [
+          "Layer 3: Payment flows",
+          "11-network-products-and-services.md#layer-3-payment-flows-beyond-buy-something"
+        ],
+        [
+          "Stage 1: Authorization",
+          "03-transaction-lifecycle.md#stage-1-authorization"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "de3",
+        "refund"
+      ],
+      "aliases": [
+        "Purchase"
+      ]
+    },
+    "cash-atm": {
+      "name": "Cash withdrawal / ATM",
+      "def": "Getting cash with a card at an ATM or a bank counter (processing code 01). Debit cards draw from the account; on a credit card it's a cash advance, usually with fees and interest from day one.",
+      "kt": [
+        [
+          "Layer 3: Payment flows",
+          "11-network-products-and-services.md#layer-3-payment-flows-beyond-buy-something"
+        ]
+      ],
+      "ext": [
+        [
+          "Automated teller machine (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Automated_teller_machine"
+        ]
+      ],
+      "see": [
+        "de3",
+        "pin"
+      ],
+      "aliases": [
+        "Cash / ATM"
+      ]
+    },
+    "analytics": {
+      "name": "Analytics and benchmarks",
+      "def": "Insights the network sells from its view across all transactions: spending trends, fraud benchmarks and approval-rate comparisons for issuers, merchants and governments.",
+      "kt": [
+        [
+          "Layer 5: Data and new rails",
+          "11-network-products-and-services.md#layer-5-data-insights-and-new-rails"
+        ],
+        [
+          "D19: Observability",
+          "12-design-decisions.md#d19-observability-feeds-the-m8-dashboard"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Developer Center",
+          "https://developer.visa.com/"
+        ]
+      ],
+      "see": [
+        "consulting"
+      ],
+      "aliases": [
+        "Analytics & benchmarks",
+        "5 · Data & new rails"
+      ]
+    },
+    "consulting": {
+      "name": "Consulting",
+      "def": "Advisory services networks sell to banks and merchants, using their data and industry knowledge: product design, fraud strategy, pricing.",
+      "kt": [
+        [
+          "Layer 5: Data and new rails",
+          "11-network-products-and-services.md#layer-5-data-insights-and-new-rails"
+        ]
+      ],
+      "ext": [
+        [
+          "Card scheme (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_scheme"
+        ]
+      ],
+      "see": [
+        "analytics"
+      ],
+      "aliases": [
+        "Consulting"
+      ]
+    },
+    "open-banking": {
+      "name": "Open banking / account-to-account (A2A)",
+      "def": "Payments and data sharing straight from bank accounts through APIs, bypassing cards. Networks have bought open-banking companies to take part in this competing rail.",
+      "kt": [
+        [
+          "Layer 5: Data and new rails",
+          "11-network-products-and-services.md#layer-5-data-insights-and-new-rails"
+        ]
+      ],
+      "ext": [
+        [
+          "Open banking (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Open_banking"
+        ]
+      ],
+      "see": [
+        "oct"
+      ],
+      "aliases": [
+        "Open banking / A2A"
+      ]
+    },
+    "stablecoin-settlement": {
+      "name": "Stablecoin settlement pilots",
+      "def": "Some networks now let selected partners settle in stablecoins (digital tokens pegged to a currency such as the dollar) instead of only through traditional bank transfers.",
+      "kt": [
+        [
+          "Layer 5: Data and new rails",
+          "11-network-products-and-services.md#layer-5-data-insights-and-new-rails"
+        ]
+      ],
+      "ext": [
+        [
+          "Stablecoin (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Stablecoin"
+        ]
+      ],
+      "see": [
+        "settlement"
+      ],
+      "aliases": [
+        "Stablecoin settlement pilots"
+      ]
+    },
+    "auth-switch": {
+      "name": "Authorization switch",
+      "def": "The real-time core of the network: it receives each 0100, checks the sender, rejects duplicates, validates the message, looks up the BIN, scores risk and forwards to the issuer with a timeout. It must essentially never go down.",
+      "kt": [
+        [
+          "The pipeline inside the switch",
+          "04-authorization-deep-dive.md#the-authorization-pipeline-inside-the-switch"
+        ],
+        [
+          "Layer 1: Core rails",
+          "11-network-products-and-services.md#layer-1-core-rails-needed-to-exist"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "network",
+        "stip",
+        "bin"
+      ],
+      "aliases": [
+        "Auth switch · M3",
+        "Auth switch"
+      ]
+    },
+    "fee-engine": {
+      "name": "Fee engine",
+      "def": "The part of clearing that prices every transaction: it picks the interchange program and network fees from versioned rate tables and records which rule priced it, so every cent can be explained later.",
+      "kt": [
+        [
+          "D12 and D13: Fees and rules as data",
+          "12-design-decisions.md#d12-and-d13-fees-and-rules-as-data"
+        ],
+        [
+          "Decisions for the fee model",
+          "06-economics-and-fees.md#decisions-for-simple-networks-fee-model"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa interchange and merchant fees",
+          "https://usa.visa.com/support/small-business/regulations-fees.html"
+        ]
+      ],
+      "see": [
+        "interchange",
+        "network-fees"
+      ],
+      "aliases": [
+        "Fee engine · M6",
+        "Fee engine"
+      ]
+    },
+    "bin-registry": {
+      "name": "Participant and BIN registry",
+      "def": "The network's records of its member banks and their agents: who owns which BIN ranges and acquirer IDs, their endpoints, keys, settlement accounts and status. Suspending a member must stop its traffic immediately.",
+      "kt": [
+        [
+          "Membership and licensing",
+          "10-rules-governance-and-regulation.md#membership-and-licensing"
+        ],
+        [
+          "Who is a member?",
+          "02-participants-and-roles.md#who-is-a-member"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO/IEC 7812 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO/IEC_7812"
+        ]
+      ],
+      "see": [
+        "bin",
+        "network"
+      ],
+      "aliases": [
+        "Participant & BIN registry · M1–3"
+      ]
+    },
+    "rules-compliance": {
+      "name": "Rules and compliance",
+      "def": "The network's operating rules (membership, liability, disputes, fees, security) and the programs that enforce them with monitoring and fines. The rulebook is what lets strangers trust each other's messages.",
+      "kt": [
+        [
+          "What the rulebook covers",
+          "10-rules-governance-and-regulation.md#what-the-rulebook-covers"
+        ],
+        [
+          "Compliance programs",
+          "10-rules-governance-and-regulation.md#compliance-programs"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ],
+        [
+          "Mastercard Rules",
+          "https://www.mastercard.us/en-us/business/overview/support/rules.html"
+        ]
+      ],
+      "see": [
+        "network",
+        "chargeback"
+      ],
+      "aliases": [
+        "Rules & compliance",
+        "rules"
+      ]
+    },
+    "security": {
+      "name": "Security (PCI DSS, keys, signing)",
+      "def": "Protecting card data and messages: PCI DSS for anyone handling card numbers, HSMs for keys, authenticated messages between participants, and masked or tokenized card numbers everywhere else.",
+      "kt": [
+        [
+          "PCI DSS",
+          "09-risk-fraud-and-security.md#pci-dss-payment-card-industry-data-security-standard"
+        ],
+        [
+          "D14 and D15: Trust and card data",
+          "12-design-decisions.md#d14-and-d15-trust-and-card-data"
+        ]
+      ],
+      "ext": [
+        [
+          "PCI DSS",
+          "https://www.pcisecuritystandards.org/standards/pci-dss/"
+        ],
+        [
+          "PCI DSS (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_Card_Industry_Data_Security_Standard"
+        ]
+      ],
+      "see": [
+        "hsm",
+        "pan-masking"
+      ],
+      "aliases": [
+        "Security · M9",
+        "Security"
+      ]
+    },
+    "certification": {
+      "name": "Certification",
+      "def": "A test suite every bank or processor must pass against the network's test environment before going live: every message type, response code, timeout, reversal and file format it will use.",
+      "kt": [
+        [
+          "Certification",
+          "10-rules-governance-and-regulation.md#certification"
+        ],
+        [
+          "D18: Testing strategy",
+          "12-design-decisions.md#d18-testing-strategy"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Developer Center",
+          "https://developer.visa.com/"
+        ],
+        [
+          "Mastercard Developers",
+          "https://developer.mastercard.com/"
+        ]
+      ],
+      "see": [
+        "rules-compliance"
+      ],
+      "aliases": [
+        "Certification"
+      ]
+    },
+    "txn-status": {
+      "name": "Transaction status",
+      "def": "Where this sale stands. NOT SENT means the POS built a valid 0100 but simple-network has no acquirer, switch or issuer yet to send it to (PLAN milestones 2 to 4). Later statuses will be approved or declined with the issuer's response code.",
+      "kt": [
+        [
+          "The full state machine of a transaction",
+          "03-transaction-lifecycle.md#the-full-state-machine-of-a-transaction"
+        ],
+        [
+          "Response codes (DE39)",
+          "04-authorization-deep-dive.md#response-codes-de39"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "msg-0100",
+        "de39"
+      ],
+      "aliases": [
+        "Status"
+      ]
+    },
+    "card-products": {
+      "name": "Card products",
+      "def": "The kinds of card a network supports: consumer credit, debit, prepaid, commercial and virtual cards. Each product changes interchange, rules and which prompts the terminal shows. The product is an attribute of the card's BIN range.",
+      "kt": [
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ],
+        [
+          "The BIN table",
+          "07-cards-bins-and-tokens.md#the-bin-table-the-routing-core"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_card"
+        ]
+      ],
+      "see": [
+        "credit-card",
+        "debit-card",
+        "prepaid-card",
+        "commercial-card",
+        "bin"
+      ],
+      "aliases": [
+        "Card products",
+        "2 · Card products"
+      ]
+    },
+    "payment-flows": {
+      "name": "Payment flows",
+      "def": "The kinds of money movement a network carries beyond a basic purchase: refunds, cash, push payments to cards (OCT), account funding (AFT), recurring and cross-border payments. The processing code (DE3) and flags in the message say which one it is.",
+      "kt": [
+        [
+          "Layer 3: Payment flows",
+          "11-network-products-and-services.md#layer-3-payment-flows-beyond-buy-something"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "see": [
+        "purchase",
+        "refund",
+        "oct",
+        "aft",
+        "de3"
+      ],
+      "aliases": [
+        "Payment flows",
+        "3 · Payment flows"
+      ]
+    },
+    "value-added-services": {
+      "name": "Value-added services",
+      "def": "Services a network sells on top of routing and settlement: tokenization, fraud scoring, 3-D Secure, account updater, stand-in processing, card controls and dispute tools. They use the network's view across every issuer and merchant, and they're where networks now compete and grow.",
+      "kt": [
+        [
+          "Layer 4: Value-added services",
+          "11-network-products-and-services.md#layer-4-value-added-services"
+        ],
+        [
+          "Which services to build, in order",
+          "11-network-products-and-services.md#which-services-to-build-in-order"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Developer Center",
+          "https://developer.visa.com/"
+        ],
+        [
+          "Mastercard Developers",
+          "https://developer.mastercard.com/"
+        ]
+      ],
+      "see": [
+        "network-token",
+        "fraud-scoring",
+        "three-ds",
+        "stip"
+      ],
+      "aliases": [
+        "Value-added services",
+        "4 · Value-added"
+      ]
+    },
+    "core-rails": {
+      "name": "Core rails",
+      "def": "What a network must have to exist at all: the authorization switch, clearing, settlement, the fee engine, disputes, the participant and BIN registry, rules, security and certification. Everything else is built on top.",
+      "kt": [
+        [
+          "Layer 1: Core rails",
+          "11-network-products-and-services.md#layer-1-core-rails-needed-to-exist"
+        ],
+        [
+          "What a network does",
+          "01-what-is-a-card-network.md#what-a-network-does"
+        ]
+      ],
+      "ext": [
+        [
+          "Card scheme (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_scheme"
+        ]
+      ],
+      "see": [
+        "auth-switch",
+        "clearing",
+        "settlement",
+        "chargeback"
+      ],
+      "aliases": [
+        "Core rails",
+        "1 · Core rails"
+      ]
+    }
+  }
+}

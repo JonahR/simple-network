@@ -27,11 +27,11 @@
     }
   </style>
   <rect class="bg" width="1000" height="600"/>
-  <text class="t1" x="40" y="42" font-size="22" font-weight="700">Where $100 goes</text>
-  <text class="t2" x="40" y="66" font-size="14">Rewards credit card, merchant on interchange-plus pricing, 2.50% merchant discount rate (illustrative)</text>
+  <text class="t1" x="40" y="42" font-size="22" font-weight="700" data-term="mdr">Where $100 goes</text>
+  <text class="t2" x="40" y="66" font-size="14"><tspan data-term="credit-card">Rewards credit card</tspan>, merchant on <tspan data-term="interchange-plus">interchange-plus pricing</tspan>, <tspan data-term="mdr">2.50% merchant discount rate</tspan> (illustrative)</text>
 
   <!-- scale: y = 100 + (100 - v) * 120 ; $100 -> 100, $97 -> 460 -->
-  <g class="t2" font-size="12" text-anchor="end">
+  <g class="t2" font-size="12" text-anchor="end" data-learn="skip">
     <line class="grid" x1="110" y1="100" x2="900" y2="100"/><text x="100" y="104">$100.00</text>
     <line class="grid" x1="110" y1="220" x2="900" y2="220"/><text x="100" y="224">$99.00</text>
     <line class="grid" x1="110" y1="340" x2="900" y2="340"/><text x="100" y="344">$98.00</text>
@@ -61,27 +61,27 @@
 
   <!-- value labels -->
   <g font-size="16" font-weight="700" text-anchor="middle" class="t1">
-    <text x="200" y="88">$100.00</text>
-    <text x="350" y="88">−$1.90</text>
-    <text x="500" y="318">−$0.16</text>
-    <text x="650" y="337">−$0.44</text>
-    <text x="800" y="390">$97.50</text>
+    <text x="200" y="88" data-term="statement">$100.00</text>
+    <text x="350" y="88" data-term="interchange">−$1.90</text>
+    <text x="500" y="318" data-term="network-fees">−$0.16</text>
+    <text x="650" y="337" data-term="acquirer-margin">−$0.44</text>
+    <text x="800" y="390" data-term="funding">$97.50</text>
   </g>
 
   <!-- category labels -->
   <g text-anchor="middle">
-    <text class="t1" x="200" y="488" font-size="14" font-weight="600">Cardholder pays</text>
-    <text class="t2" x="200" y="506" font-size="12">billed by issuer</text>
-    <text class="t1" x="350" y="488" font-size="14" font-weight="600">Interchange</text>
-    <text class="t2" x="350" y="506" font-size="12">to issuer · 1.80% + $0.10</text>
-    <text class="t1" x="500" y="488" font-size="14" font-weight="600">Network fees</text>
-    <text class="t2" x="500" y="506" font-size="12">assessment + per-item</text>
-    <text class="t1" x="650" y="488" font-size="14" font-weight="600">Acquirer margin</text>
-    <text class="t2" x="650" y="506" font-size="12">acquirer / processor</text>
-    <text class="t1" x="800" y="488" font-size="14" font-weight="600">Merchant receives</text>
-    <text class="t2" x="800" y="506" font-size="12">funded T+1 to T+2</text>
+    <text class="t1" x="200" y="488" font-size="14" font-weight="600" data-term="cardholder">Cardholder pays</text>
+    <text class="t2" x="200" y="506" font-size="12" data-term="statement">billed by issuer</text>
+    <text class="t1" x="350" y="488" font-size="14" font-weight="600" data-term="interchange">Interchange</text>
+    <text class="t2" x="350" y="506" font-size="12" data-term="interchange">to issuer · 1.80% + $0.10</text>
+    <text class="t1" x="500" y="488" font-size="14" font-weight="600" data-term="network-fees">Network fees</text>
+    <text class="t2" x="500" y="506" font-size="12" data-term="network-fees">assessment + per-item</text>
+    <text class="t1" x="650" y="488" font-size="14" font-weight="600" data-term="acquirer-margin">Acquirer margin</text>
+    <text class="t2" x="650" y="506" font-size="12" data-term="processor">acquirer / processor</text>
+    <text class="t1" x="800" y="488" font-size="14" font-weight="600" data-term="funding">Merchant receives</text>
+    <text class="t2" x="800" y="506" font-size="12" data-term="t-plus">funded T+1 to T+2</text>
   </g>
 
-  <text class="t2" x="40" y="550" font-size="12">Axis starts at $97 (break marks on full bars) so the small slices are visible. Of the $2.50 discount: 76% issuer · 6% network · 18% acquirer.</text>
-  <text class="t2" x="40" y="570" font-size="12">The issuer also pays its own network fees, and funds cardholder rewards out of interchange.</text>
+  <text class="t2" x="40" y="550" font-size="12">Axis starts at $97 (break marks on full bars) so the small slices are visible. Of the <tspan data-term="mdr">$2.50 discount</tspan>: <tspan data-term="interchange">76% issuer</tspan> · <tspan data-term="network-fees">6% network</tspan> · <tspan data-term="acquirer-margin">18% acquirer</tspan>.</text>
+  <text class="t2" x="40" y="570" font-size="12">The issuer also pays its own <tspan data-term="network-fees">network fees</tspan>, and funds cardholder <tspan data-term="rewards">rewards</tspan> out of <tspan data-term="interchange">interchange</tspan>.</text>
 </svg>

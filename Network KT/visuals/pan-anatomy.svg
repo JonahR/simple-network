@@ -25,32 +25,32 @@
     }
   </style>
   <rect class="bg" width="1000" height="420"/>
-  <text class="t1" x="40" y="42" font-size="22" font-weight="700">Anatomy of a card number (PAN)</text>
-  <text class="t2" x="40" y="66" font-size="14">ISO/IEC 7812 · 12–19 digits · sample uses a simple-network test prefix (never a real brand range)</text>
+  <text class="t1" x="40" y="42" font-size="22" font-weight="700" data-term="de2">Anatomy of a card number (PAN)</text>
+  <text class="t2" x="40" y="66" font-size="14"><tspan data-term="bin">ISO/IEC 7812</tspan> · <tspan data-term="de2">12–19 digits</tspan> · sample uses a simple-network <tspan data-term="test-card">test prefix</tspan> (never a real brand range)</text>
 
   <!-- 16 digit cells: x = 60 + i*55, width 48 -->
   <g class="mono t1" font-size="30" font-weight="700" text-anchor="middle">
-    <rect class="cell" x="60"  y="120" width="48" height="60" rx="6"/><text x="84"  y="161">9</text>
-    <rect class="cell" x="115" y="120" width="48" height="60" rx="6"/><text x="139" y="161">1</text>
-    <rect class="cell" x="170" y="120" width="48" height="60" rx="6"/><text x="194" y="161">0</text>
-    <rect class="cell" x="225" y="120" width="48" height="60" rx="6"/><text x="249" y="161">0</text>
-    <rect class="cell" x="280" y="120" width="48" height="60" rx="6"/><text x="304" y="161">0</text>
-    <rect class="cell" x="335" y="120" width="48" height="60" rx="6"/><text x="359" y="161">0</text>
-    <rect class="cell" x="390" y="120" width="48" height="60" rx="6"/><text x="414" y="161">1</text>
-    <rect class="cell" x="445" y="120" width="48" height="60" rx="6"/><text x="469" y="161">2</text>
-    <rect class="cell" x="500" y="120" width="48" height="60" rx="6"/><text x="524" y="161">3</text>
-    <rect class="cell" x="555" y="120" width="48" height="60" rx="6"/><text x="579" y="161">4</text>
-    <rect class="cell" x="610" y="120" width="48" height="60" rx="6"/><text x="634" y="161">5</text>
-    <rect class="cell" x="665" y="120" width="48" height="60" rx="6"/><text x="689" y="161">6</text>
-    <rect class="cell" x="720" y="120" width="48" height="60" rx="6"/><text x="744" y="161">7</text>
-    <rect class="cell" x="775" y="120" width="48" height="60" rx="6"/><text x="799" y="161">8</text>
-    <rect class="cell" x="830" y="120" width="48" height="60" rx="6"/><text x="854" y="161">9</text>
-    <rect class="cell" x="885" y="120" width="48" height="60" rx="6"/><text x="909" y="161">7</text>
+    <rect class="cell" x="60"  y="120" width="48" height="60" rx="6"/><text x="84"  y="161" data-term="mii">9</text>
+    <rect class="cell" x="115" y="120" width="48" height="60" rx="6"/><text x="139" y="161" data-term="bin">1</text>
+    <rect class="cell" x="170" y="120" width="48" height="60" rx="6"/><text x="194" y="161" data-term="bin">0</text>
+    <rect class="cell" x="225" y="120" width="48" height="60" rx="6"/><text x="249" y="161" data-term="bin">0</text>
+    <rect class="cell" x="280" y="120" width="48" height="60" rx="6"/><text x="304" y="161" data-term="bin">0</text>
+    <rect class="cell" x="335" y="120" width="48" height="60" rx="6"/><text x="359" y="161" data-term="bin">0</text>
+    <rect class="cell" x="390" y="120" width="48" height="60" rx="6"/><text x="414" y="161" data-term="bin">1</text>
+    <rect class="cell" x="445" y="120" width="48" height="60" rx="6"/><text x="469" y="161" data-term="bin">2</text>
+    <rect class="cell" x="500" y="120" width="48" height="60" rx="6"/><text x="524" y="161" data-term="account-id">3</text>
+    <rect class="cell" x="555" y="120" width="48" height="60" rx="6"/><text x="579" y="161" data-term="account-id">4</text>
+    <rect class="cell" x="610" y="120" width="48" height="60" rx="6"/><text x="634" y="161" data-term="account-id">5</text>
+    <rect class="cell" x="665" y="120" width="48" height="60" rx="6"/><text x="689" y="161" data-term="account-id">6</text>
+    <rect class="cell" x="720" y="120" width="48" height="60" rx="6"/><text x="744" y="161" data-term="account-id">7</text>
+    <rect class="cell" x="775" y="120" width="48" height="60" rx="6"/><text x="799" y="161" data-term="account-id">8</text>
+    <rect class="cell" x="830" y="120" width="48" height="60" rx="6"/><text x="854" y="161" data-term="account-id">9</text>
+    <rect class="cell" x="885" y="120" width="48" height="60" rx="6"/><text x="909" y="161" data-term="luhn">7</text>
   </g>
 
   <!-- top bracket: BIN covers digits 1-8 -->
   <path class="br c2" d="M62,108 L62,96 L491,96 L491,108"/>
-  <text class="f2" x="276" y="88" text-anchor="middle" font-size="15" font-weight="700">BIN / IIN: first 8 digits (6 in older systems) → routes to the issuer</text>
+  <text class="f2" x="276" y="88" text-anchor="middle" font-size="15" font-weight="700" data-term="bin">BIN / IIN: first 8 digits (6 in older systems) → routes to the issuer</text>
 
   <!-- bottom brackets -->
   <path class="br c1" d="M62,192 L62,204 L106,204 L106,192"/>
@@ -60,27 +60,27 @@
   <!-- explanation blocks -->
   <g font-size="14">
     <rect class="f1" x="60" y="240" width="6" height="66"/>
-    <text class="t1" x="76" y="256" font-weight="700">MII (1st digit)</text>
-    <text class="t2" x="76" y="276">Industry: 3 travel, 4–5 banking,</text>
-    <text class="t2" x="76" y="294">6 merchandising, 9 national use</text>
+    <text class="t1" x="76" y="256" font-weight="700" data-term="mii">MII (1st digit)</text>
+    <text class="t2" x="76" y="276" data-term="mii">Industry: 3 travel, 4–5 banking,</text>
+    <text class="t2" x="76" y="294" data-term="mii">6 merchandising, 9 national use</text>
 
     <rect class="f2" x="320" y="240" width="6" height="66"/>
-    <text class="t1" x="336" y="256" font-weight="700">BIN range attributes</text>
-    <text class="t2" x="336" y="276">issuer · product · credit/debit/prepaid</text>
-    <text class="t2" x="336" y="294">country · token range? · status</text>
+    <text class="t1" x="336" y="256" font-weight="700" data-term="bin">BIN range attributes</text>
+    <text class="t2" x="336" y="276" data-term="bin">issuer · product · credit/debit/prepaid</text>
+    <text class="t2" x="336" y="294" data-term="bin">country · token range? · status</text>
 
     <rect class="f3" x="560" y="240" width="6" height="66"/>
-    <text class="t1" x="576" y="256" font-weight="700">Account identifier</text>
-    <text class="t2" x="576" y="276">Assigned by the issuer;</text>
-    <text class="t2" x="576" y="294">links to the cardholder's account</text>
+    <text class="t1" x="576" y="256" font-weight="700" data-term="account-id">Account identifier</text>
+    <text class="t2" x="576" y="276" data-term="account-id">Assigned by the issuer;</text>
+    <text class="t2" x="576" y="294" data-term="account-id">links to the cardholder's account</text>
 
     <rect class="f4" x="790" y="240" width="6" height="66"/>
-    <text class="t1" x="806" y="256" font-weight="700">Luhn check digit</text>
-    <text class="t2" x="806" y="276">Catches typos.</text>
-    <text class="t2" x="806" y="294">Not a security feature.</text>
+    <text class="t1" x="806" y="256" font-weight="700" data-term="luhn">Luhn check digit</text>
+    <text class="t2" x="806" y="276" data-term="luhn">Catches typos.</text>
+    <text class="t2" x="806" y="294" data-term="luhn">Not a security feature.</text>
   </g>
 
-  <text class="t2" x="40" y="350" font-size="13">Not part of the PAN: expiry (YYMM) · CVV2 on the back (never stored after auth) · chip keys that make a per-transaction cryptogram (ARQC)</text>
-  <text class="t2" x="40" y="374" font-size="13">Real brand prefixes, for recognition only:  Visa 4 · Mastercard 51–55, 2221–2720 · Amex 34, 37 · Discover 6011, 644–649, 65 · UnionPay 62</text>
-  <text class="t2" x="40" y="398" font-size="13">Network tokens look like PANs but come from separate token BIN ranges and are mapped back to the real PAN by the network's token vault.</text>
+  <text class="t2" x="40" y="350" font-size="13">Not part of the PAN: <tspan data-term="de14">expiry (YYMM)</tspan> · <tspan data-term="cvv2">CVV2 on the back (never stored after auth)</tspan> · <tspan data-term="cryptogram">chip keys that make a per-transaction cryptogram (ARQC)</tspan></text>
+  <text class="t2" x="40" y="374" font-size="13" data-term="brand-prefixes">Real brand prefixes, for recognition only:  Visa 4 · Mastercard 51–55, 2221–2720 · Amex 34, 37 · Discover 6011, 644–649, 65 · UnionPay 62</text>
+  <text class="t2" x="40" y="398" font-size="13"><tspan data-term="network-token">Network tokens</tspan> look like PANs but come from separate token BIN ranges and are mapped back to the real PAN by <tspan data-term="token-service">the network's token vault</tspan>.</text>
 </svg>

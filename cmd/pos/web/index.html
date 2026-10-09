@@ -5,30 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>simple-network POS</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="learn/learn.css">
 </head>
 <body>
 <header>
-  <div class="brand">simple-network <span>POS</span></div>
+  <div class="brand"><b data-term="network">simple-network</b> <span data-term="pos-terminal">POS</span></div>
   <div class="merchant" id="merchant">Loading terminal…</div>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/learn/">Learn the network</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" title="Click any label, button or field to learn what it is. Shortcut: ?">Explain mode</button>
+  </nav>
 </header>
 
 <main>
   <div class="side">
     <section class="panel wallet">
-      <h2>Wallet</h2>
+      <h2><span data-term="cardholder">Wallet</span></h2>
       <div id="card-face"></div>
       <div id="card-list" class="card-list" role="radiogroup" aria-label="Cards"></div>
       <div class="present" role="group" aria-label="Present card to terminal">
-        <button type="button" data-method="tap">Tap</button>
-        <button type="button" data-method="insert">Insert</button>
-        <button type="button" data-method="swipe">Swipe</button>
-        <button type="button" data-method="key">Key in</button>
+        <button type="button" data-method="tap" data-term="contactless">Tap</button>
+        <button type="button" data-method="insert" data-term="chip-emv">Insert</button>
+        <button type="button" data-method="swipe" data-term="magstripe">Swipe</button>
+        <button type="button" data-method="key" data-term="manual-entry">Key in</button>
       </div>
     </section>
 
     <section class="panel mobile-wallets">
-      <h2>Mobile Wallets</h2>
-      <p class="hint">Pays with a device token and one-time cryptogram. The card number never leaves the phone.</p>
+      <h2><span data-term="mobile-wallet">Mobile Wallets</span></h2>
+      <p class="hint">Pays with a <span data-term="device-token">device token</span> and <span data-term="cryptogram">one-time cryptogram</span>. The card number never leaves the phone.</p>
       <div id="mw-phone" class="phone">
         <div id="mw-tabs" class="mw-tabs" role="tablist" aria-label="Mobile wallet"></div>
         <div class="phone-label">Choose card</div>
@@ -40,19 +45,19 @@
   </div>
 
   <section class="panel terminal">
-    <h2>New sale</h2>
+    <h2><span data-term="authorization">New sale</span></h2>
     <form id="sale" novalidate>
       <label class="amount">
-        <span>Amount</span>
+        <span data-term="de4">Amount</span>
         <div class="amount-row">
-          <select name="currency" id="currency"></select>
+          <select name="currency" id="currency" data-term="de49"></select>
           <input name="amount" inputmode="decimal" placeholder="0.00" autocomplete="off">
         </div>
         <small class="err" data-for="amount"></small>
       </label>
 
       <label>
-        <span>Entry mode</span>
+        <span data-term="de22">Entry mode</span>
         <select name="entry_mode" id="entry_mode"></select>
         <small class="err" data-for="entry_mode"></small>
       </label>
@@ -64,12 +69,12 @@
 
       <div id="cof-fields" class="group" hidden>
         <label>
-          <span>Saved card</span>
+          <span data-term="credential-on-file">Saved card</span>
           <select name="card_on_file" id="card_on_file"></select>
           <small class="err" data-for="card_on_file"></small>
         </label>
         <label>
-          <span>Initiated by</span>
+          <span data-term="de48-cof">Initiated by</span>
           <select name="cof_indicator" id="cof_indicator"></select>
           <small class="err" data-for="cof_indicator"></small>
         </label>
@@ -77,62 +82,62 @@
 
       <div id="card-fields" class="group">
         <label>
-          <span>Card number <em id="read-badge" class="badge" hidden></em> <em id="product-badge" class="badge product" hidden></em></span>
+          <span><span data-term="de2">Card number</span> <em id="read-badge" class="badge" hidden></em> <em id="product-badge" class="badge product" hidden></em></span>
           <input name="card_number" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off">
           <small class="err" data-for="card_number"></small>
         </label>
 
         <div class="row">
           <label>
-            <span>Expiry</span>
+            <span data-term="de14">Expiry</span>
             <input name="expiry" placeholder="MM/YY" maxlength="5" autocomplete="off">
             <small class="err" data-for="expiry"></small>
           </label>
           <label>
-            <span>CVV</span>
+            <span data-term="cvv2">CVV</span>
             <input name="cvv" inputmode="numeric" placeholder="123" maxlength="4" autocomplete="off">
             <small class="err" data-for="cvv"></small>
           </label>
         </div>
 
         <label>
-          <span>Cardholder name <em>(optional)</em></span>
+          <span><span data-term="cardholder-name">Cardholder name</span> <em>(optional)</em></span>
           <input name="cardholder_name" placeholder="Jane Doe" autocomplete="off">
         </label>
       </div>
 
       <!-- Shown only when the card calls for them, as a real terminal would prompt. -->
       <fieldset id="prompts" class="prompts" hidden>
-        <legend>Terminal prompts</legend>
+        <legend data-term="terminal-prompts">Terminal prompts</legend>
         <label data-prompt="pin" hidden>
-          <span>PIN <em id="pin-note"></em></span>
+          <span><span data-term="pin">PIN</span> <em id="pin-note"></em></span>
           <input name="pin" type="password" inputmode="numeric" maxlength="12" autocomplete="off">
           <small class="err" data-for="pin"></small>
         </label>
         <label data-prompt="cashback" hidden>
-          <span>Cash back <em>(optional, up to $200)</em></span>
+          <span><span data-term="cashback">Cash back</span> <em>(optional, up to $200)</em></span>
           <input name="cashback" inputmode="decimal" placeholder="0.00" autocomplete="off">
           <small class="err" data-for="cashback"></small>
         </label>
         <div data-prompt="fleet" class="row3" hidden>
           <label>
-            <span>Odometer</span>
+            <span data-term="de48-fleet">Odometer</span>
             <input name="odometer" inputmode="numeric" maxlength="7" autocomplete="off">
             <small class="err" data-for="odometer"></small>
           </label>
           <label>
-            <span>Vehicle ID</span>
+            <span data-term="de48-fleet">Vehicle ID</span>
             <input name="vehicle_id" maxlength="17" autocomplete="off">
             <small class="err" data-for="vehicle_id"></small>
           </label>
           <label>
-            <span>Driver ID</span>
+            <span data-term="de48-fleet">Driver ID</span>
             <input name="driver_id" inputmode="numeric" maxlength="8" autocomplete="off">
             <small class="err" data-for="driver_id"></small>
           </label>
         </div>
         <label data-prompt="healthcare" hidden>
-          <span>HSA/FSA-eligible amount</span>
+          <span data-term="healthcare-amount">HSA/FSA-eligible amount</span>
           <input name="healthcare_amount" inputmode="decimal" placeholder="0.00" autocomplete="off">
           <small class="err" data-for="healthcare_amount"></small>
         </label>
@@ -140,22 +145,22 @@
 
       <small class="err" data-for="form"></small>
       <div class="actions">
-        <button type="button" id="testcard" class="secondary">Fill test card</button>
-        <button type="submit" id="charge">Charge</button>
+        <button type="button" id="testcard" class="secondary" data-term="test-card">Fill test card</button>
+        <button type="submit" id="charge" data-term="msg-0100">Charge</button>
       </div>
     </form>
   </section>
 
   <section class="panel result">
-    <h2>Authorization</h2>
-    <div id="result" class="empty">Charge a sale to send an 0100 to the network and see its answer.</div>
+    <h2><span data-term="authorization">Authorization</span></h2>
+    <div id="result" class="empty">Charge a sale to send an <span data-term="msg-0100">0100</span> to the network and see its answer.</div>
   </section>
 
   <section class="panel history">
-    <h2>Transactions</h2>
+    <h2><span data-term="authorization">Transactions</span></h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Time</th><th>STAN</th><th>RRN</th><th>Card</th><th>Mode</th><th class="num">Amount</th><th>Status</th></tr></thead>
+        <thead><tr><th><span data-term="de12">Time</span></th><th><span data-term="de11">STAN</span></th><th><span data-term="de37">RRN</span></th><th><span data-term="pan-masking">Card</span></th><th><span data-term="de22">Mode</span></th><th class="num"><span data-term="de4">Amount</span></th><th><span data-term="txn-status">Status</span></th></tr></thead>
         <tbody id="history"><tr><td colspan="7" class="empty">No transactions yet.</td></tr></tbody>
       </table>
     </div>
@@ -163,5 +168,7 @@
 </main>
 
 <script src="app.js"></script>
+<script src="learn/learn.js"></script>
+<script src="learn/pos-terms.js"></script>
 </body>
 </html>

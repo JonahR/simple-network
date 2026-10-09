@@ -23,16 +23,16 @@
     }
   </style>
   <rect class="bg" width="1100" height="560"/>
-  <text class="t1" x="40" y="42" font-size="22" font-weight="700">One purchase, four stages</text>
-  <text class="t2" x="40" y="66" font-size="14">Dual-message credit transaction · typical timings (vary by network, region, and acquirer)</text>
+  <text class="t1" x="40" y="42" font-size="22" font-weight="700" data-term="dual-message">One purchase, four stages</text>
+  <text class="t2" x="40" y="66" font-size="14"><tspan data-term="dual-message">Dual-message credit transaction</tspan> · <tspan data-term="t-plus">typical timings</tspan> (vary by network, region, and acquirer)</text>
 
   <!-- lanes -->
   <g font-size="13" font-weight="600">
-    <rect class="lane" x="170" y="100" width="900" height="56" rx="6"/><text class="t1" x="40" y="133">Authorization</text>
-    <rect class="lane" x="170" y="166" width="900" height="56" rx="6"/><text class="t1" x="40" y="199">Clearing</text>
-    <rect class="lane" x="170" y="232" width="900" height="56" rx="6"/><text class="t1" x="40" y="265">Settlement</text>
-    <rect class="lane" x="170" y="298" width="900" height="56" rx="6"/><text class="t1" x="40" y="331">Funding</text>
-    <rect class="lane" x="170" y="364" width="900" height="56" rx="6"/><text class="t1" x="40" y="397">After settlement</text>
+    <rect class="lane" x="170" y="100" width="900" height="56" rx="6"/><text class="t1" x="40" y="133" data-term="authorization">Authorization</text>
+    <rect class="lane" x="170" y="166" width="900" height="56" rx="6"/><text class="t1" x="40" y="199" data-term="clearing">Clearing</text>
+    <rect class="lane" x="170" y="232" width="900" height="56" rx="6"/><text class="t1" x="40" y="265" data-term="settlement">Settlement</text>
+    <rect class="lane" x="170" y="298" width="900" height="56" rx="6"/><text class="t1" x="40" y="331" data-term="funding">Funding</text>
+    <rect class="lane" x="170" y="364" width="900" height="56" rx="6"/><text class="t1" x="40" y="397" data-term="chargeback">After settlement</text>
   </g>
 
   <!-- time columns: T+0 day 180-420, T+1 420-640, T+2 640-800, later 820-1060 -->
@@ -41,45 +41,45 @@
     <line class="tick" x1="640" y1="92" x2="640" y2="430"/>
     <line class="tick" x1="810" y1="92" x2="810" y2="430"/>
     <line class="axis" x1="170" y1="440" x2="1070" y2="440"/>
-    <text x="295" y="462">T+0 (purchase day)</text>
-    <text x="530" y="462">T+1</text>
-    <text x="725" y="462">T+2</text>
-    <text x="940" y="462">days → months</text>
+    <text x="295" y="462" data-term="t-plus">T+0 (purchase day)</text>
+    <text x="530" y="462" data-term="t-plus">T+1</text>
+    <text x="725" y="462" data-term="t-plus">T+2</text>
+    <text x="940" y="462" data-term="dispute-window">days → months</text>
   </g>
 
   <!-- Auth: short marker at 14:00 on T+0 -->
   <rect class="p1" x="260" y="110" width="12" height="36" rx="3"/>
-  <text class="t1" x="282" y="124" font-size="13" font-weight="700">0100/0110 in &lt;2 s</text>
-  <text class="t2" x="282" y="141" font-size="12">issuer places a hold</text>
+  <text class="t1" x="282" y="124" font-size="13" font-weight="700"><tspan data-term="msg-0100">0100</tspan>/<tspan data-term="msg-0110">0110</tspan> in &lt;2 s</text>
+  <text class="t2" x="282" y="141" font-size="12" data-term="auth-hold">issuer places a hold</text>
   <!-- hold line -->
   <path class="hold" d="M272,152 L640,152"/>
-  <text class="t2" x="430" y="138" font-size="11">hold = "pending" until cleared · expires in ~7 days if never cleared</text>
+  <text class="t2" x="430" y="138" font-size="11" data-term="auth-hold">hold = "pending" until cleared · expires in ~7 days if never cleared</text>
 
   <!-- Clearing: end of T+0 -->
   <rect class="p2" x="340" y="176" width="78" height="36" rx="4"/>
-  <text class="wt" x="379" y="199" font-size="12" font-weight="700" text-anchor="middle">cutoff</text>
-  <text class="t1" x="432" y="190" font-size="13" font-weight="700">batch: capture → presentment → match</text>
-  <text class="t2" x="432" y="207" font-size="12">final amount set (tip added) · interchange calculated · hold → posted</text>
+  <text class="wt" x="379" y="199" font-size="12" font-weight="700" text-anchor="middle" data-term="cutoff">cutoff</text>
+  <text class="t1" x="432" y="190" font-size="13" font-weight="700">batch: <tspan data-term="capture">capture</tspan> → <tspan data-term="presentment">presentment</tspan> → <tspan data-term="clearing">match</tspan></text>
+  <text class="t2" x="432" y="207" font-size="12"><tspan data-term="capture">final amount set (tip added)</tspan> · <tspan data-term="interchange">interchange calculated</tspan> · <tspan data-term="auth-hold">hold → posted</tspan></text>
 
   <!-- Settlement: T+1 -->
   <rect class="p3" x="450" y="242" width="150" height="36" rx="4"/>
-  <text class="wt" x="525" y="265" font-size="12" font-weight="700" text-anchor="middle">net settlement</text>
-  <text class="t1" x="612" y="258" font-size="13" font-weight="700">issuers pay in, acquirers paid out</text>
-  <text class="t2" x="612" y="275" font-size="12">one net amount per member per currency</text>
+  <text class="wt" x="525" y="265" font-size="12" font-weight="700" text-anchor="middle" data-term="net-settlement">net settlement</text>
+  <text class="t1" x="612" y="258" font-size="13" font-weight="700" data-term="net-settlement">issuers pay in, acquirers paid out</text>
+  <text class="t2" x="612" y="275" font-size="12" data-term="net-settlement">one net amount per member per currency</text>
 
   <!-- Funding: T+1..T+2 -->
   <rect class="p4" x="560" y="308" width="230" height="36" rx="4"/>
-  <text class="wt" x="675" y="331" font-size="12" font-weight="700" text-anchor="middle">merchant paid (minus MDR)</text>
-  <text class="t2" x="800" y="331" font-size="12">acquirer → merchant</text>
+  <text class="wt" x="675" y="331" font-size="12" font-weight="700" text-anchor="middle"><tspan data-term="funding">merchant paid</tspan> (minus <tspan data-term="mdr">MDR</tspan>)</text>
+  <text class="t2" x="800" y="331" font-size="12" data-term="funding">acquirer → merchant</text>
 
   <!-- After settlement: statement, refund, dispute window -->
   <rect class="p5" x="660" y="374" width="400" height="36" rx="4"/>
-  <text class="wt" x="860" y="397" font-size="12" font-weight="700" text-anchor="middle">dispute window ≈ 120 days · refunds · statement</text>
+  <text class="wt" x="860" y="397" font-size="12" font-weight="700" text-anchor="middle"><tspan data-term="dispute-window">dispute window ≈ 120 days</tspan> · <tspan data-term="refund">refunds</tspan> · <tspan data-term="statement">statement</tspan></text>
 
   <!-- legend of what moves money -->
   <g font-size="13">
-    <text class="t1" x="40" y="505" font-weight="700">Moves money?</text>
-    <text class="t2" x="160" y="505">Authorization: no (hold only) · Clearing: no (sets obligations) · Settlement: yes (bank to bank) · Funding: yes (to merchant) · Chargeback: yes (reverses)</text>
-    <text class="t2" x="40" y="532">Every stage references the same network transaction ID / ARN, which is how a dispute 90 days later finds the original authorization.</text>
+    <text class="t1" x="40" y="505" font-weight="700" data-term="settlement">Moves money?</text>
+    <text class="t2" x="160" y="505"><tspan data-term="authorization">Authorization</tspan>: no (hold only) · <tspan data-term="clearing">Clearing</tspan>: no (sets obligations) · <tspan data-term="settlement">Settlement</tspan>: yes (bank to bank) · <tspan data-term="funding">Funding</tspan>: yes (to merchant) · <tspan data-term="chargeback">Chargeback</tspan>: yes (reverses)</text>
+    <text class="t2" x="40" y="532">Every stage carries the <tspan data-term="network-txn-id">network transaction ID</tspan> (clearing adds the <tspan data-term="arn">ARN</tspan>), which is how a dispute 90 days later finds the original authorization.</text>
   </g>
 </svg>
