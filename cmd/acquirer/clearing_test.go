@@ -21,6 +21,11 @@ func record(id, status string, amount int64) Record {
 	}
 }
 
+func rec(id, status string, amount int64) *Record {
+	r := record(id, status, amount)
+	return &r
+}
+
 func TestSubmitAndFund(t *testing.T) {
 	var got []clearing.File
 	reply := func(f clearing.File) clearing.Ack {
@@ -48,7 +53,9 @@ func TestSubmitAndFund(t *testing.T) {
 	defer net.Close()
 
 	acq := newAcquirer("100001", "Bank", []Merchant{{ID: "M1", Name: "Shop", DiscountBPS: 250}}, nil)
-	acq.records = []Record{record("t1", "APPROVED", 10_000), record("t2", "APPROVED", 500), record("t3", "DECLINED", 0)}
+	voided := record("t4", "APPROVED", 700)
+	voided.Reversal, voided.ReversalReason = ReversalAcknowledged, "17"
+	acq.records = []*Record{rec("t1", "APPROVED", 10_000), rec("t2", "APPROVED", 500), rec("t3", "DECLINED", 0), &voided}
 	c := newClearer(acq, net.URL)
 
 	// The network is down: nothing is presented, and the file is kept.
@@ -61,6 +68,7 @@ func TestSubmitAndFund(t *testing.T) {
 		t.Fatalf("submit: %v, %+v", err, sent)
 	}
 	f := got[0]
+	// t3 was declined and t4 voided, so neither is presented.
 	if f.Header.Sequence != 1 || len(f.Records) != 2 || f.Trailer.HashTotal != 10_500 || f.CheckControls() != nil {
 		t.Errorf("file %+v", f)
 	}

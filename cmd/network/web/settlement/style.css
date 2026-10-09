@@ -248,3 +248,5 @@ button.primary:disabled { opacity: .6; cursor: wait; }
 .zero { color: var(--good-text); font-weight: 600; }
 .nonzero { color: var(--bad-text); font-weight: 600; }
 .wrap-last td:last-child { white-space: normal; min-width: 200px; }
+.flow-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); }
+@media (max-width: 1000px) { .flow-split { grid-template-columns: minmax(0, 1fr); } }

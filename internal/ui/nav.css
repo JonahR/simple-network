@@ -17,7 +17,7 @@
 }
 .sn-nav:empty { display: none; }
 .sn-nav a {
-  padding: 5px 12px;
+  padding: 5px 9px;
   border-radius: 7px;
   color: var(--muted, #6b6b66);
   text-decoration: none;
@@ -31,11 +31,12 @@
 }
 .sn-nav-arrow { color: var(--muted, #6b6b66); font-weight: 400; opacity: .7; }
 
-/* Below 1200px some headers no longer fit on one row and each wraps
+/* Below 1300px some headers no longer fit on one row and each wraps
    differently, so the nav takes the header's first row instead, full width,
-   in the same place on every page. 1200px clears the widest header (the
-   issuer's, which starts wrapping at about 1170px). */
-@media (max-width: 1200px) {
+   in the same place on every page. 1300px clears the widest headers (the
+   settlement and issuer pages start wrapping at about 1260px) with room for
+   font differences. */
+@media (max-width: 1300px) {
   .sn-nav { order: -1; flex: 1 0 100%; margin-left: 0; }
   .sn-nav a { flex: 1; text-align: center; padding-inline: 6px; }
 }

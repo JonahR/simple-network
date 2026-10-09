@@ -45,11 +45,7 @@ func (a recordAuths) Lookup(id string) (clearing.AuthInfo, bool) {
 			info.Product = e.Product
 		}
 	}
-	for _, s := range r.Steps {
-		if s.Name == "reversal" && s.OK {
-			info.Reversed = true
-		}
-	}
+	info.Reversed = r.Reversed
 	return info, true
 }
 

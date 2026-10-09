@@ -133,8 +133,7 @@ function renderPositions(c) {
       const w = `${(Math.abs(p.net) / max) * 100}%`;
       const dir = p.net < 0 ? "pays" : p.net > 0 ? "receives" : "even";
       return `<tr>
-        <td><b>${escapeHTML(p.name)}</b><small data-term="${p.role}">${p.role === "issuer" ? "Issuer" : "Acquirer"}</small></td>
-        <td class="num">${p.count}</td>
+        <td><b>${escapeHTML(p.name)}</b><small><span data-term="${p.role}">${p.role === "issuer" ? "Issuer" : "Acquirer"}</span> · ${p.count} txn${p.count === 1 ? "" : "s"}</small></td>
         <td class="num">${money(p.gross, p.currency)}</td>
         <td class="num">${money(p.interchange, p.currency)}</td>
         <td class="num">${money(p.network_fees, p.currency)}</td>
@@ -150,7 +149,7 @@ function renderPositions(c) {
     .map((k) => `<span class="${k.ok ? "zero" : "nonzero"}">${k.ok ? "✓" : "✕"} ${escapeHTML(data.currencies[k.currency] || k.currency)}: members ${money(k.members, k.currency)} + revenue ${money(k.revenue, k.currency)} = ${money(k.sum, k.currency)}</span>`)
     .join(" · ");
   el.innerHTML = `<div class="table-wrap"><table class="list">
-      <thead><tr><th data-term="settlement-bank">Member</th><th class="num" data-term="presentment">Txns</th><th class="num" data-term="de4">Gross</th><th class="num" data-term="interchange">Interchange</th><th class="num" data-term="network-fees">Network fees</th><th class="num" data-term="net-settlement">Net</th><th data-term="net-settlement">Pays ◂ ▸ receives</th></tr></thead>
+      <thead><tr><th data-term="settlement-bank">Member</th><th class="num" data-term="de4">Gross</th><th class="num" data-term="interchange">Interchange</th><th class="num" data-term="network-fees">Network fees</th><th class="num" data-term="net-settlement">Net</th><th data-term="net-settlement">Pays ◂ ▸ receives</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
     <p class="hint"><span data-term="ledger">Zero-sum check</span>: ${checks || "nothing to check"}</p>`;
 }
@@ -158,7 +157,7 @@ function renderPositions(c) {
 function renderItems(c) {
   const tbody = document.getElementById("items");
   if (!c.items.length) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty">No cleared transactions in this cycle.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">No cleared transactions in this cycle.</td></tr>`;
     document.getElementById("waterfall").innerHTML = "";
   } else {
     if (!c.items.some((i) => i.network_txn_id === selectedItem)) selectedItem = c.items[0].network_txn_id;
@@ -166,8 +165,7 @@ function renderItems(c) {
       .map((i) => {
         const [cls, icon, label] = POSTING[i.posting] || ["", "", i.posting];
         return `<tr data-i="${escapeHTML(i.network_txn_id)}" aria-selected="${i.network_txn_id === selectedItem}">
-          <td class="mono">${escapeHTML(i.arn)}</td>
-          <td>${escapeHTML(i.merchant_name)}</td>
+          <td><span class="mono">${escapeHTML(i.arn)}</span><small>${escapeHTML(i.merchant_name)}</small></td>
           <td>${escapeHTML(i.issuer_id)}</td>
           <td><span class="mono">${escapeHTML(i.program_id)}</span><small>${escapeHTML(data.product_names[i.product] || i.product)} · ${i.channel === "card_present" ? "card present" : "card not present"}</small></td>
           <td class="num">${money(i.amount, i.currency)}${i.cashback ? `<small>incl. ${money(i.cashback, i.currency)} cash back</small>` : ""}</td>
@@ -231,7 +229,8 @@ function renderLedger() {
         .map((b) => {
           const isDue = b.account.startsWith("due_");
           const cls = isDue ? (b.net === 0 ? "zero" : "nonzero") : "";
-          return `<tr><td class="mono">${escapeHTML(b.account)}</td><td class="num">${money(b.debit, b.currency)}</td><td class="num">${money(b.credit, b.currency)}</td><td class="num ${cls}">${money(b.net, b.currency)}</td></tr>`;
+          const side = b.net > 0 ? " DR" : b.net < 0 ? " CR" : "";
+          return `<tr><td class="mono">${escapeHTML(b.account)}</td><td class="num">${money(b.debit, b.currency)}</td><td class="num">${money(b.credit, b.currency)}</td><td class="num ${cls}">${money(Math.abs(b.net), b.currency)}${side}</td></tr>`;
         })
         .join("")}</tbody></table></div>`
     : `<p class="empty">No entries yet.</p>`;

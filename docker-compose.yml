@@ -21,6 +21,7 @@ services:
       ACQUIRER_PUBLIC_URL: "http://localhost:8081"
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
       ISSUER_PUBLIC_URL: "http://localhost:8091"
+      SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"
     depends_on:
       - acquirer
 
@@ -48,6 +49,7 @@ services:
       ACQUIRER_PUBLIC_URL: "http://localhost:8081"
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
       ISSUER_PUBLIC_URL: "http://localhost:8091"
+      SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"
     depends_on:
       - network
 
@@ -61,12 +63,14 @@ services:
     environment:
       NETWORK_ADDR: ":8090"
       ACQUIRER_ID: "100001"
+      ACQUIRER_URL: "http://acquirer:8081" # Asked for its clearing file at the simulated end of day
       ISSUER_FSB_URL: "http://issuer:8091"
       ISSUER_UCB_URL: "http://issuer:8092"
       POS_PUBLIC_URL: "http://localhost:8080"
       ACQUIRER_PUBLIC_URL: "http://localhost:8081"
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
       ISSUER_PUBLIC_URL: "http://localhost:8091"
+      SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"
     depends_on:
       - issuer
 
@@ -88,3 +92,4 @@ services:
       ACQUIRER_PUBLIC_URL: "http://localhost:8081"
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
       ISSUER_PUBLIC_URL: "http://localhost:8091"
+      SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"

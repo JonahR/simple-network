@@ -243,8 +243,8 @@ func TestEmptyStateEncodesArrays(t *testing.T) {
 
 func TestPostTurnsHoldsIntoCharges(t *testing.T) {
 	fsb, _, _ := testBanks(t)
-	a := req("4242424242424242", "2912", 5000)
-	b := req("4242424242424242", "2912", 2000)
+	a := req("4242424242424242", "3312", 5000)
+	b := req("4242424242424242", "3312", 2000)
 	fsb.Authorize(a)
 	fsb.Authorize(b)
 

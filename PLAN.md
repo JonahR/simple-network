@@ -92,8 +92,8 @@ A purchase goes through three phases:
 | 2 | Issuer service | Can approve or decline an auth request directly ✅ Two banks (`cmd/issuer`): holds, PIN verification, partial approvals, reversals, fault simulation, and a back-office page per bank showing each decision's checks, accounts and holds |
 | 3 | Network switch | Routes auths by BIN to two or more issuers; transaction log ✅ `cmd/network`: longest-prefix BIN routing, token vault, PIN translation, idempotency, 5s issuer timeout with 0420 reversal (retried with backoff until acknowledged), acquirer 0420s at `POST /reverse`, per-issuer circuit breaker, per-step trace |
 | 4 | Acquirer + POS | End-to-end sale from the browser POS through the acquirer shows approved/declined ✅ POS → `cmd/acquirer` (:8081) → network: merchant/terminal checks, own network-leg STAN, DE32, MCC from the merchant agreement, idempotent retries; back office shows each message path and what each merchant is owed. Clearing batch and merchant payout come with milestones 5-6 |
-| 5 | Clearing | End-of-day batch is matched to auths and issuer holds are posted |
-| 6 | Settlement + fees | Net settlement report per bank; interchange and network fees applied |
+| 5 | Clearing | End-of-day batch is matched to auths and issuer holds are posted ✅ `internal/clearing`: acquirer files with header/trailer controls, idempotent ingest, matching with MCC tolerances, issuers post holds as charges, undelivered files retried |
+| 6 | Settlement + fees | Net settlement report per bank; interchange and network fees applied ✅ Versioned interchange programs and network fees, double-entry ledger, zero-sum check before money moves, simulated settlement bank, merchant funding; Settlement page at :8090/settlement/ |
 | 7 | Reversals, refunds, chargebacks | Full transaction lifecycle |
 | 8 | Ops dashboard | Web UI with live auth stream, approval rates, and settlement positions (partial: live dashboard on :8090 without settlement) |
 | 9 | Hardening | Message signing between participants, idempotency, timeouts/stand-in, load test |

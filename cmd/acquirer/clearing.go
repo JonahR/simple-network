@@ -80,6 +80,11 @@ func (c *clearer) presentments() []clearing.Presentment {
 		if r.Status == "DECLINED" || id == "" || c.status[id] != "" || !iso8583.IsApproved(r.Response.ResponseCode) {
 			continue
 		}
+		// A voided or timed-out sale is reversed, not presented. Only a
+		// reversal the network refused leaves the sale standing.
+		if r.Reversal != "" && r.Reversal != ReversalRejected {
+			continue
+		}
 		var cashback int64
 		for _, a := range r.Request.AdditionalAmounts {
 			if a.Type == iso8583.AmountCashback {
