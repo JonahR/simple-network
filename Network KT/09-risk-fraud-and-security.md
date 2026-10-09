@@ -164,14 +164,37 @@ Related standards: **PCI PIN** (PIN handling), **PCI PTS** (terminal hardware), 
 | Replayable event log | Rebuild state after a failure |
 | Per-participant rate limits / circuit breakers | One bad acquirer cannot overload the switch |
 
+## The fraud department in `simple-network`
+
+The network company has a **Fraud department** (http://localhost:8090/fraud/), next to Operations and Settlement. It screens every authorization after routing and before PIN translation, so a stopped payment never reaches the issuer. The trace shows the decision as the **Fraud check** step.
+
+A rule is data, written as one sentence:
+
+| Part | Choices |
+|---|---|
+| What it looks at | One purchase's amount, or what one **card, terminal, merchant, acquirer or BIN range** did within a window |
+| What it counts | Authorizations, declines, approvals, or approved spend |
+| Filters | Entry modes (DE22) and merchant categories (DE18) |
+| What it does | **Decline** (59), **block** the subject for a while, or **review** (let it through and open a case) |
+| Mode | **On**, **Test** (records what it would do, changes nothing), or **Off** |
+
+Example: *When one terminal has more than 5 declines within 1 minute → decline it and block the terminal for 2 minutes.*
+
+- **Declines** counts what the card or its user caused. Outages (91, 96, 68, 22), duplicates (94) and the fraud department's own declines don't count, so an issuer outage doesn't look like fraud and a block doesn't feed itself.
+- **Cases**: a rule firing opens a case for one subject, and later hits join it. An analyst confirms it as fraud or clears it, which lifts its block.
+- **Backtest**: the rule builder replays the switch's last 1,000 authorizations through a draft rule and shows how often it would fire, and on whom, before you save it.
+- **Scale**: each velocity counter is 12 buckets per rule per subject. Subjects idle longer than their longest window are swept, and the table is capped at 200,000 subjects.
+
+Add rules in the page's builder or from a template, through `POST /api/fraud/rules`, or in `fraud.DefaultRules()` to change what the network starts with. Rules live in memory, so a restart goes back to the defaults.
+
 ## Risk lab drills in `simple-network`
 
 The Risk lab (http://localhost:8093) runs each threat above that the simulation can stage, through the real services, as the Risk Lab merchant's terminal `RISK0001`. Each row shows which participant stopped the message and with which control. **Gap** rows are honest about what this network doesn't do yet.
 
 | Drill | Stopped by | Gap it shows |
 |---|---|---|
-| Card testing | Network Luhn check (30), issuer account lookup (14) | No velocity check: 20 guesses from one terminal go through unslowed |
-| Stolen card number, guessing the CVV | Issuer CVV2 (N7) and expiry (54) checks | No limit on CVV2 failures: the fifth guess is approved |
+| Card testing | Network Luhn check (30), issuer account lookup (14), then the fraud department blocks the terminal (59) | None while the "Card testing at a terminal" rule is on |
+| Stolen card number, guessing the CVV | Issuer CVV2 (N7) and expiry (54) checks, then "Repeated declines on one card" (59) | None while that rule is on |
 | Stolen debit card, guessing the PIN | PIN translation and issuer PIN check (55) | No PIN try counter: the fourth guess is approved |
 | Lost card, frozen | Issuer card status (62) | |
 | Stolen wallet token | Token vault domain, cryptogram and status checks (05, 62) | |

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
+	"github.com/JonahR/simple-network/internal/fraud"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/pin"
 )
@@ -49,6 +50,9 @@ type Switch struct {
 	ReversalRetryMax time.Duration
 	Recorder         *Recorder
 	Now              func() time.Time // Injectable clock (D20)
+	// Fraud is the fraud department's rule engine. It screens every routed
+	// authorization before the issuer sees it; nil skips the check.
+	Fraud *fraud.Engine
 
 	stan atomic.Uint32 // DE11 for messages the network originates
 
@@ -133,6 +137,9 @@ type tracer struct {
 	s     *Switch
 	rec   *Record
 	start time.Time
+	// fraudDeclined is set when the fraud check declined, so the fraud
+	// department doesn't count its own declines.
+	fraudDeclined bool
 }
 
 func (t *tracer) step(name, detail string, ok bool, began time.Time) {
@@ -193,6 +200,13 @@ func (s *Switch) process(req iso8583.AuthRequest, a *attempt, early bool) iso858
 		}
 	})
 	tr.step("respond", fmt.Sprintf("0110 %s %s to acquirer %s", resp.ResponseCode, resp.ResponseText, req.AcquirerID), true, began)
+	if s.Fraud != nil {
+		var approved int64
+		if iso8583.IsApproved(resp.ResponseCode) {
+			approved = resp.Amount
+		}
+		s.Fraud.Observe(req, resp.ResponseCode, approved, tr.fraudDeclined)
+	}
 	s.Recorder.update(rec, func(r *Record) { r.LatencyUS = s.Now().Sub(start).Microseconds() })
 	if fwd != nil && iso8583.IsApproved(resp.ResponseCode) {
 		f := *fwd
@@ -250,7 +264,18 @@ func (s *Switch) authorize(req iso8583.AuthRequest, id string, tr *tracer) (iso8
 	s.Recorder.update(tr.rec, func(r *Record) { r.IssuerID = iss.ID })
 	tr.step("route", fmt.Sprintf("BIN %s → %s (%s)", entry.Prefix, iss.Name, card.ProductNames[entry.Product]), true, t0)
 
-	// 3. Translate the PIN block from the acquirer's key to the issuer's.
+	// 3. Screen against the fraud department's rules and blocks.
+	if s.Fraud != nil {
+		t0 = s.Now()
+		v := s.Fraud.Screen(req, id)
+		tr.step("fraud", v.Detail, !v.Decline, t0)
+		if v.Decline {
+			tr.fraudDeclined = true
+			return decline(iso8583.RCSuspectedFraud)
+		}
+	}
+
+	// 4. Translate the PIN block from the acquirer's key to the issuer's.
 	if req.PINData != "" {
 		t0 = s.Now()
 		acqKey, ok := s.AcquirerKeys[req.AcquirerID]
@@ -267,7 +292,7 @@ func (s *Switch) authorize(req iso8583.AuthRequest, id string, tr *tracer) (iso8
 		tr.step("translate_pin", fmt.Sprintf("acquirer %s key → %s key", req.AcquirerID, iss.ID), true, t0)
 	}
 
-	// 4. Send to the issuer, unless its circuit breaker is open.
+	// 5. Send to the issuer, unless its circuit breaker is open.
 	t0 = s.Now()
 	if !iss.Breaker.Allow() {
 		tr.step("breaker", fmt.Sprintf("%s circuit breaker open; request not sent", iss.Name), false, t0)

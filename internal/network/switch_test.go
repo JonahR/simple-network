@@ -12,7 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/demokeys"
+	"github.com/JonahR/simple-network/internal/fraud"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/issuer"
 	"github.com/JonahR/simple-network/internal/pin"
@@ -574,5 +576,29 @@ func TestInvalidAcquirerReversal(t *testing.T) {
 		if _, err := f.sw.Reverse(adv); err == nil {
 			t.Errorf("%s: accepted", name)
 		}
+	}
+}
+
+// The fraud department screens after routing: a blocked terminal is declined
+// with 59 before the issuer is asked, and the trace says which rule did it.
+func TestFraudRulesStopCardTesting(t *testing.T) {
+	f := newFixture(t)
+	f.sw.Fraud = fraud.NewEngine(fraud.DefaultRules(), time.Now)
+	for i := range 6 {
+		// Numbers First Simple Bank never issued: each is declined 14 by the issuer.
+		pan, _ := card.Generate("424242", 16)
+		if resp := f.sw.Authorize(context.Background(), auth(pan, "2912", 100)); resp.ResponseCode != iso8583.RCInvalidCard {
+			t.Fatalf("guess %d: %s", i+1, resp.ResponseCode)
+		}
+	}
+	calls := f.fsb.calls.Load()
+	resp := f.sw.Authorize(context.Background(), auth("4242424242424242", "3312", 100))
+	if resp.ResponseCode != iso8583.RCSuspectedFraud || f.fsb.calls.Load() != calls {
+		t.Fatalf("after six declines from terminal T1: %s, issuer calls %d → %d", resp.ResponseCode, calls, f.fsb.calls.Load())
+	}
+	rec, _ := f.sw.Recorder.Get(resp.NetworkTxnID)
+	last := rec.Steps[len(rec.Steps)-2] // Before "respond"
+	if last.Name != "fraud" || last.OK || !strings.Contains(last.Detail, "Card testing at a terminal") {
+		t.Errorf("fraud step = %+v", last)
 	}
 }

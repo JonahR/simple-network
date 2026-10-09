@@ -13,6 +13,7 @@ const STEP_NAMES = {
   validate: "Validate",
   route: "Route",
   detokenize: "Token vault",
+  fraud: "Fraud check",
   translate_pin: "PIN translate",
   breaker: "Breaker",
   send: "Send",
@@ -336,6 +337,7 @@ const STAGES = [
   ["validate", "Validate"],
   ["route", "Route"],
   ["detokenize", "Vault"],
+  ["fraud", "Fraud"],
   ["translate_pin", "PIN"],
   ["send", "Issuer"],
   ["respond", "Respond"],
@@ -372,9 +374,11 @@ function buildTopology() {
   topoNodes.swSub = text(sw, 320, 210, "counter", "");
   STAGES.forEach(([name, label], i) => {
     const g = el("g", { class: "stage" }, sw);
-    const x = 316 + i * 62;
-    el("rect", { x, y: 136, width: 56, height: 28, rx: 6 }, g);
-    text(g, x + 28, 154, "", label, "middle");
+    // The stages share the switch's 368px interior.
+    const step = 368 / STAGES.length;
+    const x = 316 + i * step;
+    el("rect", { x, y: 136, width: step - 6, height: 28, rx: 6 }, g);
+    text(g, x + (step - 6) / 2, 154, "", label, "middle");
     stageEls[name] = g;
   });
 

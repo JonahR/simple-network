@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/JonahR/simple-network/internal/demokeys"
+	"github.com/JonahR/simple-network/internal/fraud"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/issuer"
 	"github.com/JonahR/simple-network/internal/learn"
@@ -54,6 +56,7 @@ func newWorld(t *testing.T) *testWorld {
 		AcquirerKeys:  map[string][]byte{testAcquirerID: acqKey},
 		IssuerTimeout: 300 * time.Millisecond, ReversalRetry: 50 * time.Millisecond, ReversalRetryMax: 200 * time.Millisecond,
 		Recorder: network.NewRecorder(1000), Now: time.Now,
+		Fraud: fraud.NewEngine(fraud.DefaultRules(), time.Now),
 	}
 	for id, b := range banks {
 		srv := httptest.NewServer(issuerHandler(b))
@@ -154,6 +157,7 @@ func networkHandler(sw *network.Switch) http.Handler {
 		}
 		writeJSON(w, http.StatusOK, rec)
 	})
+	sw.Fraud.Register(mux, nil)
 	mux.HandleFunc("POST /api/tokens/{token}/active", func(w http.ResponseWriter, r *http.Request) {
 		var body struct{ Active bool }
 		json.NewDecoder(r.Body).Decode(&body)
@@ -327,5 +331,58 @@ func TestLabelsUseKnownTerms(t *testing.T) {
 	}
 	for _, b := range bad {
 		t.Errorf("unknown data-term: %s", b)
+	}
+}
+
+func verdictOf(run Run, label string) []string {
+	var out []string
+	for _, r := range run.Results {
+		if strings.HasPrefix(r.Label, label) {
+			out = append(out, r.Verdict)
+		}
+	}
+	return out
+}
+
+// With the default rules on, the fraud department closes the gaps the
+// card-testing and CVV drills used to show, and each drill leaves the
+// department as it found it.
+func TestFraudDepartmentClosesGaps(t *testing.T) {
+	w := newWorld(t)
+	run := runDrill(t, w.lab, "card-testing")
+	if got := verdictOf(run, "Fraud department stopped"); len(got) != 1 || got[0] != VerdictOK {
+		t.Errorf("card testing: no fraud stop recorded (%v); tally %v", got, run.Tally)
+	}
+	if run.Tally[VerdictGap] != 0 {
+		t.Errorf("card testing still shows a gap: %v", run.Tally)
+	}
+	if s := w.sw.Fraud.Snapshot(); len(s.Blocks) != 0 {
+		t.Errorf("drill left %d blocks", len(s.Blocks))
+	}
+	run = runDrill(t, w.lab, "cvv-guessing")
+	if got := verdictOf(run, "Fifth try"); len(got) != 1 || got[0] != VerdictCaught {
+		t.Errorf("fifth CVV guess: %v", got)
+	}
+	// The next drill on the same card starts clean: the lost card declines
+	// for being frozen (62), not for the CVV drill's declines.
+	run = runDrill(t, w.lab, "lost-card")
+	for _, r := range run.Results {
+		if r.Kind == KindProbe && r.Code != iso8583.RCRestrictedCard {
+			t.Errorf("%s: %s at %s", r.Label, r.Code, r.StopStep)
+		}
+	}
+}
+
+// With the rules off, the drills report the gaps again.
+func TestGapsReturnWhenRulesAreOff(t *testing.T) {
+	w := newWorld(t)
+	for _, r := range w.sw.Fraud.Snapshot().Rules {
+		w.sw.Fraud.SetMode(r.ID, fraud.ModeOff)
+	}
+	if run := runDrill(t, w.lab, "card-testing"); run.Tally[VerdictGap] != 1 {
+		t.Errorf("card testing tally %v, want one gap", run.Tally)
+	}
+	if got := verdictOf(runDrill(t, w.lab, "cvv-guessing"), "Fifth try"); len(got) != 1 || got[0] != VerdictGap {
+		t.Errorf("fifth CVV guess: %v", got)
 	}
 }

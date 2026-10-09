@@ -4247,6 +4247,152 @@
         "Verify shopper",
         "Not authenticated"
       ]
+    },
+    "fraud-department": {
+      "name": "Fraud department",
+      "def": "The part of the network company that screens every authorization for fraud before the issuer sees it. It owns the fraud rules, works the cases they open, and places blocks on cards, terminals, merchants, acquirers or BIN ranges. It sees traffic across every issuer and merchant, which no single bank can, so it can spot a terminal testing cards against many issuers at once. Its page is the network's Fraud department, next to Operations and Settlement.",
+      "kt": [
+        [
+          "The fraud department",
+          "09-risk-fraud-and-security.md#the-fraud-department-in-simple-network"
+        ],
+        [
+          "Layered fraud defense",
+          "09-risk-fraud-and-security.md#layered-fraud-defense"
+        ]
+      ],
+      "ext": [
+        [
+          "Credit card fraud (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Credit_card_fraud"
+        ]
+      ],
+      "aliases": [
+        "Fraud department",
+        "Fraud",
+        "Departments"
+      ]
+    },
+    "fraud-rule": {
+      "name": "Fraud rule",
+      "def": "One rule the network's fraud department screens authorizations with, written as a sentence: what to look at (one purchase, or what a card, terminal, merchant, acquirer or BIN range did within a time window), the limit, and what to do when it is crossed. It can decline the authorization with 59 Suspected fraud, decline and block the subject for a while, or let it through and open a case. The Fraud check step in the network's trace shows which rules fired.",
+      "kt": [
+        [
+          "The fraud department",
+          "09-risk-fraud-and-security.md#the-fraud-department-in-simple-network"
+        ],
+        [
+          "A simple risk score",
+          "09-risk-fraud-and-security.md#a-simple-network-risk-score-for-simple-network"
+        ]
+      ],
+      "ext": [
+        [
+          "Business rules engine (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Business_rules_engine"
+        ]
+      ],
+      "aliases": [
+        "Fraud rule",
+        "Fraud rules",
+        "Fraud check",
+        "Rule hits",
+        "Screened",
+        "Declined by fraud",
+        "Where the fraud check sits"
+      ]
+    },
+    "fraud-case": {
+      "name": "Fraud case",
+      "def": "An incident for a fraud analyst: one rule firing for one card, terminal, merchant, acquirer or BIN range. Later hits from the same rule and subject join the open case. The analyst confirms it as fraud, or clears it as legitimate, which also lifts any block it placed.",
+      "kt": [
+        [
+          "The fraud department",
+          "09-risk-fraud-and-security.md#the-fraud-department-in-simple-network"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "Fraud (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Fraud"
+        ]
+      ],
+      "aliases": [
+        "Fraud case",
+        "Cases",
+        "Open cases",
+        "Case"
+      ]
+    },
+    "fraud-block": {
+      "name": "Fraud block",
+      "def": "A temporary stop the fraud department puts on one subject (a card, terminal, merchant, acquirer or BIN range) when a block rule fires. Until it expires or an analyst lifts it, every authorization from that subject is declined with 59 at the network, so an attack is cut off without bothering the issuer. Like a negative file of lost and stolen cards, but automatic and short-lived.",
+      "kt": [
+        [
+          "The fraud department",
+          "09-risk-fraud-and-security.md#the-fraud-department-in-simple-network"
+        ],
+        [
+          "Layered fraud defense",
+          "09-risk-fraud-and-security.md#layered-fraud-defense"
+        ]
+      ],
+      "ext": [
+        [
+          "Blacklist (computing) (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Blacklist_(computing)"
+        ]
+      ],
+      "aliases": [
+        "Fraud block",
+        "Active blocks",
+        "Blocks",
+        "Lift"
+      ]
+    },
+    "rule-mode": {
+      "name": "Rule mode",
+      "def": "Whether a fraud rule acts. On: it declines, blocks or opens cases. Test: it runs on live traffic and records what it would have done, but changes nothing; this is how a new rule is tried safely before it can turn away real customers. Off: it is skipped.",
+      "kt": [
+        [
+          "The fraud department",
+          "09-risk-fraud-and-security.md#the-fraud-department-in-simple-network"
+        ]
+      ],
+      "ext": [
+        [
+          "Dark launch (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Dark_launch"
+        ]
+      ],
+      "aliases": [
+        "Rule mode",
+        "Test mode",
+        "Test"
+      ]
+    },
+    "backtest": {
+      "name": "Backtest",
+      "def": "Replaying recent traffic through a rule before switching it on, to see how often it would fire and on whom. Here it replays the network's last 1,000 authorizations through a fresh copy of the rule. Card numbers in that history are masked, so card rules group by masked number; the result is an estimate.",
+      "kt": [
+        [
+          "The fraud department",
+          "09-risk-fraud-and-security.md#the-fraud-department-in-simple-network"
+        ]
+      ],
+      "ext": [
+        [
+          "Backtesting (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Backtesting"
+        ]
+      ],
+      "aliases": [
+        "Backtest"
+      ]
     }
   }
 }

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
+	"github.com/JonahR/simple-network/internal/fraud"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/pin"
 )
@@ -48,6 +49,7 @@ type Config struct {
 type Links struct {
 	Acquirer   string            `json:"acquirer"`
 	Network    string            `json:"network"`
+	Fraud      string            `json:"fraud"`
 	Settlement string            `json:"settlement"`
 	Issuers    map[string]string `json:"issuers"`
 }
@@ -326,6 +328,7 @@ type runner struct {
 
 	mu       sync.Mutex
 	approved map[string]sent // By acquirer ID + STAN + DE7
+	touched  map[fraud.SubjectKey]bool
 	cleanups []cleanup
 }
 
@@ -354,6 +357,7 @@ func (r *runner) finish() {
 		c := r.cleanups[i]
 		r.action(ctx, c.label, c.fn)
 	}
+	defer r.forget(ctx)
 	r.mu.Lock()
 	pending := make([]sent, 0, len(r.approved))
 	for _, s := range r.approved {
@@ -382,6 +386,56 @@ func (r *runner) finish() {
 		res.Note = strings.Join(failed, "; ")
 	}
 	r.add(res)
+}
+
+// forget asks the fraud department to reset the counters and lift the
+// blocks for the cards, terminal, and merchant the drill used, so the next
+// drill starts clean. Its cases stay on the fraud page, closed as drill traffic.
+func (r *runner) forget(ctx context.Context) {
+	r.mu.Lock()
+	keys := make([]fraud.SubjectKey, 0, len(r.touched))
+	for k := range r.touched {
+		keys = append(keys, k)
+	}
+	r.mu.Unlock()
+	if len(keys) == 0 {
+		return
+	}
+	var out struct {
+		CasesClosed int `json:"cases_closed"`
+	}
+	start := time.Now()
+	err := r.lab.post(ctx, r.lab.cfg.NetworkURL+"/api/fraud/forget", map[string]any{
+		"keys": keys, "note": "Risk lab drill " + r.run.ID + ": closed after the drill",
+	}, &out)
+	res := Result{
+		Kind: KindAction, Verdict: VerdictOK, Control: "Fraud department", Term: "fraud-department", MS: msSince(start),
+		Label: "Fraud department resets the drill's counters and lifts its blocks",
+		Note:  "No rule fired, so there were no cases to close.",
+	}
+	if out.CasesClosed > 0 {
+		res.Note = fmt.Sprintf("%d case%s closed as drill traffic; they stay on the Fraud page.", out.CasesClosed, plural(out.CasesClosed))
+	}
+	if err != nil {
+		res.Verdict, res.Note = VerdictFailed, err.Error()
+	}
+	r.add(res)
+}
+
+// touch remembers the fraud subjects a request counts against.
+func (r *runner) touch(req iso8583.AuthRequest) {
+	if req.AcquirerID == "" {
+		req.AcquirerID = r.lab.cfg.AcquirerID // The acquirer adds it on the way
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.touched == nil {
+		r.touched = map[fraud.SubjectKey]bool{}
+	}
+	for _, s := range []string{fraud.SubjectCard, fraud.SubjectTerminal, fraud.SubjectMerchant} {
+		k, _ := fraud.KeyOf(s, req)
+		r.touched[fraud.SubjectKey{Subject: s, Key: k}] = true
+	}
 }
 
 // onFinish registers a clean-up that runs when the drill ends, newest first.
@@ -433,16 +487,21 @@ func (r *runner) add(res Result) {
 	run.Results = append(run.Results, res)
 }
 
-// burst sends probes with up to workers in flight at once.
-func (r *runner) burst(probes []Probe, workers int) {
+// burst sends probes with up to workers in flight at once and returns their rows.
+func (r *runner) burst(probes []Probe, workers int) []Result {
 	jobs := make(chan Probe)
 	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var out []Result
 	for range max(1, workers) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for p := range jobs {
-				r.probe(p)
+				res, _ := r.probe(p)
+				mu.Lock()
+				out = append(out, res)
+				mu.Unlock()
 			}
 		}()
 	}
@@ -454,6 +513,7 @@ func (r *runner) burst(probes []Probe, workers int) {
 	}
 	close(jobs)
 	wg.Wait()
+	return out
 }
 
 // probe sends one 0100 and records what happened to it. It returns the row
@@ -474,6 +534,7 @@ func (r *runner) probe(p Probe) (Result, iso8583.AuthRequest) {
 		res.TerminalID, res.STAN, res.DE7 = req.TerminalID, req.STAN, req.TransmissionTime
 	}
 
+	r.touch(req)
 	start := time.Now()
 	resp, err := l.send(r.ctx, p.Via, req)
 	res.MS = msSince(start)
@@ -505,7 +566,20 @@ func (r *runner) probe(p Probe) (Result, iso8583.AuthRequest) {
 		verified, res.Note = p.Verify(resp)
 		expected = expected && verified
 	}
+	// A fraud rule stopping an attack is a catch, whatever the drill
+	// expected. Stopping a legitimate baseline purchase is a false positive.
+	byFraud := res.StopStep == "fraud"
+	baseline := p.Gap == "" && !slices.ContainsFunc(p.Expect, func(c string) bool { return !iso8583.IsApproved(c) })
+	if byFraud {
+		res.Control, res.Term = "Fraud department rule", "fraud-rule"
+		expected = !baseline
+		if baseline {
+			res.Note = "A fraud rule declined a legitimate purchase: " + res.StopDetail
+		}
+	}
 	switch {
+	case byFraud && expected:
+		res.Verdict = VerdictCaught
 	case !expected:
 		res.Verdict = VerdictUnexpected
 		if p.ExpectStep != "" && res.StopStep != p.ExpectStep {

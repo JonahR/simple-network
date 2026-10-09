@@ -143,7 +143,7 @@ h2 {
 #topo .health.warning { fill: var(--warning-text); }
 #topo .health.critical { fill: var(--critical-text); }
 #topo .stage rect { fill: var(--bg); stroke: var(--border); }
-#topo .stage text { font-size: 11px; fill: var(--muted); }
+#topo .stage text { font-size: 10.5px; fill: var(--muted); }
 #topo .stage.lit rect { fill: var(--accent-soft); stroke: var(--accent); }
 #topo .stage.lit text { fill: var(--text); }
 #topo .stage.fail rect { fill: var(--critical); stroke: var(--critical); }

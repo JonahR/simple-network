@@ -10,7 +10,7 @@ const VERDICTS = [
 ];
 const VERDICT_LABEL = { caught: "Caught", allowed: "Allowed", gap: "Gap", unexpected: "Unexpected", ok: "Done", failed: "Failed" };
 const PARTY_LABEL = { acquirer: "Acquirer", network: "Network", issuer: "Issuer" };
-const PAGE_LABEL = { acquirer: "Acquirer", network: "Network", issuer: "Issuer", settlement: "Settlement" };
+const PAGE_LABEL = { acquirer: "Acquirer", network: "Network", fraud: "Fraud department", issuer: "Issuer", settlement: "Settlement" };
 
 let meta = null; // /api/drills
 let current = null; // The run on screen
@@ -114,7 +114,7 @@ function show(run) {
   watch.hidden = !d?.watch?.length;
   if (d?.watch?.length) {
     watch.innerHTML = `<h4 data-term="payment-flows">Where to look</h4><ul>${d.watch
-      .map((h) => `<li><a href="${esc(pageURL(h.page))}" target="_blank" rel="noopener" data-term="${esc(h.page === "network" ? "network" : h.page)}">${esc(PAGE_LABEL[h.page] || h.page)}</a> ${esc(h.text)}</li>`)
+      .map((h) => `<li><a href="${esc(pageURL(h.page))}" target="_blank" rel="noopener" data-term="${esc(h.page === "fraud" ? "fraud-department" : h.page)}">${esc(PAGE_LABEL[h.page] || h.page)}</a> ${esc(h.text)}</li>`)
       .join("")}</ul>`;
   }
 
@@ -168,6 +168,7 @@ function links(r) {
   }
   if (r.network_txn_id) {
     out.push(`<a href="${esc(l.network)}/#txn=${esc(r.network_txn_id)}" target="_blank" rel="noopener" data-term="network">Network</a>`);
+    if (r.stop_step === "fraud") out.push(`<a href="${esc(l.fraud)}" target="_blank" rel="noopener" data-term="fraud-department">Fraud</a>`);
     if (r.issuer_id && (r.stopped_at === "issuer" || !r.stopped_at)) {
       out.push(`<a href="${esc(pageURL("issuer", r.issuer_id))}/#txn=${esc(r.network_txn_id)}" target="_blank" rel="noopener" data-term="issuer">Issuer</a>`);
     }

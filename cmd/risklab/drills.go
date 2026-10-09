@@ -17,7 +17,7 @@ const (
 
 // Hint says what to look for on another page after a drill.
 type Hint struct {
-	Page string `json:"page"` // acquirer, network, issuer, settlement
+	Page string `json:"page"` // acquirer, network, fraud, issuer, settlement
 	Text string `json:"text"`
 }
 
@@ -51,10 +51,11 @@ func catalog() []Drill {
 		{
 			ID: "card-testing", Category: CategoryFraud, Title: "Card testing",
 			Threat:  "A fraudster has a list of guessed card numbers and sends many $1 online purchases to learn which ones are real, before using the good ones for bigger fraud.",
-			Defense: "The network rejects numbers that fail the Luhn check; the issuer declines numbers it never issued. Nothing counts attempts per terminal.",
+			Defense: "The network rejects numbers that fail the Luhn check and the issuer declines numbers it never issued. The network's fraud department counts declines per terminal and blocks one that has too many.",
 			Term:    "card-testing",
 			Watch: []Hint{
-				{"network", "A run of 30 Format error and 14 Invalid card number declines from terminal RISK0001."},
+				{"fraud", "A case for terminal RISK0001 under \"Card testing at a terminal\", and a block that the drill lifts when it ends."},
+				{"network", "A run of 30 and 14 declines from terminal RISK0001, then 59s whose Fraud check step names the rule."},
 				{"issuer", "First Simple Bank's decisions failing the Account check."},
 				{"acquirer", "The Risk Lab merchant's declined count jumps."},
 			},
@@ -63,11 +64,11 @@ func catalog() []Drill {
 		{
 			ID: "cvv-guessing", Category: CategoryFraud, Title: "Stolen card number, guessing the CVV",
 			Threat:  "A card number and expiry leaked from a breached online shop, without the CVV2. The fraudster tries codes until one works.",
-			Defense: "The issuer checks CVV2 and expiry on every card-not-present purchase.",
+			Defense: "The issuer checks CVV2 and expiry on every card-not-present purchase. The fraud department declines a card that keeps getting declined.",
 			Term:    "cvv2",
 			Watch: []Hint{
-				{"issuer", "Each guess is a decision failing the CVV2 check, until the right one is approved and then voided."},
-				{"network", "Three N7 declines, then an approval with a reversal."},
+				{"issuer", "Each guess is a decision failing the CVV2 check. The fifth never arrives: the network stopped it."},
+				{"fraud", "A case under \"Repeated declines on one card\" for 424242******4242."},
 			},
 			run: drillCVVGuessing,
 		},
@@ -192,10 +193,25 @@ func drillCardTesting(r *runner) {
 		}
 		probes = append(probes, p)
 	}
-	r.burst(probes, 8)
+	results := r.burst(probes, 8)
+	var reached, stopped int
+	for _, res := range results {
+		switch {
+		case res.StopStep == "fraud":
+			stopped++
+		case res.StoppedAt == "issuer":
+			reached++
+		}
+	}
+	if stopped > 0 {
+		r.check(fmt.Sprintf("Fraud department stopped %d of 20 guesses at the network; %d reached the issuer", stopped, reached),
+			"Velocity rule", "velocity-check", true,
+			"A terminal with too many declines is blocked, so the rest of the attack never reaches First Simple Bank.")
+		return
+	}
 	r.finding(
 		fmt.Sprintf("20 guesses from one terminal in %.1fs, and none was slowed down", time.Since(start).Seconds()),
-		"Each attempt was judged on its own. A velocity check would notice many declines from one terminal, merchant, or BIN range in a short time and block the source, or score it as fraud before it reached the issuer.",
+		"Each attempt was judged on its own. Switch on a velocity rule in the network's Fraud department, such as \"Card testing at a terminal\", to block a terminal with many declines before they reach the issuer.",
 		"velocity-check",
 	)
 }
@@ -218,7 +234,7 @@ func drillCVVGuessing(r *runner) {
 	r.probe(Probe{
 		Label: "Fifth try: right CVV2 and expiry", Via: ViaAcquirer, Card: everydayCredit, Entry: iso8583.EntryEcommerce, Amount: 4999,
 		Expect: []string{iso8583.RCApproved}, Control: "CVV2 check", Term: "cvv2",
-		Gap: "Four wrong answers in a row didn't block the card, so the fifth guess was approved. Issuers usually block card-not-present use, or require 3-D Secure, after a few CVV2 failures.",
+		Gap: "Four wrong answers in a row didn't block the card, so the fifth guess was approved. Switch on \"Repeated declines on one card\" in the Fraud department; issuers also block card-not-present use, or require 3-D Secure, after a few CVV2 failures.",
 	})
 }
 

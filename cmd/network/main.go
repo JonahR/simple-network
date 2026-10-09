@@ -27,6 +27,7 @@ import (
 
 	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/demokeys"
+	"github.com/JonahR/simple-network/internal/fraud"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/network"
@@ -70,6 +71,7 @@ func main() {
 		ReversalRetryMax: 30 * time.Second,
 		Recorder:         network.NewRecorder(1000),
 		Now:              time.Now,
+		Fraud:            fraud.NewEngine(fraud.DefaultRules(), time.Now),
 	}
 	for _, ic := range issuers {
 		sw.Issuers[ic.ID] = &network.Issuer{
@@ -101,6 +103,8 @@ func main() {
 	mux.HandleFunc("GET /api/stream", s.handleStream)
 	mux.HandleFunc("POST /api/tokens/{token}/active", s.handleTokenActive)
 	mux.HandleFunc("POST /api/sim/issuers/{id}/mode", s.handleIssuerMode)
+	// The fraud department: its page at /fraud/, rules, cases, and blocks.
+	sw.Fraud.Register(mux, s.fraudHistory)
 	ui.Register(mux, ui.PagesFromEnv())
 	registerClearing(mux, sw, issuers, acquirerID, env("ACQUIRER_NAME", "Simple Merchant Bank"), env("ACQUIRER_URL", "http://localhost:8081"))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
@@ -339,4 +343,23 @@ func mustKey(name, def string) []byte {
 		log.Fatal(err)
 	}
 	return k
+}
+
+// fraudHistory gives the fraud department the switch's recent authorizations
+// to backtest a rule against.
+func (s *server) fraudHistory() []fraud.Txn {
+	recs := s.sw.Recorder.Recent(1000)
+	out := make([]fraud.Txn, 0, len(recs))
+	for _, r := range recs {
+		if r.Status == "pending" {
+			continue
+		}
+		t := fraud.Txn{Time: r.Received, ID: r.ID, Req: r.Request, Code: r.ResponseCode}
+		if r.Response != nil && r.Status == "approved" {
+			t.Approved = r.Response.Amount
+		}
+		t.FraudDeclined = slices.ContainsFunc(r.Steps, func(st network.Step) bool { return st.Name == "fraud" && !st.OK })
+		out = append(out, t)
+	}
+	return out
 }

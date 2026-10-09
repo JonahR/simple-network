@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>simple-network Fraud</title>
+<link rel="stylesheet" href="/ui/nav.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/depts.css">
+<link rel="stylesheet" href="/learn/learn.css">
+</head>
+<body>
+<header>
+  <div class="brand"><b data-term="network">simple-network</b> <span data-term="fraud-department">Fraud</span></div>
+  <div class="tagline">Screens every authorization the network routes, before the issuer sees it</div>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/learn/">Learn the network</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" aria-keyshortcuts="h">Help <kbd>H</kbd></button>
+  </nav>
+  <nav class="sn-nav" data-page="network"></nav>
+</header>
+<div class="dept-bar">
+  <span class="company"><b data-term="network">simple-network</b> <span data-term="fraud-department">departments</span></span>
+  <nav aria-label="Departments"><a href="/" data-term="auth-switch">Operations</a><a href="/fraud/" data-term="fraud-department" aria-current="page">Fraud</a><a href="/settlement/" data-term="settlement">Settlement</a></nav>
+</div>
+
+<main>
+  <div class="kpis" id="kpis"></div>
+
+  <section class="panel flow-panel">
+    <h2><span data-term="switch-trace">Where the fraud check sits</span></h2>
+    <ol class="flow" id="flow">
+      <li data-term="switch-validate">Validate</li>
+      <li data-term="bin">Route</li>
+      <li class="here" data-term="fraud-rule"><b>Fraud check</b><span id="flow-sub">Loading rules…</span></li>
+      <li data-term="pin-translation">PIN translate</li>
+      <li data-term="issuer">Issuer decides</li>
+    </ol>
+    <p class="hint">A rule that fires <span data-term="fraud-rule">declines with 59</span>, <span data-term="fraud-block">blocks the card, terminal, merchant, acquirer or BIN range</span> for a while, or lets the payment through and <span data-term="fraud-case">opens a case</span>. In <span data-term="rule-mode">test mode</span> it only records what it would have done. Every decision appears as the <b>Fraud check</b> step in the network's trace.</p>
+  </section>
+
+  <div class="cols">
+    <section class="panel rules-panel">
+      <div class="panel-head">
+        <h2><span data-term="fraud-rule">Rules</span></h2>
+        <span class="error" id="flash" role="status"></span>
+        <button type="button" class="primary" id="new-rule" data-term="fraud-rule">New rule</button>
+      </div>
+
+      <form id="builder" class="builder" hidden autocomplete="off">
+        <h3 id="builder-title">New rule</h3>
+        <div class="templates" id="templates" aria-label="Templates"></div>
+
+        <label class="field">Name <input name="name" required maxlength="80" placeholder="e.g. Too many declines at one terminal"></label>
+
+        <div class="kind" role="radiogroup" aria-label="Rule type">
+          <label><input type="radio" name="kind" value="velocity" checked> <span data-term="velocity-check">Count activity over time</span></label>
+          <label><input type="radio" name="kind" value="amount"> <span data-term="de4">Look at one purchase</span></label>
+        </div>
+
+        <p class="sentence-edit" id="when-velocity">
+          When one <select name="subject" data-term="fraud-block"></select>
+          has more than <span id="threshold-wrap"><span class="dollar" hidden>$</span><input name="threshold" type="number" min="0" step="1" value="5" class="num-in"></span>
+          <select name="measure" data-term="velocity-check"></select>
+          within <input name="window" type="number" min="1" value="60" class="num-in">
+          <select name="window_unit"><option value="1">seconds</option><option value="60">minutes</option><option value="3600">hours</option><option value="86400">days</option></select>
+        </p>
+        <p class="sentence-edit" id="when-amount" hidden>
+          When a purchase is more than $<input name="amount" type="number" min="0" step="0.01" value="1000" class="num-in wide">
+        </p>
+
+        <details class="filters">
+          <summary>Only for some purchases (optional)</summary>
+          <div class="chips" id="entry-chips" aria-label="Entry modes"></div>
+          <label class="field">Only at merchant categories <span data-term="de18">(MCC)</span> <input name="mccs" placeholder="e.g. 5542, 7011"></label>
+        </details>
+
+        <p class="sentence-edit">
+          Then <select name="action" data-term="fraud-rule"></select>
+          <span id="block-for" hidden>for <input name="block" type="number" min="1" value="2" class="num-in">
+          <select name="block_unit"><option value="1">seconds</option><option value="60" selected>minutes</option><option value="3600">hours</option><option value="86400">days</option></select></span>
+        </p>
+
+        <label class="field">Why this rule exists <input name="why" maxlength="200" placeholder="The fraud pattern it catches"></label>
+        <label class="field inline">Start in <select name="mode" data-term="rule-mode"></select></label>
+
+        <div class="preview" aria-live="polite">
+          <div class="preview-sentence" id="preview-sentence"></div>
+          <div class="backtest" id="backtest"></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="primary" id="save">Save rule</button>
+          <button type="button" id="cancel">Cancel</button>
+          <span class="error" id="builder-error"></span>
+        </div>
+      </form>
+
+      <div id="rules" class="rule-list"><p class="empty">Loading…</p></div>
+    </section>
+
+    <div class="side">
+      <section class="panel">
+        <div class="panel-head">
+          <h2><span data-term="fraud-case">Cases</span></h2>
+          <div class="seg" role="group" aria-label="Show">
+            <button type="button" data-cases="open" aria-pressed="true">Open</button>
+            <button type="button" data-cases="all" aria-pressed="false">All</button>
+          </div>
+        </div>
+        <div id="cases" class="case-list"><p class="empty">No cases yet.</p></div>
+      </section>
+      <section class="panel">
+        <h2><span data-term="fraud-block">Active blocks</span></h2>
+        <div id="blocks" class="block-list"><p class="empty">Nothing is blocked.</p></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script src="/ui/nav.js"></script>
+<script src="app.js"></script>
+<script src="/learn/learn.js"></script>
+</body>
+</html>

@@ -53,6 +53,7 @@ func main() {
 		Links: Links{
 			Acquirer:   env("ACQUIRER_PUBLIC_URL", "http://localhost:8081"),
 			Network:    env("NETWORK_DASHBOARD_URL", "http://localhost:8090"),
+			Fraud:      env("NETWORK_DASHBOARD_URL", "http://localhost:8090") + "/fraud/",
 			Settlement: env("SETTLEMENT_PUBLIC_URL", "http://localhost:8090/settlement/"),
 			Issuers: map[string]string{
 				"FSB": env("ISSUER_FSB_PUBLIC_URL", "http://localhost:8091"),
