@@ -64,12 +64,18 @@ type AuthRequest struct {
 	Cryptogram       string `json:"token_cryptogram,omitempty"` // One-time cryptogram proving the token was used on its device
 }
 
-// Digital wallet providers.
-const WalletApplePay = "apple_pay"
+// Mobile wallet providers. Each provisions its own device tokens.
+const (
+	WalletApplePay   = "apple_pay"
+	WalletGooglePay  = "google_pay"
+	WalletSamsungPay = "samsung_pay"
+)
 
 // Wallets maps wallet provider codes to display names.
 var Wallets = map[string]string{
-	WalletApplePay: "Apple Pay",
+	WalletApplePay:   "Apple Pay",
+	WalletGooglePay:  "Google Pay",
+	WalletSamsungPay: "Samsung Pay",
 }
 
 // Redacted returns a copy safe for display and logging: the PAN is masked

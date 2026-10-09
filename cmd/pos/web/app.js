@@ -29,13 +29,29 @@ const FIELDS = [
 ];
 
 // The cardholder's wallet. These are well-known test numbers that pass Luhn.
-// Each card is also provisioned to Apple Pay with its own device token
-// (a Luhn-valid number distinct from the card number) and token expiry.
+// Each card is also provisioned to every mobile wallet. Each wallet gets its
+// own device token (a Luhn-valid number distinct from the card number) and
+// token expiry, so the same card has a different token in each wallet.
 const WALLET = [
   { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/29", cvv: "123", name: "Jane Doe",
-    token: "4895372051310681", tokenExpiry: "09/30" },
+    tokens: {
+      apple_pay:   { number: "4895372051310681", expiry: "09/30" },
+      google_pay:  { number: "4895373708421368", expiry: "11/30" },
+      samsung_pay: { number: "4895377555006883", expiry: "06/30" },
+    } },
   { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/28", cvv: "456", name: "John Smith",
-    token: "5220930238452479", tokenExpiry: "03/31" },
+    tokens: {
+      apple_pay:   { number: "5220930238452479", expiry: "03/31" },
+      google_pay:  { number: "5220934871046911", expiry: "01/31" },
+      samsung_pay: { number: "5220933784416278", expiry: "05/31" },
+    } },
+];
+
+// Mobile wallets and how each one asks the cardholder to authenticate.
+const MOBILE_WALLETS = [
+  { id: "apple_pay", name: "Apple Pay", short: "Apple", auth: "Face ID…" },
+  { id: "google_pay", name: "Google Pay", short: "Google", auth: "Unlock phone…" },
+  { id: "samsung_pay", name: "Samsung Pay", short: "Samsung", auth: "Fingerprint…" },
 ];
 
 function renderWallet() {
@@ -76,30 +92,52 @@ function clearWalletSelection() {
   document.querySelectorAll("#cards .card").forEach((el) => el.classList.remove("selected"));
 }
 
-// --- Apple Pay -------------------------------------------------------------
+// --- Mobile wallets ----------------------------------------------------------
 
-let apSelected = 0;
-const apStatus = document.getElementById("ap-status");
-const apPay = document.getElementById("ap-pay");
+let mwWallet = MOBILE_WALLETS[0];
+let mwCard = 0;
+const mwStatus = document.getElementById("mw-status");
+const mwPay = document.getElementById("mw-pay");
 
-function renderApplePay() {
-  const container = document.getElementById("ap-cards");
-  container.innerHTML = "";
+function renderMobileWallets() {
+  const tabs = document.getElementById("mw-tabs");
+  tabs.innerHTML = "";
+  for (const w of MOBILE_WALLETS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mw-tab";
+    btn.setAttribute("role", "tab");
+    btn.setAttribute("aria-selected", String(w === mwWallet));
+    btn.textContent = w.short;
+    btn.setAttribute("aria-label", w.name);
+    btn.addEventListener("click", () => {
+      if (mwPay.disabled) return; // don't switch mid-tap
+      mwWallet = w;
+      renderMobileWallets();
+    });
+    tabs.append(btn);
+  }
+
+  const cards = document.getElementById("mw-cards");
+  cards.innerHTML = "";
   WALLET.forEach((c, i) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "ap-card";
+    btn.className = "mw-card";
     btn.setAttribute("role", "radio");
-    btn.setAttribute("aria-checked", String(i === apSelected));
+    btn.setAttribute("aria-checked", String(i === mwCard));
     btn.innerHTML = `
-      <span class="ap-swatch ${c.style}"></span>
-      <span class="ap-card-text">${escapeHTML(c.label)}<small>Device •••• ${c.token.slice(-4)}</small></span>`;
+      <span class="mw-swatch ${c.style}"></span>
+      <span class="mw-card-text">${escapeHTML(c.label)}<small>Device •••• ${c.tokens[mwWallet.id].number.slice(-4)}</small></span>`;
     btn.addEventListener("click", () => {
-      apSelected = i;
-      renderApplePay();
+      mwCard = i;
+      renderMobileWallets();
     });
-    container.append(btn);
+    cards.append(btn);
   });
+
+  document.getElementById("mw-phone").dataset.wallet = mwWallet.id;
+  mwPay.textContent = `Pay with ${mwWallet.name}`;
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -110,29 +148,32 @@ function newCryptogram() {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-apPay.addEventListener("click", async () => {
-  const c = WALLET[apSelected];
-  apPay.disabled = true;
-  apStatus.className = "ap-status";
-  apStatus.textContent = "Hold near reader…";
+mwPay.addEventListener("click", async () => {
+  const w = mwWallet;
+  const token = WALLET[mwCard].tokens[w.id];
+  mwPay.disabled = true;
+  mwStatus.className = "mw-status";
+  mwStatus.textContent = "Hold near reader…";
   await sleep(600);
-  apStatus.textContent = "Face ID…";
+  mwStatus.textContent = w.auth;
   await sleep(600);
 
   clearErrors();
   clearWalletSelection();
-  form.card_number.value = c.token.replace(/(\d{4})(?=\d)/g, "$1 ");
-  form.expiry.value = c.tokenExpiry;
+  form.card_number.value = token.number.replace(/(\d{4})(?=\d)/g, "$1 ");
+  form.expiry.value = token.expiry;
   form.cvv.value = "";
-  form.cardholder_name.value = ""; // Apple Pay in-store does not share the cardholder's name
+  form.cardholder_name.value = ""; // Mobile wallets don't share the cardholder's name in store
   form.entry_mode.value = "071"; // Contactless
-  form.wallet.value = "apple_pay";
+  form.wallet.value = w.id;
   form.cryptogram.value = newCryptogram();
-  document.getElementById("token-badge").hidden = false;
+  const badge = document.getElementById("token-badge");
+  badge.textContent = `${w.name} · device token`;
+  badge.hidden = false;
 
-  apStatus.className = "ap-status done";
-  apStatus.textContent = "Done ✓";
-  apPay.disabled = false;
+  mwStatus.className = "mw-status done";
+  mwStatus.textContent = "Done ✓";
+  mwPay.disabled = false;
   form.amount.focus();
 });
 
@@ -140,8 +181,8 @@ function clearWalletToken() {
   form.wallet.value = "";
   form.cryptogram.value = "";
   document.getElementById("token-badge").hidden = true;
-  apStatus.className = "ap-status";
-  apStatus.textContent = "Ready";
+  mwStatus.className = "mw-status";
+  mwStatus.textContent = "Ready";
 }
 
 // Editing the card details by hand means the token no longer applies.
@@ -153,7 +194,7 @@ for (const name of ["card_number", "expiry"]) {
 
 async function init() {
   renderWallet();
-  renderApplePay();
+  renderMobileWallets();
   const res = await fetch("/api/terminal");
   const data = await res.json();
   const t = data.terminal;

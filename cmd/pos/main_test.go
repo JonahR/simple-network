@@ -100,6 +100,14 @@ func TestBuildAuthRequestApplePay(t *testing.T) {
 		t.Errorf("unexpected wallet fields: %+v", req)
 	}
 
+	for _, w := range []string{iso8583.WalletGooglePay, iso8583.WalletSamsungPay} {
+		in := base
+		in.Wallet = w
+		if req, errs := s.buildAuthRequest(in, now); len(errs) > 0 || req.WalletProvider != w {
+			t.Errorf("%s: wallet=%q errors=%v", w, req.WalletProvider, errs)
+		}
+	}
+
 	// In-app (e-commerce) wallet payments need no CVV either.
 	inApp := base
 	inApp.EntryMode = iso8583.EntryEcommerce

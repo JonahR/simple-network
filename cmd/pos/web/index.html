@@ -20,14 +20,15 @@
       <div id="cards" class="cards"></div>
     </section>
 
-    <section class="panel applepay">
-      <h2>Apple Pay</h2>
+    <section class="panel mobile-wallets">
+      <h2>Mobile Wallets</h2>
       <p class="hint">Pays with a device token and one-time cryptogram. The card number never leaves the phone.</p>
-      <div class="phone">
+      <div id="mw-phone" class="phone">
+        <div id="mw-tabs" class="mw-tabs" role="tablist" aria-label="Mobile wallet"></div>
         <div class="phone-label">Choose card</div>
-        <div id="ap-cards" class="ap-cards" role="radiogroup" aria-label="Apple Pay card"></div>
-        <div id="ap-status" class="ap-status" aria-live="polite">Ready</div>
-        <button type="button" id="ap-pay" class="ap-button">Pay with Apple Pay</button>
+        <div id="mw-cards" class="mw-cards" role="radiogroup" aria-label="Card"></div>
+        <div id="mw-status" class="mw-status" aria-live="polite">Ready</div>
+        <button type="button" id="mw-pay" class="mw-button">Pay</button>
       </div>
     </section>
   </div>
@@ -54,7 +55,7 @@
       <input type="hidden" name="cryptogram">
 
       <label>
-        <span>Card number <em id="token-badge" class="badge" hidden>Apple Pay · device token</em></span>
+        <span>Card number <em id="token-badge" class="badge" hidden></em></span>
         <input name="card_number" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off">
         <small class="err" data-for="card_number"></small>
       </label>
