@@ -1,5 +1,10 @@
 # Build output
 /bin/
+# Binaries from "go build ./cmd/<name>" run at the repo root
+/pos
+/acquirer
+/network
+/issuer
 *.exe
 *.test
 *.out
