@@ -146,6 +146,7 @@ function presentCard(c, method) {
   if (badge) setReadBadge(badge);
 
   updateForm();
+  fillRandomAmount();
   focusNext();
 }
 
@@ -232,6 +233,7 @@ mwPay.addEventListener("click", async () => {
   form.cryptogram.value = newCryptogram();
   setReadBadge(`${w.name} · device token`);
   updateForm();
+  fillRandomAmount();
 
   mwStatus.className = "mw-status done";
   mwStatus.textContent = "Done ✓";
@@ -313,6 +315,14 @@ function show(el, visible) {
   if (!visible) el.querySelectorAll("input:not([type=hidden])").forEach((i) => (i.value = ""));
 }
 
+// fillRandomAmount enters a random sale amount between $1.00 and $150.00 when
+// a payment starts, unless the cashier already typed one.
+function fillRandomAmount() {
+  if (form.amount.value) return;
+  const cents = 100 + Math.floor(Math.random() * 14_901);
+  form.amount.value = (cents / 100).toFixed(2);
+}
+
 // focusNext moves to the first empty field the cashier still has to fill.
 function focusNext() {
   const candidates = [form.amount, ...form.querySelectorAll("#prompts input")];
@@ -325,6 +335,9 @@ form.entry_mode.addEventListener("change", () => {
   updateForm();
 });
 form.card_number.addEventListener("input", updateForm);
+form.card_on_file.addEventListener("change", () => {
+  if (form.card_on_file.value) fillRandomAmount();
+});
 
 // Input formatting.
 form.card_number.addEventListener("input", (e) => {
