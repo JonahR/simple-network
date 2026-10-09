@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/ui"
@@ -40,6 +41,7 @@ const maxListed = 200
 
 type server struct {
 	acq *acquirer
+	clr *clearer
 }
 
 func main() {
@@ -61,6 +63,7 @@ func main() {
 
 	network := newHTTPNetwork(env("NETWORK_URL", "http://localhost:8090"))
 	s := &server{acq: newAcquirer(env("ACQUIRER_ID", "100001"), env("ACQUIRER_NAME", "Simple Merchant Bank"), merchants, network)}
+	s.clr = newClearer(s.acq, network.url)
 
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
@@ -71,6 +74,8 @@ func main() {
 	mux.HandleFunc("POST /reverse", s.handleReverse)
 	mux.Handle("GET /", http.FileServerFS(static))
 	mux.HandleFunc("GET /api/overview", s.handleOverview)
+	mux.HandleFunc("POST /clearing/submit", s.handleSubmitClearing)
+	mux.HandleFunc("POST /settlement/advice", s.handleAdvice)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	ui.Register(mux, ui.PagesFromEnv())
 	// Definitions for every label (Help mode), the learning hub, and the Network KT docs.
@@ -218,7 +223,30 @@ func (s *server) handleOverview(w http.ResponseWriter, _ *http.Request) {
 		"mccs":           iso8583.MCCs,
 		"currencies":     iso8583.Currencies,
 		"entry_modes":    iso8583.EntryModes,
+		"clearing":       s.clr.View(),
 	})
+}
+
+// handleSubmitClearing sends a clearing file of every approved authorization
+// not yet presented. The network calls it at its simulated cutoff; the
+// acquirer's page can call it any time.
+func (s *server) handleSubmitClearing(w http.ResponseWriter, r *http.Request) {
+	sent, err := s.clr.Submit(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, http.StatusOK, sent)
+}
+
+// handleAdvice receives the network's settlement advice and funds merchants.
+func (s *server) handleAdvice(w http.ResponseWriter, r *http.Request) {
+	var a clearing.Advice
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&a); err != nil || a.AcquirerID != s.acq.id {
+		http.Error(w, "invalid settlement advice", http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"funded": s.clr.Fund(a)})
 }
 
 // httpNetwork sends authorizations to the network switch over HTTP.

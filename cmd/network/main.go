@@ -100,6 +100,7 @@ func main() {
 	mux.HandleFunc("POST /api/tokens/{token}/active", s.handleTokenActive)
 	mux.HandleFunc("POST /api/sim/issuers/{id}/mode", s.handleIssuerMode)
 	ui.Register(mux, ui.PagesFromEnv())
+	registerClearing(mux, sw, issuers, acquirerID, env("ACQUIRER_NAME", "Simple Merchant Bank"), env("ACQUIRER_URL", "http://localhost:8081"))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 
 	// On SIGINT or SIGTERM, stop taking requests, then stop retrying reversals.

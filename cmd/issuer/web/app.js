@@ -51,6 +51,7 @@ function statusBadge(d) {
 function holdLabel(d) {
   if (d.hold === "active") return `<span data-term="auth-hold">Active</span>`;
   if (d.hold === "released") return `<span data-term="reversal">Released</span>`;
+  if (d.hold === "posted") return `<span data-term="clearing">Posted</span>`;
   return `<span class="muted">—</span>`;
 }
 
@@ -146,7 +147,7 @@ function renderDecision(d) {
     ${impact}
     <div class="decision-foot">
       ${d.auth_code ? `<span><span data-term="de38">Auth code</span> <b class="mono">${escapeHTML(d.auth_code)}</b></span>` : ""}
-      <span><span data-term="auth-hold">Hold</span> <b>${d.hold === "none" ? "None" : d.hold === "active" ? "Active" : "Released by reversal"}</b></span>
+      <span><span data-term="auth-hold">Hold</span> <b>${{ none: "None", active: "Active", released: "Released by reversal", posted: "Posted by clearing" }[d.hold] || d.hold}</b></span>
       <span><span data-term="network-txn-id">Network txn</span> <b class="mono">${escapeHTML(d.network_txn_id)}</b></span>
     </div>`;
 }
@@ -170,6 +171,18 @@ function renderDecisions(current) {
     .join("");
 }
 
+// accountBar shows how much of the limit is posted charges and holds; the
+// rest is available.
+function accountBar(a) {
+  if (a.limit <= 0) return "";
+  const pct = (v) => `${Math.max((v / a.limit) * 100, v > 0 ? 0.8 : 0)}%`;
+  return `<div class="bar" role="img" aria-label="${escapeHTML(`${money(a.posted, ACCOUNT_CURRENCY)} posted, ${money(a.held, ACCOUNT_CURRENCY)} held`)}">
+    ${a.posted > 0 ? `<span class="posted" style="width:${pct(a.posted)}"></span>` : ""}
+    ${a.held > 0 ? `<span class="held" style="width:${pct(a.held)}"></span>` : ""}
+    <span class="free"></span>
+  </div>`;
+}
+
 function renderAccounts() {
   document.getElementById("accounts").innerHTML = data.accounts
     .map((a) => {
@@ -183,7 +196,8 @@ function renderAccounts() {
         <td>${escapeHTML(a.holder)}</td>
         <td>${escapeHTML(product)}</td>
         <td class="num">${money(a.limit, ACCOUNT_CURRENCY)}</td>
-        <td><div class="meter">${bar(a.limit, a.held, 0)}<span>${money(a.available, ACCOUNT_CURRENCY)}</span></div></td>
+        <td><div class="meter">${accountBar(a)}<span>${money(a.available, ACCOUNT_CURRENCY)}</span></div></td>
+        <td class="num">${a.posted ? money(a.posted, ACCOUNT_CURRENCY) : "—"}</td>
         <td class="num">${a.holds ? `${money(a.held, ACCOUNT_CURRENCY)}<small>${a.holds} hold${a.holds > 1 ? "s" : ""}</small>` : "—"}</td>
         <td>${status}</td>
       </tr>`;

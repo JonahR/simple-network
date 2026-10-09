@@ -214,13 +214,60 @@ function renderMerchants() {
     .join("");
 }
 
+// renderClearing shows the clearing files the acquirer sent and what it paid
+// each merchant once the network settled.
+function renderClearing() {
+  const c = data.clearing;
+  document.getElementById("clearing-status").textContent =
+    `${c.unpresented} approved not yet presented · ${c.presented} waiting for settlement`;
+  if (c.files.length) {
+    document.getElementById("files").innerHTML = c.files
+      .map((f) => {
+        const a = f.ack;
+        const answer = !a
+          ? `<span class="status bad" data-term="clearing-file">✕ Not acknowledged</span> <small>${escapeHTML(f.error)}; resent as is next time</small>`
+          : a.status === "rejected"
+            ? `<span class="status bad" data-term="clearing-file">✕ Rejected</span> <small>${escapeHTML(a.reason)}</small>`
+            : `<span class="status good" data-term="clearing-file">✓ ${a.status === "duplicate" ? "Duplicate, already processed" : "Accepted"}</span> <small>${a.accepted} cleared${a.rejected.length ? `, ${a.rejected.length} rejected: ${escapeHTML(a.rejected.map((r) => r.reason).join("; "))}` : ""} · cycle ${escapeHTML(a.cycle_id)}</small>`;
+        return `<tr><td class="num">${f.header.sequence}</td><td class="mono">${escapeHTML(f.header.file_id)}</td><td class="num">${f.trailer.record_count}</td><td class="num">${money(f.trailer.hash_total, "840")}</td><td>${answer}</td></tr>`;
+      })
+      .join("");
+  }
+  if (c.fundings.length) {
+    document.getElementById("fundings").innerHTML = c.fundings
+      .map((f) => `<tr>
+        <td class="mono">${escapeHTML(f.cycle_id)}</td>
+        <td>${escapeHTML(f.value_date)}</td>
+        <td>${escapeHTML(f.merchant_name || f.merchant_id)}</td>
+        <td class="num">${f.count}</td>
+        <td class="num">${money(f.sales, f.currency)}</td>
+        <td class="num">${money(f.discount_fee, f.currency)}</td>
+        <td class="num"><b>${money(f.paid, f.currency)}</b></td>
+        <td class="num">${money(f.interchange, f.currency)}</td>
+        <td class="num">${money(f.network_fees, f.currency)}</td>
+        <td class="num">${money(f.margin, f.currency)}</td>
+      </tr>`)
+      .join("");
+  }
+}
+
 function render() {
   const current = selected();
   renderKPIs();
   renderPath(current);
   renderTransactions(current);
   renderMerchants();
+  renderClearing();
 }
+
+document.getElementById("send-file").addEventListener("click", async (e) => {
+  e.target.disabled = true;
+  try {
+    await fetch("/clearing/submit", { method: "POST" });
+  } finally {
+    e.target.disabled = false;
+  }
+});
 
 // lastBody is the previous poll's response; the page redraws only when it
 // changes, so a label being hovered in Help mode isn't replaced under the pointer.
@@ -250,7 +297,11 @@ window.addEventListener("hashchange", () => {
 
 fetch("/ui/pages")
   .then((r) => r.json())
-  .then((pages) => (networkURL = pages.find((p) => p.id === "network")?.url || ""))
+  .then((pages) => {
+    networkURL = pages.find((p) => p.id === "network")?.url || "";
+    const settlement = pages.find((p) => p.id === "settlement");
+    if (settlement) document.getElementById("settlement-link").href = settlement.url;
+  })
   .catch(() => {});
 
 poll();

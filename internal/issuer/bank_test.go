@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/pin"
@@ -237,5 +238,37 @@ func TestEmptyStateEncodesArrays(t *testing.T) {
 		if !strings.Contains(string(body), field) {
 			t.Errorf("empty state should encode %s, got %s", field, body)
 		}
+	}
+}
+
+func TestPostTurnsHoldsIntoCharges(t *testing.T) {
+	fsb, _, _ := testBanks(t)
+	a := req("4242424242424242", "2912", 5000)
+	b := req("4242424242424242", "2912", 2000)
+	fsb.Authorize(a)
+	fsb.Authorize(b)
+
+	// a clears for less than its hold (say, a smaller final amount); b was reversed.
+	fsb.Reverse(iso8583.ReversalAdvice{NetworkTxnID: b.NetworkTxnID})
+	file := clearing.IssuerFile{FileID: "c1-FSB", Records: []clearing.IssuerRecord{
+		{NetworkTxnID: a.NetworkTxnID, Amount: 4500},
+		{NetworkTxnID: b.NetworkTxnID, Amount: 2000},
+	}}
+	ack := fsb.Post(file)
+	if ack.Posted != 2 || len(ack.Unmatched) != 1 || ack.Unmatched[0] != b.NetworkTxnID {
+		t.Fatalf("ack %+v", ack)
+	}
+	acct, _ := fsb.Snapshot("4242424242424242")
+	if acct.Posted != 6500 || acct.Available != 500_000-6500 {
+		t.Errorf("posted %d, available %d", acct.Posted, acct.Available)
+	}
+	st := fsb.State()
+	if st.Accounts[0].Held != 0 || st.Accounts[0].Posted != 6500 || st.Decisions[1].Hold != "posted" {
+		t.Errorf("view: %+v, hold %s", st.Accounts[0], st.Decisions[1].Hold)
+	}
+	// Posting the same file again is a no-op.
+	fsb.Post(file)
+	if acct, _ := fsb.Snapshot("4242424242424242"); acct.Posted != 6500 {
+		t.Errorf("file posted twice: %d", acct.Posted)
 	}
 }

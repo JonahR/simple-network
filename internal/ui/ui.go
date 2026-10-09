@@ -1,6 +1,7 @@
 // Package ui holds what every service's web page shares: the navigation bar
 // that links the participants' pages in the order a payment flows through
-// them (POS → Acquirer → Network → Issuer).
+// them (POS → Acquirer → Network → Issuer), then on to clearing and
+// settlement at the end of the day.
 //
 // A page opts in with:
 //
@@ -36,6 +37,7 @@ func PagesFromEnv() []Page {
 		{"acquirer", "Acquirer", "Merchant's bank", "acquirer", env("ACQUIRER_PUBLIC_URL", "http://localhost:8081")},
 		{"network", "Network", "Card network switch", "network", env("NETWORK_DASHBOARD_URL", "http://localhost:8090")},
 		{"issuer", "Issuer", "Cardholder's bank", "issuer", env("ISSUER_PUBLIC_URL", "http://localhost:8091")},
+		{"settlement", "Settlement", "Clearing and settlement", "settlement", env("SETTLEMENT_PUBLIC_URL", "http://localhost:8090/settlement/")},
 	}
 }
 

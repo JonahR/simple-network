@@ -49,14 +49,15 @@
   <section class="panel">
     <div class="panel-head">
       <h2><span data-term="cardholder">Accounts</span></h2>
-      <span class="muted">Holds lower <span data-term="available-credit">available credit</span> until clearing posts them or a <span data-term="reversal">reversal</span> releases them</span>
+      <span class="muted">Holds lower <span data-term="available-credit">available credit</span> until <span data-term="clearing">clearing</span> posts them as charges or a <span data-term="reversal">reversal</span> releases them</span>
     </div>
     <div class="table-wrap">
       <table class="list">
-        <thead><tr><th data-term="account-id">Account</th><th data-term="de2">Card</th><th data-term="cardholder">Cardholder</th><th data-term="card-products">Product</th><th class="num" data-term="available-credit">Limit / balance</th><th class="meter-col" data-term="available-credit">Available</th><th class="num" data-term="auth-hold">Holds</th><th data-term="card-controls">Status</th></tr></thead>
+        <thead><tr><th data-term="account-id">Account</th><th data-term="de2">Card</th><th data-term="cardholder">Cardholder</th><th data-term="card-products">Product</th><th class="num" data-term="available-credit">Limit / balance</th><th class="meter-col" data-term="available-credit">Available</th><th class="num" data-term="clearing">Posted</th><th class="num" data-term="auth-hold">Holds</th><th data-term="card-controls">Status</th></tr></thead>
         <tbody id="accounts"></tbody>
       </table>
     </div>
+    <div class="legend"><span><i class="posted"></i><span data-term="clearing">Posted charges</span></span><span><i class="held"></i><span data-term="auth-hold">Holds</span></span><span><i class="free"></i><span data-term="available-credit">Available</span></span></div>
   </section>
 
   <div class="split even">

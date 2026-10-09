@@ -506,6 +506,58 @@
         "Clearing ledger"
       ]
     },
+    "clearing-file": {
+      "name": "Clearing file and file controls",
+      "def": "The batch of presentments an acquirer sends the network, usually once a day. A header names the sender and a sequence number; a trailer carries a record count and a hash total (the sum of the amounts). The network rejects a file whose trailer doesn't match its records or whose sequence skips or repeats, and ignores a file it has already processed, so a resend after a lost reply is safe. It answers with an acknowledgement listing any rejected records.",
+      "kt": [
+        [
+          "File-level controls",
+          "05-clearing-and-settlement.md#file-level-controls"
+        ],
+        [
+          "Matching clearing records to authorizations",
+          "05-clearing-and-settlement.md#matching-clearing-records-to-authorizations"
+        ]
+      ],
+      "ext": [
+        [
+          "Clearing (finance) (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Clearing_(finance)"
+        ]
+      ],
+      "aliases": [
+        "Clearing file",
+        "Clearing files",
+        "Hash total",
+        "File sequence"
+      ]
+    },
+    "ledger": {
+      "name": "Double-entry ledger",
+      "def": "The network's accounting record of clearing and settlement. Every cleared transaction becomes a journal entry whose debits equal its credits: the issuer owes the amount, the acquirer is owed it, interchange moves from the acquirer to the issuer, and each side pays its network fee. Entries are only ever added, never edited. Before any money moves, member positions plus network revenue must sum to exactly zero; after settlement every member's due-from and due-to balance is back to zero.",
+      "kt": [
+        [
+          "Accounting model: use double-entry",
+          "05-clearing-and-settlement.md#accounting-model-use-double-entry"
+        ],
+        [
+          "D5 and D6: Money and ledger",
+          "12-design-decisions.md#d5-and-d6-money-and-ledger"
+        ]
+      ],
+      "ext": [
+        [
+          "Double-entry bookkeeping (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Double-entry_bookkeeping"
+        ]
+      ],
+      "aliases": [
+        "Ledger",
+        "Journal",
+        "Double-entry",
+        "Zero-sum check"
+      ]
+    },
     "presentment": {
       "name": "Presentment (clearing record)",
       "def": "The record an acquirer sends at clearing to say 'this sale happened, for this final amount'. It carries the auth code, network transaction ID, final amount and qualification data, and gets an acquirer reference number (ARN) for its lifetime.",

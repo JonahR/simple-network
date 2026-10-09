@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
+	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/issuer"
@@ -91,6 +92,7 @@ func main() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("POST /authorize", s.handleAuthorize)
 		mux.HandleFunc("POST /reverse", s.handleReverse)
+		mux.HandleFunc("POST /clearing/presentments", s.handlePresentments)
 		mux.HandleFunc("GET /admin/mode", s.handleGetMode)
 		mux.HandleFunc("POST /admin/mode", s.handleSetMode)
 		mux.Handle("GET /", http.FileServerFS(static))
@@ -140,6 +142,22 @@ func (s *bankServer) handleReverse(w http.ResponseWriter, r *http.Request) {
 	resp := s.bank.Reverse(adv)
 	log.Printf("%s reversal txn=%s stan=%s reason=%s matched=%v", s.bank.ID, adv.NetworkTxnID, adv.STAN, adv.ResponseCode, resp.Matched)
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// handlePresentments posts the network's clearing file: holds become charges.
+func (s *bankServer) handlePresentments(w http.ResponseWriter, r *http.Request) {
+	if s.mode.Load() == "down" {
+		http.Error(w, "issuer down (simulated)", http.StatusServiceUnavailable)
+		return
+	}
+	var f clearing.IssuerFile
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<22)).Decode(&f); err != nil || f.IssuerID != s.bank.ID {
+		http.Error(w, "invalid clearing file", http.StatusBadRequest)
+		return
+	}
+	ack := s.bank.Post(f)
+	log.Printf("%s clearing file=%s records=%d posted=%d unmatched=%d", s.bank.ID, f.FileID, len(f.Records), ack.Posted, len(ack.Unmatched))
+	writeJSON(w, http.StatusOK, ack)
 }
 
 func (s *bankServer) handleGetMode(w http.ResponseWriter, _ *http.Request) {

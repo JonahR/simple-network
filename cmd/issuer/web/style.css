@@ -17,6 +17,7 @@
   --bad-line: #d03b3b;
   --track: #ecebe6;
   --held: #9ec5f4;
+  --posted: #256abf;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -39,6 +40,7 @@
     --bad-line: #ff7a7a;
     --track: #2a2a27;
     --held: #2a4f7c;
+    --posted: #6da7ec;
     color-scheme: dark;
   }
 }
@@ -193,11 +195,13 @@ td small { display: block; color: var(--muted); font-size: 11px; }
 .bar { display: flex; gap: 2px; height: 14px; background: var(--track); border-radius: 4px; overflow: hidden; }
 .bar span { height: 100%; }
 .bar .held { background: var(--held); }
+.bar .posted { background: var(--posted); }
 .bar .this { background: var(--accent); }
 .bar .free { background: transparent; flex: 1; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 .legend .held { background: var(--held); }
+.legend .posted { background: var(--posted); }
 .legend .this { background: var(--accent); }
 .legend .free { background: var(--track); border: 1px solid var(--border); }
 .decision-foot { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 14px; font-size: 13px; color: var(--muted); }

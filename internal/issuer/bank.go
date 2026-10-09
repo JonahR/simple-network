@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
+	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/pin"
 )
@@ -31,9 +32,12 @@ type Account struct {
 	Blocked bool   // Frozen by the cardholder or the bank
 
 	// Limit is the credit limit, or the starting balance for debit, prepaid,
-	// and HSA/FSA accounts. Available is what can still be authorized.
+	// and HSA/FSA accounts. Available is what can still be authorized: the
+	// limit minus holds and posted charges. Posted is what clearing has
+	// turned from holds into charges.
 	Limit     int64
 	Available int64
+	Posted    int64
 }
 
 // AutoEnroll opens an account the first time the bank sees a card in a BIN
@@ -83,7 +87,7 @@ type Decision struct {
 	Limit           int64     `json:"limit"`
 	AvailableBefore int64     `json:"available_before"`
 	AvailableAfter  int64     `json:"available_after"`
-	Hold            string    `json:"hold"` // "active", "released", or "none"
+	Hold            string    `json:"hold"` // "active", "released", "posted", or "none"
 }
 
 // Reversal is the bank's record of an 0420.
@@ -106,14 +110,15 @@ type Bank struct {
 	pinKey []byte
 	now    func() time.Time
 
-	mu        sync.Mutex
-	accounts  map[string]*Account // by PAN
-	order     []string            // PANs in the order accounts were opened
-	enroll    []AutoEnroll
-	holds     map[string]hold     // by network transaction ID
-	reversed  map[string]struct{} // reversals that arrived before their authorization
-	decisions []Decision
-	reversals []Reversal
+	mu          sync.Mutex
+	accounts    map[string]*Account // by PAN
+	order       []string            // PANs in the order accounts were opened
+	enroll      []AutoEnroll
+	holds       map[string]hold     // by network transaction ID
+	reversed    map[string]struct{} // reversals that arrived before their authorization
+	decisions   []Decision
+	reversals   []Reversal
+	postedFiles map[string]clearing.IssuerAck // Clearing files already posted, by file ID
 }
 
 type hold struct {
@@ -410,6 +415,7 @@ type AccountView struct {
 	Available int64  `json:"available"`
 	Held      int64  `json:"held"`
 	Holds     int    `json:"holds"`
+	Posted    int64  `json:"posted"`
 }
 
 // State is everything the back office shows, copied under the lock.
@@ -435,7 +441,7 @@ func (b *Bank) State() State {
 		s.Accounts = append(s.Accounts, AccountView{
 			ID: a.ID, PAN: card.Mask(a.PAN), Holder: a.Holder, Product: string(a.Product), Expiry: yymm(a.Expiry),
 			HasPIN: a.PINHash != "", Blocked: a.Blocked, Limit: a.Limit, Available: a.Available,
-			Held: held[pan][0], Holds: int(held[pan][1]),
+			Held: held[pan][0], Holds: int(held[pan][1]), Posted: a.Posted,
 		})
 	}
 	s.Decisions = append(s.Decisions, b.decisions...)

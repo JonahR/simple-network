@@ -56,6 +56,31 @@
     </div>
     <p class="hint">After settlement the acquirer pays each merchant its sales minus refunds, keeping the discount rate as its fee. Interchange and network fees come out of that fee.</p>
   </section>
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span data-term="clearing">Clearing &amp; funding</span></h2>
+      <span class="muted" id="clearing-status"></span>
+    </div>
+    <div class="clearing-actions">
+      <button type="button" id="send-file" class="small" data-term="clearing-file">Send clearing file now</button>
+      <span class="muted">The network also asks for it at its end of day (the <a id="settlement-link" href="http://localhost:8090/settlement/">Settlement</a> page).</span>
+    </div>
+    <h3><span data-term="clearing-file">Clearing files sent</span></h3>
+    <div class="table-wrap">
+      <table class="list">
+        <thead><tr><th data-term="clearing-file">Sequence</th><th data-term="clearing-file">File</th><th class="num" data-term="presentment">Records</th><th class="num" data-term="clearing-file">Hash total</th><th data-term="clearing-file">Network's answer</th></tr></thead>
+        <tbody id="files"><tr><td colspan="5" class="empty">No files sent yet.</td></tr></tbody>
+      </table>
+    </div>
+    <h3><span data-term="funding">Merchant funding</span></h3>
+    <div class="table-wrap">
+      <table class="list">
+        <thead><tr><th data-term="settlement">Cycle</th><th data-term="t-plus">Value date</th><th data-term="merchant">Merchant</th><th class="num" data-term="presentment">Txns</th><th class="num" data-term="purchase">Sales</th><th class="num" data-term="mdr">Discount fee</th><th class="num" data-term="funding">Paid to merchant</th><th class="num" data-term="interchange">Interchange</th><th class="num" data-term="network-fees">Network fees</th><th class="num" data-term="acquirer-margin">Acquirer margin</th></tr></thead>
+        <tbody id="fundings"><tr><td colspan="10" class="empty">Nothing funded yet. Merchants are paid after the network settles.</td></tr></tbody>
+      </table>
+    </div>
+    <p class="hint">The network settles with the acquirer net of interchange and network fees. The acquirer pays each merchant its sales minus the discount fee; what's left of that fee is the acquirer's margin.</p>
+  </section>
 </main>
 
 <script src="/ui/nav.js"></script>
