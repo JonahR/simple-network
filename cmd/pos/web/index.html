@@ -16,8 +16,14 @@
   <div class="side">
     <section class="panel wallet">
       <h2>Wallet</h2>
-      <p class="hint">Tap a card to present it to the terminal.</p>
-      <div id="cards" class="cards"></div>
+      <div id="card-face"></div>
+      <div id="card-list" class="card-list" role="radiogroup" aria-label="Cards"></div>
+      <div class="present" role="group" aria-label="Present card to terminal">
+        <button type="button" data-method="tap">Tap</button>
+        <button type="button" data-method="insert">Insert</button>
+        <button type="button" data-method="swipe">Swipe</button>
+        <button type="button" data-method="key">Key in</button>
+      </div>
     </section>
 
     <section class="panel mobile-wallets">
@@ -51,32 +57,86 @@
         <small class="err" data-for="entry_mode"></small>
       </label>
 
+      <!-- Supplied by the card or phone, never typed. -->
       <input type="hidden" name="wallet">
       <input type="hidden" name="cryptogram">
+      <input type="hidden" name="track2">
 
-      <label>
-        <span>Card number <em id="token-badge" class="badge" hidden></em></span>
-        <input name="card_number" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off">
-        <small class="err" data-for="card_number"></small>
-      </label>
-
-      <div class="row">
+      <div id="cof-fields" class="group" hidden>
         <label>
-          <span>Expiry</span>
-          <input name="expiry" placeholder="MM/YY" maxlength="5" autocomplete="off">
-          <small class="err" data-for="expiry"></small>
+          <span>Saved card</span>
+          <select name="card_on_file" id="card_on_file"></select>
+          <small class="err" data-for="card_on_file"></small>
         </label>
         <label>
-          <span>CVV</span>
-          <input name="cvv" inputmode="numeric" placeholder="123" maxlength="4" autocomplete="off">
-          <small class="err" data-for="cvv"></small>
+          <span>Initiated by</span>
+          <select name="cof_indicator" id="cof_indicator"></select>
+          <small class="err" data-for="cof_indicator"></small>
         </label>
       </div>
 
-      <label>
-        <span>Cardholder name <em>(optional)</em></span>
-        <input name="cardholder_name" placeholder="Jane Doe" autocomplete="off">
-      </label>
+      <div id="card-fields" class="group">
+        <label>
+          <span>Card number <em id="read-badge" class="badge" hidden></em> <em id="product-badge" class="badge product" hidden></em></span>
+          <input name="card_number" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off">
+          <small class="err" data-for="card_number"></small>
+        </label>
+
+        <div class="row">
+          <label>
+            <span>Expiry</span>
+            <input name="expiry" placeholder="MM/YY" maxlength="5" autocomplete="off">
+            <small class="err" data-for="expiry"></small>
+          </label>
+          <label>
+            <span>CVV</span>
+            <input name="cvv" inputmode="numeric" placeholder="123" maxlength="4" autocomplete="off">
+            <small class="err" data-for="cvv"></small>
+          </label>
+        </div>
+
+        <label>
+          <span>Cardholder name <em>(optional)</em></span>
+          <input name="cardholder_name" placeholder="Jane Doe" autocomplete="off">
+        </label>
+      </div>
+
+      <!-- Shown only when the card calls for them, as a real terminal would prompt. -->
+      <fieldset id="prompts" class="prompts" hidden>
+        <legend>Terminal prompts</legend>
+        <label data-prompt="pin" hidden>
+          <span>PIN <em id="pin-note"></em></span>
+          <input name="pin" type="password" inputmode="numeric" maxlength="12" autocomplete="off">
+          <small class="err" data-for="pin"></small>
+        </label>
+        <label data-prompt="cashback" hidden>
+          <span>Cash back <em>(optional, up to $200)</em></span>
+          <input name="cashback" inputmode="decimal" placeholder="0.00" autocomplete="off">
+          <small class="err" data-for="cashback"></small>
+        </label>
+        <div data-prompt="fleet" class="row3" hidden>
+          <label>
+            <span>Odometer</span>
+            <input name="odometer" inputmode="numeric" maxlength="7" autocomplete="off">
+            <small class="err" data-for="odometer"></small>
+          </label>
+          <label>
+            <span>Vehicle ID</span>
+            <input name="vehicle_id" maxlength="17" autocomplete="off">
+            <small class="err" data-for="vehicle_id"></small>
+          </label>
+          <label>
+            <span>Driver ID</span>
+            <input name="driver_id" inputmode="numeric" maxlength="8" autocomplete="off">
+            <small class="err" data-for="driver_id"></small>
+          </label>
+        </div>
+        <label data-prompt="healthcare" hidden>
+          <span>HSA/FSA-eligible amount</span>
+          <input name="healthcare_amount" inputmode="decimal" placeholder="0.00" autocomplete="off">
+          <small class="err" data-for="healthcare_amount"></small>
+        </label>
+      </fieldset>
 
       <small class="err" data-for="form"></small>
       <div class="actions">

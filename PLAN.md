@@ -87,7 +87,7 @@ A purchase goes through three phases:
 | # | Milestone | Done when |
 |---|---|---|
 | 0 | Repo bootstrap | Git repo, README, plan ✅ |
-| 0.5 | POS terminal (browser) | Enter card + amount, validate, build 0100 auth request ✅ |
+| 0.5 | POS terminal (browser) | Builds 0100 requests for keyed, swipe, chip, contactless, mobile wallets, debit + PIN, cash back, prepaid, fleet, HSA/FSA, BNPL virtual cards, and card on file ✅ |
 | 1 | Data models | Card, account, merchant, and ISO-style message schemas; Luhn and card generator |
 | 2 | Issuer service | Can approve or decline an auth request directly |
 | 3 | Network switch | Routes auths by BIN to two or more issuers; transaction log |

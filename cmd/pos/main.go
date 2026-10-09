@@ -1,19 +1,18 @@
-// Command pos runs a browser-based point-of-sale terminal. It collects card
-// and amount details, validates them, and builds an ISO 8583-style 0100
-// authorization request. Sending the request to the network comes later.
+// Command pos runs a browser-based point-of-sale terminal. It reads a card
+// (keyed, swiped, inserted, tapped, from a mobile wallet, or from the
+// merchant's card-on-file vault), prompts for whatever the card requires, and
+// builds an ISO 8583-style 0100 authorization request. Sending the request to
+// the network comes later.
 package main
 
 import (
 	"embed"
+	"encoding/hex"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -25,8 +24,9 @@ import (
 //go:embed web
 var webFS embed.FS
 
-// maxAmount is the largest amount the terminal accepts, in cents.
-const maxAmount = 99_999_999
+// demoPINKey is the triple-DES key the PIN pad encrypts PINs under. It is a
+// published test key for simulation only; set PIN_KEY to override it.
+const demoPINKey = "0123456789ABCDEFFEDCBA9876543210"
 
 // Terminal holds the merchant configuration provisioned onto this terminal.
 type Terminal struct {
@@ -47,8 +47,47 @@ type SaleInput struct {
 	Amount         string `json:"amount"`
 	Currency       string `json:"currency"`
 	EntryMode      string `json:"entry_mode"`
-	Wallet         string `json:"wallet"`     // Digital wallet that supplied a device token, if any
-	Cryptogram     string `json:"cryptogram"` // One-time cryptogram from the wallet
+
+	// Card reads. The card or phone supplies these, not the cashier.
+	Wallet     string `json:"wallet"`     // Mobile wallet that supplied a device token, if any
+	Cryptogram string `json:"cryptogram"` // One-time cryptogram from a chip, contactless card, or wallet
+	Track2     string `json:"track2"`     // Magnetic stripe data from a swipe
+
+	// Card on file.
+	CardOnFileID string `json:"card_on_file"`
+	COFIndicator string `json:"cof_indicator"`
+
+	// Prompts the terminal shows only when the card requires them.
+	PIN              string `json:"pin"`
+	Cashback         string `json:"cashback"`
+	Odometer         string `json:"odometer"`
+	VehicleID        string `json:"vehicle_id"`
+	DriverID         string `json:"driver_id"`
+	HealthcareAmount string `json:"healthcare_amount"`
+}
+
+// StoredCard is a card the merchant keeps on file for a returning customer.
+type StoredCard struct {
+	ID       string
+	Customer string
+	PAN      string
+	Expiry   string // MM/YY
+}
+
+// cardsOnFile is the merchant's card vault. The browser only ever sees the
+// masked number; the full PAN stays on the terminal server.
+var cardsOnFile = []StoredCard{
+	{ID: "cof_jane", Customer: "Jane Doe · loyalty account", PAN: "4242424242424242", Expiry: "12/29"},
+	{ID: "cof_acme", Customer: "Acme Corp · monthly subscription", PAN: "5555555555554444", Expiry: "08/28"},
+}
+
+func cardOnFile(id string) (StoredCard, bool) {
+	for _, c := range cardsOnFile {
+		if c.ID == id {
+			return c, true
+		}
+	}
+	return StoredCard{}, false
 }
 
 // Transaction is a sale as recorded by the terminal.
@@ -61,6 +100,7 @@ type Transaction struct {
 
 type server struct {
 	terminal Terminal
+	pinKey   []byte
 	stan     atomic.Uint32
 
 	mu      sync.Mutex
@@ -78,7 +118,12 @@ func main() {
 	}
 	addr := env("POS_ADDR", ":8080")
 
-	s := &server{terminal: t}
+	pinKey, err := hex.DecodeString(env("PIN_KEY", demoPINKey))
+	if err != nil || (len(pinKey) != 16 && len(pinKey) != 24) {
+		log.Fatal("PIN_KEY must be 32 or 48 hex characters")
+	}
+
+	s := &server{terminal: t, pinKey: pinKey}
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
 		log.Fatal(err)
@@ -97,11 +142,19 @@ func main() {
 }
 
 func (s *server) handleTerminal(w http.ResponseWriter, _ *http.Request) {
+	saved := make([]map[string]string, len(cardsOnFile))
+	for i, c := range cardsOnFile {
+		saved[i] = map[string]string{"id": c.ID, "customer": c.Customer, "masked": card.Mask(c.PAN)}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"terminal":    s.terminal,
-		"entry_modes": iso8583.EntryModes,
-		"currencies":  iso8583.Currencies,
-		"wallets":     iso8583.Wallets,
+		"terminal":       s.terminal,
+		"entry_modes":    iso8583.EntryModes,
+		"currencies":     iso8583.Currencies,
+		"wallets":        iso8583.Wallets,
+		"cof_indicators": iso8583.COFIndicators,
+		"bin_products":   card.BINProducts,
+		"product_names":  card.ProductNames,
+		"cards_on_file":  saved,
 	})
 }
 
@@ -138,8 +191,9 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 	s.history = append(s.history, tx)
 	s.mu.Unlock()
 
-	log.Printf("sale stan=%s rrn=%s pan=%s amount=%d currency=%s wallet=%s status=%s",
-		tx.Request.STAN, tx.Request.RRN, tx.Request.PAN, tx.Request.Amount, tx.Request.Currency, tx.Request.WalletProvider, tx.Status)
+	log.Printf("sale stan=%s rrn=%s pan=%s proc=%s amount=%d currency=%s entry=%s wallet=%s status=%s",
+		tx.Request.STAN, tx.Request.RRN, tx.Request.PAN, tx.Request.ProcessingCode, tx.Request.Amount,
+		tx.Request.Currency, tx.Request.EntryMode, tx.Request.WalletProvider, tx.Status)
 	writeJSON(w, http.StatusOK, tx)
 }
 
@@ -152,130 +206,6 @@ func (s *server) handleTransactions(w http.ResponseWriter, _ *http.Request) {
 	}
 	s.mu.Unlock()
 	writeJSON(w, http.StatusOK, out)
-}
-
-// buildAuthRequest validates the cashier's input and builds an 0100 message.
-// It returns a map of field name to error message when input is invalid.
-func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequest, map[string]string) {
-	errs := map[string]string{}
-
-	pan := card.Normalize(in.CardNumber)
-	if err := card.ValidatePAN(pan); err != nil {
-		errs["card_number"] = err.Error()
-	}
-	expiry, err := card.ParseExpiry(in.Expiry, now)
-	if err != nil {
-		errs["expiry"] = err.Error()
-	}
-	// CVV is required for keyed and e-commerce card sales, where the card is not
-	// read. Wallet payments prove possession with a cryptogram instead.
-	cvv := strings.TrimSpace(in.CVV)
-	cardNotPresent := in.EntryMode == iso8583.EntryManual || in.EntryMode == iso8583.EntryEcommerce
-	if cvv != "" || (cardNotPresent && in.Wallet == "") {
-		if err := card.ValidateCVV(cvv); err != nil {
-			errs["cvv"] = err.Error()
-		}
-	}
-	amount, err := parseAmount(in.Amount)
-	if err != nil {
-		errs["amount"] = err.Error()
-	}
-	if _, ok := iso8583.Currencies[in.Currency]; !ok {
-		errs["currency"] = "unsupported currency"
-	}
-	if _, ok := iso8583.EntryModes[in.EntryMode]; !ok {
-		errs["entry_mode"] = "unsupported entry mode"
-	}
-	// Wallet payments carry a device token and a one-time cryptogram in place of a CVV.
-	cryptogram := strings.ToUpper(strings.TrimSpace(in.Cryptogram))
-	if in.Wallet != "" {
-		if _, ok := iso8583.Wallets[in.Wallet]; !ok {
-			errs["form"] = "unsupported wallet"
-		} else if !isHex(cryptogram, 16) {
-			errs["form"] = "wallet cryptogram must be 16 hex characters"
-		} else if in.EntryMode != iso8583.EntryContactless && in.EntryMode != iso8583.EntryEcommerce {
-			errs["entry_mode"] = "wallet payments must be contactless or e-commerce"
-		}
-	} else if cryptogram != "" {
-		errs["form"] = "cryptogram sent without a wallet"
-	}
-	if len(errs) > 0 {
-		return iso8583.AuthRequest{}, errs
-	}
-
-	stan := s.nextSTAN()
-	utc := now.UTC()
-	t := s.terminal
-	return iso8583.AuthRequest{
-		MTI:              iso8583.MTIAuthRequest,
-		PAN:              pan,
-		ProcessingCode:   iso8583.ProcPurchase,
-		Amount:           amount,
-		TransmissionTime: utc.Format("0102150405"),
-		STAN:             stan,
-		LocalTime:        now.Format("150405"),
-		LocalDate:        now.Format("0102"),
-		Expiry:           expiry,
-		MCC:              t.MCC,
-		EntryMode:        in.EntryMode,
-		// RRN: last digit of year, day of year, hour, then the STAN (12 chars).
-		RRN:             fmt.Sprintf("%s%03d%02d%s", utc.Format("2006")[3:], utc.YearDay(), utc.Hour(), stan),
-		TerminalID:      t.TerminalID,
-		MerchantID:      t.MerchantID,
-		MerchantNameLoc: fmt.Sprintf("%-25.25s%-13.13s%2.2s", t.MerchantName, t.City, t.Country),
-		Currency:        in.Currency,
-		CVV2:            cvv,
-		CardholderName:  strings.TrimSpace(in.CardholderName),
-		WalletProvider:  in.Wallet,
-		Cryptogram:      cryptogram,
-	}, nil
-}
-
-// nextSTAN returns the next 6-digit system trace audit number, 000001-999999.
-func (s *server) nextSTAN() string {
-	n := s.stan.Add(1)
-	return fmt.Sprintf("%06d", (n-1)%999_999+1)
-}
-
-// parseAmount converts a decimal string like "12.50" into cents without
-// going through floating point.
-func parseAmount(s string) (int64, error) {
-	s = strings.TrimPrefix(strings.TrimSpace(s), "$")
-	whole, frac, hasFrac := strings.Cut(s, ".")
-	if whole == "" {
-		whole = "0"
-	}
-	if hasFrac && (len(frac) == 0 || len(frac) > 2) {
-		return 0, errors.New("amount must have at most 2 decimal places")
-	}
-	frac += strings.Repeat("0", 2-len(frac))
-	w, err1 := strconv.ParseUint(whole, 10, 63)
-	f, err2 := strconv.ParseUint(frac, 10, 63)
-	if err1 != nil || err2 != nil {
-		return 0, errors.New("amount must be a number like 12.50")
-	}
-	cents := int64(w)*100 + int64(f)
-	if cents <= 0 {
-		return 0, errors.New("amount must be greater than zero")
-	}
-	if cents > maxAmount || w > maxAmount {
-		return 0, errors.New("amount exceeds terminal limit")
-	}
-	return cents, nil
-}
-
-// isHex reports whether s is exactly n hexadecimal characters.
-func isHex(s string, n int) bool {
-	if len(s) != n {
-		return false
-	}
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if !(c >= '0' && c <= '9' || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f') {
-			return false
-		}
-	}
-	return true
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
