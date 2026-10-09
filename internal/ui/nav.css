@@ -1,6 +1,12 @@
 /* Navigation between the participants' pages. Uses each page's color tokens
    when it defines them, with fallbacks so it works on any page. */
+/* Pinned to the right end of every page's header, so it stays in the same
+   place when you move between pages. Its width is the same on every page,
+   so anchoring it to the edge puts it on the same pixels. */
 .sn-nav {
+  order: 99;
+  margin-left: auto;
+  align-self: flex-start; /* Same top edge however tall the rest of the header is */
   display: flex;
   align-items: center;
   gap: 2px;
@@ -24,3 +30,10 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
 }
 .sn-nav-arrow { color: var(--muted, #6b6b66); font-weight: 400; opacity: .7; }
+
+/* On narrow screens every header wraps differently, so the nav takes the
+   header's first row instead, full width, in the same place on every page. */
+@media (max-width: 760px) {
+  .sn-nav { order: -1; flex: 1 0 100%; margin-left: 0; }
+  .sn-nav a { flex: 1; text-align: center; padding-inline: 6px; }
+}

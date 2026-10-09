@@ -75,6 +75,7 @@ main {
 }
 @media (max-width: 760px) {
   main { grid-template-columns: 1fr; padding: 16px; }
+  header { padding-left: 16px; padding-right: 16px; }
 }
 
 /* Wallet */
