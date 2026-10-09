@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/JonahR/simple-network/internal/iso8583"
+	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/ui"
 )
 
@@ -64,6 +65,11 @@ func main() {
 	mux.HandleFunc("GET /api/overview", s.handleOverview)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	ui.Register(mux, ui.PagesFromEnv())
+	// Definitions for every label (Help mode), the learning hub, and the Network KT docs.
+	mux.Handle("GET /learn/", learn.Handler(learn.Links{
+		POS:       env("POS_PUBLIC_URL", "http://localhost:8080"),
+		Dashboard: env("NETWORK_DASHBOARD_URL", "http://localhost:8090"),
+	}))
 
 	log.Printf("acquirer %s (%s) listening on %s, forwarding to network %s", s.acq.id, s.acq.name, addr, network.url)
 	log.Fatal(http.ListenAndServe(addr, mux))

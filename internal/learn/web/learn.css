@@ -13,27 +13,34 @@
   :root:not([data-theme="light"]) { --learn-shadow: 0 16px 44px -10px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .4); }
 }
 
-/* Labels you can learn from: a dotted underline, like a glossary link. */
-[data-term] { cursor: help; }
-:where(span, td, th, h2, h3, small, em, strong, label, legend, div, p, b, i, code)[data-term] {
+/* Nothing looks different until Help is on (the Help button or the H key).
+   Then labels you can learn from get a dotted underline, like a glossary
+   link, and controls with a definition get a dashed outline. */
+.learn-help [data-term] { cursor: help; }
+.learn-help :where(span, td, th, h2, h3, small, em, strong, label, legend, div, p, b, i, code)[data-term] {
   text-decoration: underline dotted color-mix(in srgb, var(--learn-accent) 60%, transparent);
   text-decoration-thickness: 1.5px;
   text-underline-offset: 3px;
 }
-/* Data values (table cells, status pills) stay clean until hovered; labels keep the underline. */
-:where(td, .status, .mono, .k-value)[data-term] { text-decoration: none; }
-:where(td, .status, .mono, .k-value)[data-term]:hover { text-decoration: underline dotted color-mix(in srgb, var(--learn-accent) 60%, transparent); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
-[data-term]:focus-visible { outline: 2px solid var(--learn-accent); outline-offset: 2px; border-radius: 3px; }
-svg [data-term] { cursor: pointer; }
-svg [data-term]:hover, svg [data-term]:focus-visible, svg .learn-active { outline: none; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--learn-accent) 70%, transparent)); }
-svg text[data-term] { text-decoration: underline dotted; text-underline-offset: 2px; }
+.learn-help :where(button, a, input, select, textarea, summary)[data-term] { outline: 1.5px dashed color-mix(in srgb, var(--learn-accent) 70%, transparent); outline-offset: 2px; }
+.learn-help [data-term]:focus-visible { outline: 2px solid var(--learn-accent); outline-offset: 2px; border-radius: 3px; }
+.learn-help svg [data-term] { cursor: help; }
+.learn-help svg [data-term]:hover, .learn-help svg [data-term]:focus-visible, svg .learn-active { outline: none; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--learn-accent) 70%, transparent)); }
+.learn-help svg text[data-term] { text-decoration: underline dotted; text-underline-offset: 2px; }
 .learn-active:not(svg *) { background: color-mix(in srgb, var(--learn-accent) 12%, transparent); border-radius: 3px; }
 
-/* Explain mode: everything learnable gets a visible outline; clicks explain. */
-.learn-explain [data-term]:not(svg *) { outline: 1.5px dashed color-mix(in srgb, var(--learn-accent) 70%, transparent); outline-offset: 2px; border-radius: 3px; }
-.learn-explain svg [data-term] { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--learn-accent) 80%, transparent)); }
-.learn-toggle { border: 1px solid var(--learn-border); background: var(--learn-panel); color: var(--learn-text); border-radius: 999px; padding: 5px 12px; font: 600 12.5px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer; }
+/* The Help button, and the note that shows while Help is on. */
+.learn-toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--learn-border); background: var(--learn-panel); color: var(--learn-text); border-radius: 999px; padding: 4px 6px 4px 12px; font: 600 12.5px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer; flex: none; }
 .learn-toggle[aria-pressed="true"] { background: var(--learn-accent); border-color: var(--learn-accent); color: var(--accent-text, #fff); }
+.learn-toggle kbd, .learn-hint kbd { font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace; padding: 3px 6px; border-radius: 5px; border: 1px solid var(--learn-border); background: var(--learn-soft); color: var(--learn-muted); }
+.learn-toggle[aria-pressed="true"] kbd { background: transparent; border-color: currentColor; color: inherit; }
+.learn-hint {
+  position: fixed; z-index: 999; left: 50%; bottom: 18px; transform: translateX(-50%);
+  max-width: calc(100vw - 24px); padding: 8px 14px; border-radius: 999px;
+  background: var(--learn-text); color: var(--learn-panel); box-shadow: var(--learn-shadow);
+  font: 500 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center;
+}
+.learn-hint kbd { background: transparent; border-color: currentColor; color: inherit; opacity: .85; }
 
 /* Popover */
 .learn-pop { position: absolute; z-index: 1000; width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); display: grid; grid-template-rows: auto 1fr;
@@ -56,6 +63,7 @@ svg text[data-term] { text-decoration: underline dotted; text-underline-offset: 
 @media (max-width: 640px) {
   .learn-pop { position: fixed; left: 0; right: 0; bottom: 0; top: auto !important; width: 100%; max-height: 70vh; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
 }
+@media (max-width: 640px) { .learn-hint { border-radius: 12px; bottom: 12px; } }
 @media (prefers-reduced-motion: reduce) { .learn-pop { transition: none; } }
 
 /* Learning links in page headers */

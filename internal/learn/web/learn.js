@@ -1,11 +1,14 @@
 // learn.js: definitions for every labeled thing in simple-network.
 //
-// Mark any element with data-term="<id>" (an id from glossary.json). Then:
-//   - hovering it with a mouse previews the definition;
-//   - clicking, tapping, Enter or Space on a plain label pins the definition;
-//   - buttons and inputs keep working normally, unless Explain mode is on
-//     (toggle with any [data-learn-toggle] button or the "?" key), in which
-//     case clicking them explains them instead.
+// Mark any element with data-term="<id>" (an id from glossary.json).
+// Definitions stay out of the way until Help is on: toggle it with any
+// [data-learn-toggle] button or the "h" key ("?" works too); Esc turns it off.
+// While Help is on:
+//   - hovering a marked element with a mouse previews its definition;
+//   - clicking, Enter or Space on a plain label pins the definition;
+//   - buttons and inputs keep working, so you can learn while you use the app;
+//     on touch screens, which can't hover, tapping them explains them instead.
+// Learn.show() opens a definition regardless, for pages that ask explicitly.
 // Learn.autoTag(root) tags elements whose text matches a term's aliases; the
 // doc viewer uses it on Mermaid diagrams.
 (function () {
@@ -42,7 +45,7 @@
   function norm(s) { return String(s).replace(/\s+/g, " ").replace(/[·:…]+$/g, "").trim().toLowerCase(); }
 
   // An element "acts" if clicking it already does something (a button, a link,
-  // a form control). Those only explain themselves on hover or in Explain mode.
+  // a form control). Those explain themselves on hover, not on click.
   function acts(el) { return el.matches(INTERACTIVE) || !!el.closest("button, a[href]"); }
 
   /* ---------- popover ---------- */
@@ -121,26 +124,33 @@
     opener = null;
   }
 
-  /* ---------- explain mode ---------- */
-  let explain = false;
-  function setExplain(on) {
-    explain = on;
-    document.documentElement.classList.toggle("learn-explain", on);
-    document.querySelectorAll("[data-learn-toggle]").forEach((b) => {
-      b.setAttribute("aria-pressed", String(on));
-    });
-    try { localStorage.setItem("learn-explain", on ? "1" : "0"); } catch (_) {}
+  /* ---------- help mode ---------- */
+  // Off on every page load: definitions appear only after asking for them.
+  let help = false;
+  const hint = document.createElement("div");
+  hint.className = "learn-hint";
+  hint.setAttribute("role", "status");
+  hint.innerHTML = `Help is on. Hover anything to see what it means. <kbd>H</kbd> or <kbd>Esc</kbd> to turn it off.`;
+
+  function setHelp(on) {
+    help = on;
+    document.documentElement.classList.toggle("learn-help", on);
+    document.querySelectorAll("[data-learn-toggle]").forEach((b) => b.setAttribute("aria-pressed", String(on)));
+    if (on) document.body.append(hint);
+    else { hint.remove(); hide(); }
+    tagFocusable(document);
   }
-  try { if (localStorage.getItem("learn-explain") === "1") setExplain(true); } catch (_) {}
 
   /* ---------- events (delegated, so re-rendered content just works) ---------- */
   document.addEventListener("pointerover", (e) => {
     if (e.pointerType !== "mouse") return;
     if (pop.contains(e.target)) { clearTimeout(hideTimer); return; }
+    if (!help) return;
     const el = e.target.closest("[data-term]");
     if (!el || pinned) return;
     clearTimeout(hideTimer); clearTimeout(showTimer);
-    showTimer = setTimeout(() => ready.then(() => show(el, el.dataset.term, false)), anchor ? 60 : 280);
+    // Live pages redraw; skip a label that was replaced before the delay ran out.
+    showTimer = setTimeout(() => ready.then(() => { if (el.isConnected) show(el, el.dataset.term, false); }), anchor ? 60 : 280);
   });
   document.addEventListener("pointerout", (e) => {
     if (e.pointerType !== "mouse" || pinned) return;
@@ -150,15 +160,16 @@
     hideTimer = setTimeout(() => { if (!pinned) hide(); }, 220);
   });
 
-  // Capture phase so Explain mode can stop buttons from acting.
+  // Capture phase so a tap on a touch screen can explain a button instead of pressing it.
   document.addEventListener("click", (e) => {
     if (e.target.closest(".learn-pop-close")) { hide(); return; }
     const toggle = e.target.closest("[data-learn-toggle]");
-    if (toggle) { setExplain(!explain); return; }
+    if (toggle) { setHelp(!help); return; }
     if (pop.contains(e.target)) return;
 
-    const el = e.target.closest("[data-term]");
-    if (el && (explain || !acts(el))) {
+    const el = help && e.target.closest("[data-term]");
+    const touch = e.pointerType === "touch" || e.pointerType === "pen";
+    if (el && (touch || !acts(el))) {
       e.preventDefault(); e.stopPropagation();
       opener = el;
       ready.then(() => show(el, el.dataset.term, true));
@@ -171,8 +182,10 @@
     const tag = (document.activeElement && document.activeElement.tagName) || "";
     const typing = /INPUT|TEXTAREA|SELECT/.test(tag);
     if (e.key === "Escape" && !pop.hidden) { hide(); return; }
-    if (e.key === "?" && !typing) { setExplain(!explain); return; }
-    const el = e.target.closest && e.target.closest("[data-term]");
+    if (e.key === "Escape" && help) { setHelp(false); return; }
+    const plain = !typing && !e.ctrlKey && !e.metaKey && !e.altKey;
+    if (plain && (e.key === "h" || e.key === "H" || e.key === "?")) { e.preventDefault(); setHelp(!help); return; }
+    const el = help && e.target.closest && e.target.closest("[data-term]");
     if (el && !acts(el) && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault(); opener = el;
       ready.then(() => show(el, el.dataset.term, true));
@@ -181,18 +194,25 @@
   addEventListener("resize", () => { if (anchor && !pop.hidden) place(anchor); });
 
   /* ---------- making labels reachable ---------- */
-  // Plain labels (spans, table cells, SVG text) need a tab stop and a role.
+  // While Help is on, plain labels (spans, table cells, SVG text) get a tab
+  // stop and a role so the keyboard can reach them. With Help off they go back
+  // to being plain text. learnTab/learnRole record what this script added.
   function tagFocusable(root) {
     root.querySelectorAll("[data-term]").forEach((el) => {
-      if (el.dataset.learnReady) return;
-      el.dataset.learnReady = "1";
-      if (!acts(el)) {
-        if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0");
-        if (!el.hasAttribute("role")) el.setAttribute("role", "button");
-        el.setAttribute("aria-haspopup", "dialog");
-      }
       if (terms[el.dataset.term] && !el.hasAttribute("aria-label") && el.namespaceURI === "http://www.w3.org/2000/svg") {
         el.setAttribute("aria-label", terms[el.dataset.term].name);
+      }
+      if (acts(el)) return;
+      if (help && !el.dataset.learnReady) {
+        el.dataset.learnReady = "1";
+        if (!el.hasAttribute("tabindex")) { el.setAttribute("tabindex", "0"); el.dataset.learnTab = "1"; }
+        if (!el.hasAttribute("role")) { el.setAttribute("role", "button"); el.dataset.learnRole = "1"; }
+        el.setAttribute("aria-haspopup", "dialog");
+      } else if (!help && el.dataset.learnReady) {
+        if (el.dataset.learnTab) el.removeAttribute("tabindex");
+        if (el.dataset.learnRole) el.removeAttribute("role");
+        el.removeAttribute("aria-haspopup");
+        delete el.dataset.learnReady; delete el.dataset.learnTab; delete el.dataset.learnRole;
       }
     });
   }
@@ -273,5 +293,5 @@
   // lookup returns the term id for a label's text, or undefined (call after ready).
   const lookup = (text) => aliasIndex.get(norm(text)) || aliasIndex.get(norm(String(text).split(/\s*[(:]\s*/)[0]));
 
-  window.Learn = { ready, show: (el, id) => ready.then(() => show(el, id, true)), hide, autoTag, lookup, inlineSVG, terms: () => terms, setExplain, ktHref, DOCS };
+  window.Learn = { ready, show: (el, id) => ready.then(() => show(el, id, true)), hide, autoTag, lookup, inlineSVG, terms: () => terms, setHelp, ktHref, DOCS };
 })();

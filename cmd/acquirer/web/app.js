@@ -2,10 +2,13 @@
 // path from the terminal through the acquirer to the network and back.
 
 const LANES = [
-  { id: "pos", label: "POS", role: "Merchant terminal" },
-  { id: "acquirer", label: "Acquirer", role: "This bank" },
-  { id: "network", label: "Network", role: "Routes to the issuer" },
+  { id: "pos", label: "POS", role: "Merchant terminal", term: "pos-terminal" },
+  { id: "acquirer", label: "Acquirer", role: "This bank", term: "acquirer" },
+  { id: "network", label: "Network", role: "Routes to the issuer", term: "network" },
 ];
+// Glossary terms for the labels Help mode explains.
+const MTI_TERMS = { "0100": "msg-0100", "0110": "msg-0110" };
+const FIELD_TERMS = { DE11: "de11", DE18: "de18", DE32: "de32-acquirer-id" };
 const LANE_INDEX = Object.fromEntries(LANES.map((l, i) => [l.id, i]));
 const POLL_MS = 2000;
 
@@ -34,19 +37,19 @@ function statusBadge(rec) {
   const code = rec.response.de39_response_code;
   const text = data.response_codes[code]?.text || "Unknown";
   const [cls, icon] = { APPROVED: ["good", "✓"], PARTIAL: ["", "◐"], DECLINED: ["bad", "✕"] }[rec.status] || ["", ""];
-  return `<span class="status ${cls}" title="${escapeHTML(text)}"><span aria-hidden="true">${icon}</span> ${escapeHTML(code)} ${escapeHTML(text)}</span>`;
+  return `<span class="status ${cls}" data-term="de39"><span aria-hidden="true">${icon}</span> ${escapeHTML(code)} ${escapeHTML(text)}</span>`;
 }
 
 function renderKPIs() {
   const s = data.stats;
   const kpis = [
-    ["Authorizations", s.count],
-    ["Approval rate", s.count ? Math.round(s.approval_rate * 100) + "%" : "—"],
-    ["Avg response time", s.count ? fmtMS(s.avg_ms) : "—"],
-    ["Avg network round trip", s.network_ms ? fmtMS(s.network_ms) : "—"],
+    ["Authorizations", "authorization", s.count],
+    ["Approval rate", "approval-rate", s.count ? Math.round(s.approval_rate * 100) + "%" : "—"],
+    ["Avg response time", "latency", s.count ? fmtMS(s.avg_ms) : "—"],
+    ["Avg network round trip", "latency", s.network_ms ? fmtMS(s.network_ms) : "—"],
   ];
   document.getElementById("kpis").innerHTML = kpis
-    .map(([label, value]) => `<div class="kpi"><small>${label}</small><b>${value}</b></div>`)
+    .map(([label, term, value]) => `<div class="kpi"><small><span data-term="${term}">${label}</span></small><b>${value}</b></div>`)
     .join("");
 }
 
@@ -74,7 +77,7 @@ function renderPath(rec) {
     (selectedKey ? "" : " · following newest");
 
   const lanes = LANES.map(
-    (l) => `<div class="lane${l.id === "acquirer" ? " here" : ""}">${l.label}<small>${l.role}</small></div>`
+    (l) => `<div class="lane${l.id === "acquirer" ? " here" : ""}"><span data-term="${l.term}">${l.label}</span><small>${l.role}</small></div>`
   ).join("");
 
   const approved = rec.status !== "DECLINED";
@@ -88,7 +91,7 @@ function renderPath(rec) {
       const tone = s.mti === "0110" ? (approved ? "good" : "bad") : "";
       return `<div class="seq-row">
         <div class="msg ${dir} ${tone}" style="grid-column: ${2 * lo + 2} / ${2 * hi + 2}">
-          <div class="msg-label"><span class="mti">${escapeHTML(s.mti)}</span>${escapeHTML(s.title)}</div>
+          <div class="msg-label"><span class="mti" data-term="${MTI_TERMS[s.mti] || "mti"}">${escapeHTML(s.mti)}</span>${escapeHTML(s.title)}</div>
           <div class="msg-line"></div>
           <div class="msg-ms">${s.ms ? fmtMS(s.ms) : "&nbsp;"}</div>
         </div>
@@ -102,7 +105,7 @@ function renderPath(rec) {
       <div class="table-wrap"><table class="changes"><thead><tr><th>Field</th><th>Terminal</th><th></th><th>Network leg</th><th>Why</th></tr></thead><tbody>
       ${rec.changes
         .map(
-          (c) => `<tr><td><span class="mono">${escapeHTML(c.field)}</span> ${escapeHTML(c.name)}</td>
+          (c) => `<tr><td><span class="mono" data-term="${FIELD_TERMS[c.field] || "iso8583"}">${escapeHTML(c.field)}</span> ${escapeHTML(c.name)}</td>
             <td class="mono">${escapeHTML(c.before || "—")}</td><td class="arrow">→</td>
             <td class="mono">${escapeHTML(c.after)}</td><td>${escapeHTML(c.why)}</td></tr>`
         )
@@ -117,9 +120,9 @@ function renderPath(rec) {
     <div class="seq"><div class="seq-lanes">${lanes}</div>${rows}</div>
     <div class="path-foot">
       <span>Result ${statusBadge(rec)}</span>
-      <span>Total at acquirer <b>${fmtMS(rec.total_ms)}</b></span>
-      ${rec.response.de38_auth_code ? `<span>Auth code <b class="mono">${escapeHTML(rec.response.de38_auth_code)}</b></span>` : ""}
-      ${txnID ? `<span>Network txn <b class="mono">${escapeHTML(txnID)}</b></span>` : ""}
+      <span><span data-term="latency">Total at acquirer</span> <b>${fmtMS(rec.total_ms)}</b></span>
+      ${rec.response.de38_auth_code ? `<span><span data-term="de38">Auth code</span> <b class="mono">${escapeHTML(rec.response.de38_auth_code)}</b></span>` : ""}
+      ${txnID ? `<span><span data-term="network-txn-id">Network txn</span> <b class="mono">${escapeHTML(txnID)}</b></span>` : ""}
       ${link}
     </div>
     ${changes}`;
@@ -184,12 +187,22 @@ function render() {
   renderMerchants();
 }
 
+// lastBody is the previous poll's response; the page redraws only when it
+// changes, so a label being hovered in Help mode isn't replaced under the pointer.
+let lastBody = "";
+
 async function poll() {
   try {
-    data = await (await fetch("/api/overview")).json();
-    document.getElementById("bank").textContent = `${data.bank.name} · Acquirer ID (DE32) ${data.bank.id}`;
-    render();
+    const body = await (await fetch("/api/overview")).text();
+    if (body !== lastBody) {
+      lastBody = body;
+      data = JSON.parse(body);
+      document.getElementById("bank").textContent = `${data.bank.name} · Acquirer ID (DE32) ${data.bank.id}`;
+      document.getElementById("bank").dataset.term = "de32-acquirer-id";
+      render();
+    }
   } catch {
+    lastBody = "";
     document.getElementById("bank").textContent = "Acquirer not reachable. Retrying…";
   }
   setTimeout(poll, POLL_MS);

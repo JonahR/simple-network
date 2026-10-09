@@ -16,7 +16,8 @@
       .map((p, i) => {
         const current = p.id === nav.dataset.page ? ' aria-current="page"' : "";
         const arrow = i ? '<span class="sn-nav-arrow" aria-hidden="true">→</span>' : "";
-        return `${arrow}<a href="${esc(p.url)}"${current} title="${esc(p.role)}">${esc(p.label)}</a>`;
+        // data-term lets the learning layer's Help mode explain each participant.
+        return `${arrow}<a href="${esc(p.url)}"${current} data-term="${esc(p.term)}" aria-description="${esc(p.role)}">${esc(p.label)}</a>`;
       })
       .join("");
   }

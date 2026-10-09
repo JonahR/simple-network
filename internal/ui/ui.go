@@ -24,6 +24,7 @@ type Page struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
 	Role  string `json:"role"`
+	Term  string `json:"term"` // Glossary term that explains the participant in Help mode
 	URL   string `json:"url"`
 }
 
@@ -31,9 +32,9 @@ type Page struct {
 // browser should use. They differ from the service-to-service URLs in Docker.
 func PagesFromEnv() []Page {
 	return []Page{
-		{"pos", "POS", "Merchant terminal", env("POS_PUBLIC_URL", "http://localhost:8080")},
-		{"acquirer", "Acquirer", "Merchant's bank", env("ACQUIRER_PUBLIC_URL", "http://localhost:8081")},
-		{"network", "Network", "Card network switch", env("NETWORK_DASHBOARD_URL", "http://localhost:8090")},
+		{"pos", "POS", "Merchant terminal", "pos-terminal", env("POS_PUBLIC_URL", "http://localhost:8080")},
+		{"acquirer", "Acquirer", "Merchant's bank", "acquirer", env("ACQUIRER_PUBLIC_URL", "http://localhost:8081")},
+		{"network", "Network", "Card network switch", "network", env("NETWORK_DASHBOARD_URL", "http://localhost:8090")},
 	}
 }
 

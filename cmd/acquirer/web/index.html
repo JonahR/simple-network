@@ -6,12 +6,17 @@
 <title>simple-network Acquirer</title>
 <link rel="stylesheet" href="/ui/nav.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/learn/learn.css">
 </head>
 <body>
 <header>
-  <div class="brand">simple-network <span>Acquirer</span></div>
-  <div class="bank" id="bank">Loading…</div>
+  <div class="brand"><b data-term="network">simple-network</b> <span data-term="acquirer">Acquirer</span></div>
   <nav class="sn-nav" data-page="acquirer"></nav>
+  <div class="bank" id="bank">Loading…</div>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/learn/">Learn the network</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" aria-keyshortcuts="h">Help <kbd>H</kbd></button>
+  </nav>
 </header>
 
 <main>
@@ -19,7 +24,7 @@
 
   <section class="panel path-panel">
     <div class="panel-head">
-      <h2>Message path</h2>
+      <h2><span data-term="payment-flows">Message path</span></h2>
       <span class="muted" id="path-title"></span>
     </div>
     <div id="path" class="empty">No authorizations yet. Charge a sale on the POS and it appears here.</div>
@@ -27,12 +32,12 @@
 
   <section class="panel">
     <div class="panel-head">
-      <h2>Authorizations</h2>
+      <h2><span data-term="authorization">Authorizations</span></h2>
       <span class="muted">Select a row to see its path</span>
     </div>
     <div class="table-wrap">
       <table class="list">
-        <thead><tr><th>Time</th><th>Merchant</th><th>Terminal</th><th>STAN</th><th>Card</th><th class="num">Amount</th><th>Response</th><th class="num">Time taken</th></tr></thead>
+        <thead><tr><th data-term="de7">Time</th><th data-term="merchant">Merchant</th><th data-term="de41">Terminal</th><th data-term="de11">STAN</th><th data-term="de2">Card</th><th class="num" data-term="de4">Amount</th><th data-term="de39">Response</th><th class="num" data-term="latency">Time taken</th></tr></thead>
         <tbody id="txns"><tr><td colspan="8" class="empty">No authorizations yet.</td></tr></tbody>
       </table>
     </div>
@@ -40,12 +45,12 @@
 
   <section class="panel">
     <div class="panel-head">
-      <h2>Merchants</h2>
-      <span class="muted">Pending settlement since start-up (estimate)</span>
+      <h2><span data-term="merchant">Merchants</span></h2>
+      <span class="muted">Pending <span data-term="settlement">settlement</span> since start-up (estimate)</span>
     </div>
     <div class="table-wrap">
       <table class="list">
-        <thead><tr><th>Merchant</th><th>Category (MCC)</th><th>Terminals</th><th class="num">Discount rate</th><th class="num">Approved / declined</th><th class="num">Sales</th><th class="num">Refunds</th><th class="num">Fees</th><th class="num">Owed to merchant</th></tr></thead>
+        <thead><tr><th data-term="merchant">Merchant</th><th data-term="de18">Category (MCC)</th><th data-term="de41">Terminals</th><th class="num" data-term="mdr">Discount rate</th><th class="num" data-term="approval-rate">Approved / declined</th><th class="num" data-term="purchase">Sales</th><th class="num" data-term="refund">Refunds</th><th class="num" data-term="mdr">Fees</th><th class="num" data-term="funding">Owed to merchant</th></tr></thead>
         <tbody id="merchants"></tbody>
       </table>
     </div>
@@ -55,5 +60,6 @@
 
 <script src="/ui/nav.js"></script>
 <script src="app.js"></script>
+<script src="/learn/learn.js"></script>
 </body>
 </html>
