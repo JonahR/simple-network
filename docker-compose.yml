@@ -22,6 +22,7 @@ services:
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
       ISSUER_PUBLIC_URL: "http://localhost:8091"
       SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"
+      RISKLAB_PUBLIC_URL: "http://localhost:8093"
     depends_on:
       - acquirer
 
@@ -50,6 +51,7 @@ services:
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
       ISSUER_PUBLIC_URL: "http://localhost:8091"
       SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"
+      RISKLAB_PUBLIC_URL: "http://localhost:8093"
     depends_on:
       - network
 
@@ -71,6 +73,7 @@ services:
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
       ISSUER_PUBLIC_URL: "http://localhost:8091"
       SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"
+      RISKLAB_PUBLIC_URL: "http://localhost:8093"
     depends_on:
       - issuer
 
@@ -93,3 +96,30 @@ services:
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
       ISSUER_PUBLIC_URL: "http://localhost:8091"
       SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"
+      RISKLAB_PUBLIC_URL: "http://localhost:8093"
+
+  risklab:
+    build:
+      context: .
+      args:
+        SERVICE: risklab
+    ports:
+      - "8093:8093"
+    environment:
+      RISKLAB_ADDR: ":8093"
+      ACQUIRER_ID: "100001"
+      ACQUIRER_URL: "http://acquirer:8081"
+      NETWORK_URL: "http://network:8090"
+      ISSUER_FSB_URL: "http://issuer:8091"
+      ISSUER_UCB_URL: "http://issuer:8092"
+      # Opened by your browser, not other containers
+      POS_PUBLIC_URL: "http://localhost:8080"
+      ACQUIRER_PUBLIC_URL: "http://localhost:8081"
+      NETWORK_DASHBOARD_URL: "http://localhost:8090"
+      ISSUER_PUBLIC_URL: "http://localhost:8091"
+      ISSUER_FSB_PUBLIC_URL: "http://localhost:8091"
+      ISSUER_UCB_PUBLIC_URL: "http://localhost:8092"
+      SETTLEMENT_PUBLIC_URL: "http://localhost:8090/settlement/"
+      RISKLAB_PUBLIC_URL: "http://localhost:8093"
+    depends_on:
+      - acquirer

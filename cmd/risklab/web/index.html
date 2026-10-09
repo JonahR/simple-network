@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>simple-network Risk lab</title>
+<link rel="stylesheet" href="/ui/nav.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/learn/learn.css">
+</head>
+<body>
+<header>
+  <div class="brand"><b data-term="network">simple-network</b> <span data-term="risk-lab">Risk lab</span></div>
+  <nav class="sn-nav" data-page="risklab"></nav>
+  <div class="who" id="who">Drills run as the <span data-term="merchant">Risk Lab merchant</span>, <span data-term="de41">terminal RISK0001</span></div>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/learn/">Learn the network</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" aria-keyshortcuts="h">Help <kbd>H</kbd></button>
+  </nav>
+</header>
+
+<main>
+  <aside class="drills" aria-label="Drills">
+    <section class="panel">
+      <h2><span data-term="card-testing">Fraud</span></h2>
+      <div id="drills-fraud" class="drill-list"><p class="empty">Loading…</p></div>
+    </section>
+    <section class="panel">
+      <h2><span data-term="issuer-health">Failures</span></h2>
+      <div id="drills-failure" class="drill-list"></div>
+    </section>
+  </aside>
+
+  <div class="work">
+    <section class="panel run-panel" aria-live="polite">
+      <div class="panel-head">
+        <h2><span data-term="risk-lab">Run</span></h2>
+        <span class="muted" id="run-meta"></span>
+      </div>
+      <div id="run-head" class="empty">Pick a drill and press Run. Every message goes through the real acquirer, network and issuers, so you can follow it on their pages.</div>
+      <div class="kpis" id="kpis" hidden></div>
+      <div id="watch" class="watch" hidden></div>
+      <div class="table-wrap" id="results-wrap" hidden>
+        <table class="results">
+          <thead><tr>
+            <th class="num">#</th>
+            <th><span data-term="risk-lab">What the drill tried</span></th>
+            <th><span data-term="de39">Expected</span></th>
+            <th><span data-term="de39">Got</span></th>
+            <th><span data-term="switch-trace">Stopped at</span></th>
+            <th><span data-term="drill-verdict">Verdict</span></th>
+            <th><span data-term="payment-flows">Follow it</span></th>
+          </tr></thead>
+          <tbody id="results"></tbody>
+        </table>
+      </div>
+      <p class="hint" id="trimmed" hidden></p>
+    </section>
+
+    <section class="panel">
+      <h2><span data-term="drill-verdict">Recent runs</span></h2>
+      <div id="history" class="empty">No runs yet.</div>
+    </section>
+  </div>
+</main>
+
+<script src="/ui/nav.js"></script>
+<script src="app.js"></script>
+<script src="/learn/learn.js"></script>
+</body>
+</html>

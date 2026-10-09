@@ -153,6 +153,25 @@ Related standards: **PCI PIN** (PIN handling), **PCI PTS** (terminal hardware), 
 | Replayable event log | Rebuild state after a failure |
 | Per-participant rate limits / circuit breakers | One bad acquirer cannot overload the switch |
 
+## Risk lab drills in `simple-network`
+
+The Risk lab (http://localhost:8093) runs each threat above that the simulation can stage, through the real services, as the Risk Lab merchant's terminal `RISK0001`. Each row shows which participant stopped the message and with which control. **Gap** rows are honest about what this network doesn't do yet.
+
+| Drill | Stopped by | Gap it shows |
+|---|---|---|
+| Card testing | Network Luhn check (30), issuer account lookup (14) | No velocity check: 20 guesses from one terminal go through unslowed |
+| Stolen card number, guessing the CVV | Issuer CVV2 (N7) and expiry (54) checks | No limit on CVV2 failures: the fifth guess is approved |
+| Stolen debit card, guessing the PIN | PIN translation and issuer PIN check (55) | No PIN try counter: the fourth guess is approved |
+| Lost card, frozen | Issuer card status (62) | |
+| Stolen wallet token | Token vault domain, cryptogram and status checks (05, 62) | |
+| Replayed authorization | Acquirer and network duplicate detection | |
+| Messages from outside the acquirer | Acquirer terminal registration (03) | No message authentication or member check at the network |
+| Malformed and misrouted messages | Network validation (30) and BIN routing (15) | |
+| Issuer too slow | 5s timeout, 91, and a timeout reversal | |
+| Issuer outage | Circuit breaker | |
+
+A drill voids its own approvals and restores what it changed (frozen cards, suspended tokens, issuer fault modes), so it leaves nothing for clearing.
+
 ## Key takeaways
 
 - The network adds risk value because it sees across the whole ecosystem. Score every authorization, but let issuers decide.

@@ -1,5 +1,5 @@
 {
-  "about": "Definitions for every learnable label in simple-network. kt links are Network KT docs (file#anchor); ext links are official or reference sources. Validated by internal/learn/learn_test.go and each service's learn_test.go (cmd/pos, cmd/network, cmd/acquirer).",
+  "about": "Definitions for every learnable label in simple-network. kt links are Network KT docs (file#anchor); ext links are official or reference sources. Validated by internal/learn/learn_test.go and each service's learn_test.go (cmd/pos, cmd/network, cmd/acquirer, cmd/risklab).",
   "terms": {
     "cardholder": {
       "name": "Cardholder",
@@ -3896,6 +3896,175 @@
         "Paid in full",
         "Collecting the balance",
         "Cash"
+      ]
+    },
+    "risk-lab": {
+      "name": "Risk lab",
+      "def": "A training page that stages fraud attempts and failures against the running simulation. Each drill sends real messages through the acquirer and network as the Risk Lab merchant's terminal RISK0001, records which control stopped each one (or that none did), and then cleans up: it voids its own approvals, unfreezes cards and restores issuer modes. Follow any row to the acquirer, network or issuer page to see how that participant handled it.",
+      "kt": [
+        [
+          "Risk lab drills",
+          "09-risk-fraud-and-security.md#risk-lab-drills-in-simple-network"
+        ],
+        [
+          "The threat map",
+          "09-risk-fraud-and-security.md#the-threat-map"
+        ]
+      ],
+      "ext": [
+        [
+          "Tabletop exercise (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Tabletop_exercise"
+        ],
+        [
+          "Chaos engineering (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Chaos_engineering"
+        ]
+      ],
+      "aliases": [
+        "Risk lab",
+        "Risk Lab",
+        "Drills",
+        "Drill",
+        "RISK0001"
+      ]
+    },
+    "drill-verdict": {
+      "name": "Drill verdict",
+      "def": "How a Risk lab row turned out. Caught: a control declined it, as the drill expected. Allowed: a legitimate baseline purchase, approved as it should be. Gap: the simulation behaved as built, but a real network or issuer would have stopped it; the row says what it would do. Unexpected: the result didn't match what the drill expected, which usually means a bug or leftover state from other traffic.",
+      "kt": [
+        [
+          "Risk lab drills",
+          "09-risk-fraud-and-security.md#risk-lab-drills-in-simple-network"
+        ],
+        [
+          "Layered fraud defense",
+          "09-risk-fraud-and-security.md#layered-fraud-defense"
+        ]
+      ],
+      "ext": [
+        [
+          "Defense in depth (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Defense_in_depth_(computing)"
+        ]
+      ],
+      "aliases": [
+        "Verdict",
+        "Caught",
+        "Gap",
+        "Gaps",
+        "Allowed",
+        "Unexpected",
+        "Scorecard"
+      ]
+    },
+    "card-testing": {
+      "name": "Card testing",
+      "def": "Also called enumeration or a BIN attack. A fraudster sends many small authorizations with guessed or stolen card numbers, expiries or CVV2s to learn which ones work, then uses the good ones for larger fraud. Each attempt looks harmless alone; the pattern across many attempts from one merchant, terminal or BIN range is what gives it away.",
+      "kt": [
+        [
+          "The threat map",
+          "09-risk-fraud-and-security.md#the-threat-map"
+        ],
+        [
+          "A simple risk score",
+          "09-risk-fraud-and-security.md#a-simple-network-risk-score-for-simple-network"
+        ]
+      ],
+      "ext": [
+        [
+          "Carding (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Carding_(fraud)"
+        ]
+      ],
+      "aliases": [
+        "Card testing",
+        "Enumeration",
+        "BIN attack"
+      ]
+    },
+    "velocity-check": {
+      "name": "Velocity check",
+      "def": "A fraud rule that counts events in a time window: authorizations per card, declines per merchant or terminal, distinct cards per device. Crossing a threshold blocks the source or raises its risk score. simple-network has none yet, which the card-testing, CVV2 and PIN drills show as gaps.",
+      "kt": [
+        [
+          "A simple risk score",
+          "09-risk-fraud-and-security.md#a-simple-network-risk-score-for-simple-network"
+        ],
+        [
+          "Layered fraud defense",
+          "09-risk-fraud-and-security.md#layered-fraud-defense"
+        ]
+      ],
+      "ext": [
+        [
+          "Rate limiting (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Rate_limiting"
+        ]
+      ],
+      "aliases": [
+        "Velocity check",
+        "Velocity",
+        "Velocity rules"
+      ]
+    },
+    "message-authentication": {
+      "name": "Message authentication",
+      "def": "Proof that a message came from the member it claims and wasn't changed on the way. Real networks accept traffic only over dedicated, mutually authenticated links from certified members, and many add a MAC (message authentication code, ISO 8583 DE64/DE128) computed with a shared key. simple-network checks a message's format but not its sender, so anything that can reach the switch can pose as an acquirer.",
+      "kt": [
+        [
+          "The threat map",
+          "09-risk-fraud-and-security.md#the-threat-map"
+        ],
+        [
+          "Cryptography and keys",
+          "09-risk-fraud-and-security.md#cryptography-and-keys"
+        ]
+      ],
+      "ext": [
+        [
+          "Message authentication code (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Message_authentication_code"
+        ],
+        [
+          "Mutual authentication (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Mutual_authentication"
+        ]
+      ],
+      "aliases": [
+        "Message authentication",
+        "Sender authentication",
+        "MAC",
+        "Member check"
+      ]
+    },
+    "pin-try-counter": {
+      "name": "PIN try counter",
+      "def": "The count of wrong PIN entries the issuer (and the chip itself, offline) keeps for a card. After a limit, usually three, the PIN is blocked and further attempts decline with 75 (allowable PIN tries exceeded) until the cardholder resets it. Without one, a thief can keep guessing.",
+      "kt": [
+        [
+          "Cryptography and keys",
+          "09-risk-fraud-and-security.md#cryptography-and-keys"
+        ],
+        [
+          "Layered fraud defense",
+          "09-risk-fraud-and-security.md#layered-fraud-defense"
+        ]
+      ],
+      "ext": [
+        [
+          "Personal identification number (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Personal_identification_number"
+        ],
+        [
+          "EMV (Wikipedia)",
+          "https://en.wikipedia.org/wiki/EMV"
+        ]
+      ],
+      "aliases": [
+        "PIN try counter",
+        "PIN tries",
+        "PIN try limit"
       ]
     }
   }

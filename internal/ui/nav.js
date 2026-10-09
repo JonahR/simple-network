@@ -17,7 +17,8 @@
     nav.innerHTML = pages
       .map((p, i) => {
         const current = p.id === nav.dataset.page ? ' aria-current="page"' : "";
-        const arrow = i ? '<span class="sn-nav-arrow" aria-hidden="true">→</span>' : "";
+        // Pages outside the payment flow (the Risk lab) follow a divider, not an arrow.
+        const arrow = !i ? "" : p.aside ? '<span class="sn-nav-sep" aria-hidden="true"></span>' : '<span class="sn-nav-arrow" aria-hidden="true">→</span>';
         // data-term lets the learning layer's Help mode explain each participant.
         return `${arrow}<a href="${esc(p.url)}"${current} data-term="${esc(p.term)}" aria-description="${esc(p.role)}">${esc(p.label)}</a>`;
       })

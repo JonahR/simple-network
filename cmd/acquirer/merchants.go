@@ -25,4 +25,8 @@ var demoMerchants = []Merchant{
 		Terminals: []string{"TERM0101", "TERM0102"}, DiscountBPS: 190},
 	{ID: "000000000034567", Name: "Bayside Fuel", City: "San Jose", Country: "US", MCC: "5542",
 		Terminals: []string{"PUMP0001", "PUMP0002", "PUMP0003"}, DiscountBPS: 210},
+	// The Risk lab (cmd/risklab) sends its drills as this merchant's terminal,
+	// so they are easy to pick out on every page.
+	{ID: "000000000099001", Name: "Risk Lab", City: "San Francisco", Country: "US", MCC: "5999",
+		Terminals: []string{"RISK0001"}, DiscountBPS: 250},
 }

@@ -30,13 +30,21 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
 }
 .sn-nav-arrow { color: var(--muted, #6b6b66); font-weight: 400; opacity: .7; }
+.sn-nav-sep { align-self: stretch; width: 1px; margin: 3px 4px; background: var(--muted, #6b6b66); opacity: .35; }
 
-/* Below 1300px some headers no longer fit on one row and each wraps
+/* Below 1400px some headers no longer fit on one row and each wraps
    differently, so the nav takes the header's first row instead, full width,
-   in the same place on every page. 1300px clears the widest headers (the
-   settlement and issuer pages start wrapping at about 1260px) with room for
-   font differences. */
-@media (max-width: 1300px) {
+   in the same place on every page. 1400px clears the widest headers (the
+   settlement and issuer pages start wrapping at about 1350px with the Risk
+   lab link) with room for font differences. */
+@media (max-width: 1400px) {
   .sn-nav { order: -1; flex: 1 0 100%; margin-left: 0; }
   .sn-nav a { flex: 1; text-align: center; padding-inline: 6px; }
+}
+
+/* On a phone the six links don't fit even full width; scroll the nav
+   sideways rather than widen the page. */
+@media (max-width: 640px) {
+  .sn-nav { overflow-x: auto; scrollbar-width: none; }
+  .sn-nav a { flex: none; }
 }
