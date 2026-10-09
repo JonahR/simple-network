@@ -334,6 +334,14 @@ pre {
 .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 @media (max-width: 420px) { .row3 { grid-template-columns: 1fr; } }
 
+/* Split tender */
+.balance-due { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 12px; margin: 0 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--warn-bg); color: var(--warn-text); }
+.balance-due b { font-size: 15px; }
+.balance-due button { padding: 6px 12px; }
+.split-note { margin: 0 0 12px; color: var(--muted); }
+.split-banner { margin: 0 0 12px; padding: 8px 10px; border-radius: 8px; background: var(--warn-bg); color: var(--warn-text); font-size: 13px; }
+button.link { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
+
 /* Receipts */
 .result-actions { margin-left: auto; display: flex; gap: 8px; }
 .result-head .result-actions button.void { margin-left: 0; }

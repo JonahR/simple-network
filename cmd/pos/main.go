@@ -69,6 +69,10 @@ type SaleInput struct {
 	// Simulation: send the 0100 but drop the 0110, as if the line went dead.
 	// The terminal then reverses the sale it never heard back about.
 	LoseResponse bool `json:"lose_response"`
+
+	// SplitOf collects the balance due on an earlier partially approved sale
+	// (its STAN) with this card.
+	SplitOf string `json:"split_of"`
 }
 
 // StoredCard is a card the merchant keeps on file for a returning customer.
@@ -109,6 +113,13 @@ type Transaction struct {
 	Response *iso8583.AuthResponse `json:"response,omitempty"` // Redacted; nil if the acquirer never answered
 	Created  time.Time             `json:"created"`
 	Reversal *Reversal             `json:"reversal,omitempty"` // Set once the terminal starts undoing the sale
+
+	// Split tender. A partial approval leaves a balance due on the first
+	// tender; each further tender (card or cash) names it in SplitOf and
+	// reduces its BalanceDue.
+	Tender     string `json:"tender"`                // "card" or "cash"
+	SplitOf    string `json:"split_of,omitempty"`    // STAN of the first tender
+	BalanceDue int64  `json:"balance_due,omitempty"` // On the first tender: still to collect
 
 	// The 0100 as sent, unmasked, so a reversal can identify the sale. Never
 	// serialized; the PIN block, CVV, track data and cryptogram are dropped.
@@ -178,6 +189,7 @@ func main() {
 	mux.HandleFunc("POST /api/sale", s.handleSale)
 	mux.HandleFunc("POST /api/void", s.handleVoid)
 	mux.HandleFunc("POST /api/chip-failure", s.handleChipFailure)
+	mux.HandleFunc("POST /api/cash", s.handleCash)
 	mux.HandleFunc("GET /api/transactions", s.handleTransactions)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	ui.Register(mux, ui.PagesFromEnv())
@@ -224,12 +236,17 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req, fieldErrs := s.buildAuthRequest(in, time.Now())
+	if len(fieldErrs) == 0 && in.SplitOf != "" {
+		if msg := s.checkSplit(in.SplitOf, req.Amount, req.Currency); msg != "" {
+			fieldErrs = fieldErrors{"amount": msg}
+		}
+	}
 	if len(fieldErrs) > 0 {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"errors": fieldErrs})
 		return
 	}
 
-	tx := &Transaction{Request: req.Redacted(card.Mask), Created: time.Now(), sent: forReversal(req)}
+	tx := &Transaction{Request: req.Redacted(card.Mask), Created: time.Now(), sent: forReversal(req), Tender: "card", SplitOf: in.SplitOf}
 	resp, err := s.acquirer.authorize(r.Context(), req)
 	if err == nil && in.LoseResponse {
 		err = errors.New("the 0110 was lost on the way back (simulated)")
@@ -243,6 +260,7 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.Lock()
 	s.history = append(s.history, tx)
+	s.applyTender(tx, req.Amount)
 	s.mu.Unlock()
 
 	// D9: a terminal that never hears back can't know whether the issuer

@@ -16,6 +16,7 @@ import (
 // first `busy` reversals with 91.
 type stubAcquirer struct {
 	mu        sync.Mutex
+	limits    map[string]int64 // PAN -> what's left on the card; more is partially approved
 	busy      int
 	reversals []iso8583.ReversalAdvice
 }
@@ -25,9 +26,16 @@ func (a *stubAcquirer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/authorize":
 		var req iso8583.AuthRequest
 		json.NewDecoder(r.Body).Decode(&req)
+		amount, code := req.Amount, "00"
+		a.mu.Lock()
+		if limit, ok := a.limits[req.PAN]; ok && amount > limit {
+			amount, code = limit, "10" // Partial approval: only what's on the card
+			a.limits[req.PAN] = 0
+		}
+		a.mu.Unlock()
 		json.NewEncoder(w).Encode(iso8583.AuthResponse{
-			MTI: "0110", PAN: req.PAN, Amount: req.Amount, STAN: req.STAN, RRN: req.RRN,
-			ResponseCode: "00", AuthCode: "ABC123", NetworkTxnID: "NTX-" + req.STAN, ResponseText: "Approved",
+			MTI: "0110", PAN: req.PAN, Amount: amount, STAN: req.STAN, RRN: req.RRN,
+			ResponseCode: code, AuthCode: "ABC123", NetworkTxnID: "NTX-" + req.STAN, ResponseText: "Approved",
 		})
 	case "/reverse":
 		var adv iso8583.ReversalAdvice

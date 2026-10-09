@@ -423,6 +423,7 @@ form.addEventListener("submit", async (e) => {
     }
     renderResult(data);
     form.reset();
+    setSplit(null);
     resetCardRead();
     updateForm();
     loadHistory();
@@ -522,6 +523,7 @@ const STATUS = {
   DECLINED: ["critical", "✕", "Declined"],
   NO_RESPONSE: ["critical", "!", "No response"],
   VOIDED: ["", "↩", "Voided"],
+  CASH: ["good", "$", "Cash"],
 };
 const REVERSAL_STATUS = {
   PENDING: ["warning", "…", "Reversal pending"],
@@ -543,6 +545,57 @@ function statusBadge(tx) {
 }
 
 const canVoid = (tx) => (tx.status === "APPROVED" || tx.status === "PARTIAL") && !tx.reversal;
+
+// --- Split tender --------------------------------------------------------------
+
+// balanceSection offers ways to collect what a partial approval left unpaid.
+function balanceSection(tx) {
+  if (tx.split_of) return `<p class="split-note"><span data-term="split-tender">Split tender</span> toward sale STAN ${escapeHTML(tx.split_of)}.</p>`;
+  if (tx.status !== "PARTIAL" || tx.reversal) return "";
+  const cur = tx.request.de49_currency;
+  if (!tx.balance_due) return `<p class="split-note"><span class="status good" data-term="split-tender">✓ Paid in full</span> with split tender.</p>`;
+  return `<div class="balance-due">
+    <span><span data-term="split-tender">Balance due</span> <b>${money(tx.balance_due, cur)}</b></span>
+    <button type="button" data-split-card="${escapeHTML(tx.request.de11_stan)}" data-balance="${tx.balance_due}" data-term="split-tender">Pay rest by card</button>
+    <button type="button" class="secondary" data-split-cash="${escapeHTML(tx.request.de11_stan)}" data-balance="${tx.balance_due}" data-term="split-tender">Pay rest in cash</button>
+  </div>`;
+}
+
+function setSplit(stan, balance) {
+  form.split_of.value = stan || "";
+  const banner = document.getElementById("split-banner");
+  banner.hidden = !stan;
+  if (stan) {
+    form.amount.value = (balance / 100).toFixed(2);
+    banner.innerHTML = `<span data-term="split-tender">Collecting the balance</span> of sale STAN ${escapeHTML(stan)}: present another card. <button type="button" class="link" data-split-cancel>Cancel</button>`;
+  }
+}
+
+document.addEventListener("click", async (e) => {
+  const card = e.target.closest("button[data-split-card]");
+  if (card) {
+    setSplit(card.dataset.splitCard, Number(card.dataset.balance));
+    form.amount.focus();
+    return;
+  }
+  if (e.target.closest("button[data-split-cancel]")) return setSplit(null);
+  const cash = e.target.closest("button[data-split-cash]");
+  if (!cash) return;
+  cash.disabled = true;
+  try {
+    const res = await fetch("/api/cash", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ split_of: cash.dataset.splitCash, amount: (Number(cash.dataset.balance) / 100).toFixed(2) }),
+    });
+    const data = await res.json();
+    if (res.ok) renderResult(data);
+    else alertResult(data.error || "Cash tender failed.");
+  } catch {
+    alertResult("Could not reach the terminal server.");
+  }
+  loadHistory();
+});
 const voidButton = (tx, cls = "") =>
   canVoid(tx) ? `<button type="button" class="void ${cls}" data-void="${escapeHTML(tx.request.de11_stan)}" data-term="void">Void</button>` : "";
 
@@ -619,6 +672,7 @@ function renderResult(tx) {
       <p>${escapeHTML(tx.message)}</p>
       <span class="result-actions">${receiptButton(tx)}${voidButton(tx)}</span>
     </div>
+    ${balanceSection(tx)}
     ${reversalRows(tx)}
     ${responseRows(tx)}
     <h3>Request sent (0100)</h3>
@@ -642,7 +696,8 @@ async function loadHistory() {
   historyEl.innerHTML = txs
     .map((tx) => {
       const r = tx.request;
-      const mode = [entryModes[r.de22_pos_entry_mode] || r.de22_pos_entry_mode];
+      const mode = tx.tender === "cash" ? ["Cash"] : [entryModes[r.de22_pos_entry_mode] || r.de22_pos_entry_mode];
+      if (tx.split_of) mode.push(`split of ${tx.split_of}`);
       if (r.wallet_provider) mode.push(wallets[r.wallet_provider] || r.wallet_provider);
       if (r.de52_pin_data) mode.push("PIN");
       return `<tr>
@@ -669,7 +724,7 @@ function rememberTx(tx) {
   window.lastTransactions = list;
 }
 
-const receiptButton = (tx, cls = "") =>
+const receiptButton = (tx, cls = "") => tx.tender === "cash" ? "" :
   `<button type="button" class="receipt-btn secondary ${cls}" data-receipt="${escapeHTML(tx.request.de11_stan)}" data-term="receipt">Receipt</button>`;
 document.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-void]");

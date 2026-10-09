@@ -3864,6 +3864,39 @@
         "Signature on merchant copy",
         "Verified by PIN"
       ]
+    },
+    "split-tender": {
+      "name": "Split tender",
+      "def": "Paying for one sale with more than one card, or a card and cash. It usually follows a partial approval: the issuer approved only what was on a prepaid or debit card, and the terminal collects the balance due another way. Each card tender is its own authorization; cash never touches the network.",
+      "kt": [
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ],
+        [
+          "Layer 2: Card products",
+          "11-network-products-and-services.md#layer-2-card-products-the-network-must-support"
+        ]
+      ],
+      "ext": [
+        [
+          "Stored-value card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Stored-value_card"
+        ],
+        [
+          "Point of sale (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Point_of_sale"
+        ]
+      ],
+      "aliases": [
+        "Split tender",
+        "Balance due",
+        "Pay rest by card",
+        "Pay rest in cash",
+        "Paid in full",
+        "Collecting the balance",
+        "Cash"
+      ]
     }
   }
 }
