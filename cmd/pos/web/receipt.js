@@ -69,7 +69,8 @@ function receiptHTML(tx, copy) {
   } else {
     body.push(line("NO RESPONSE", "Sale reversed", "timeout-reversal"));
   }
-  body.push(line(`RRN ${r.de37_rrn}`, `STAN ${r.de11_stan}`, "de37"));
+  // The acquirer assigns the RRN on the network leg; it's the one disputes use.
+  body.push(line(`RRN ${(resp && resp.de37_rrn) || r.de37_rrn}`, `STAN ${r.de11_stan}`, "de37"));
   if (tx.reversal && tx.reversal.advice) body.push(line(`REVERSAL STAN ${tx.reversal.advice.de11_stan}`, tx.reversal.status, "reversal"));
 
   const cvm = cvmLine(r, approved && tx.status !== "VOIDED");

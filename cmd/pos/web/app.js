@@ -536,6 +536,11 @@ function statusBadge(tx) {
   const [cls, icon, label] = STATUS[tx.status] || ["", "", tx.status];
   const code = tx.response && tx.status === "DECLINED" ? ` ${tx.response.de39_response_code}` : "";
   let html = `<span class="status ${cls}"><span aria-hidden="true">${icon}</span> ${escapeHTML(label + code)}</span>`;
+  if (tx.status === "PARTIAL" && !tx.split_of && !tx.reversal) {
+    html += tx.balance_due
+      ? ` <span class="status warning" data-term="split-tender">${money(tx.balance_due, tx.request.de49_currency)} due</span>`
+      : ` <span class="status good" data-term="split-tender">✓ Paid in full</span>`;
+  }
   // A void shows as the sale's status; a timeout reversal needs its own badge.
   if (tx.reversal && tx.status !== "VOIDED") {
     const [rcls, ricon, rlabel] = REVERSAL_STATUS[tx.reversal.status] || ["", "", tx.reversal.status];
