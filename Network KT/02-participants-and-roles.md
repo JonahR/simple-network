@@ -51,8 +51,8 @@ The bank that signs up merchants and gives them access to card payments.
 
 | Role | What it does | Examples (real world) | Why it matters to you |
 |---|---|---|---|
-| **Issuer processor** | Runs the authorization host, card database, and ledgers for issuers | TSYS, Fiserv, FIS, Marqeta, Galileo, Lithic | Your network will often talk to a processor, not the bank itself. Certify processors once, and many issuers can join. |
-| **Acquirer processor** | Runs the acquiring host and connects merchants to the network | Fiserv, Worldpay, Global Payments, Elavon | Same as above, on the acquiring side |
+| **Issuer processor** | Runs the authorization host, card database, and ledgers for issuers | Fiserv, FIS (incl. TSYS), Marqeta, Galileo, Lithic | Your network will often talk to a processor, not the bank itself. Certify processors once, and many issuers can join. |
+| **Acquirer processor** | Runs the acquiring host and connects merchants to the network | Fiserv, Global Payments (incl. Worldpay), Elavon, Adyen | Same as above, on the acquiring side |
 | **Payment gateway** | Takes card data from websites and apps and forwards it to the processor | Stripe, Adyen, Braintree, Authorize.net | Gateways create most e-commerce traffic. They care about tokenization and 3DS. |
 | **PayFac (payment facilitator)** | A master merchant that signs up many sub-merchants under one acquirer | Stripe, Square, Shopify Payments | Must pass the sub-merchant's identity in auth messages (DE43 / sub-merchant fields) |
 | **ISO / MSP** | Sells merchant accounts on behalf of an acquirer | Thousands of small sales firms | Registered with the network through the acquirer |

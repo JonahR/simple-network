@@ -53,7 +53,7 @@ flowchart TB
 |---|---|---|
 | Authorization switch | VisaNet, Mastercard Banknet | M3 |
 | Clearing | Visa BASE II, Mastercard GCMS | M5 |
-| Settlement | Visa National Net Settlement Service, Mastercard Settlement Account Management | M6 |
+| Settlement | Visa Settlement Service (VSS), Mastercard Settlement (via settlement banks) | M6 |
 | Disputes | Visa Resolve Online, Mastercom | M7 |
 | Participant & BIN registry | Member onboarding, BIN licensing | M1–M3 |
 
@@ -135,7 +135,7 @@ quadrantChart
     Analytics dashboard: [0.45, 0.45]
 ```
 
-Suggested order after PLAN milestone 9: **stand-in approvals → simple fraud score → tokenization → push payments (OCT) → account updater → 3DS directory → cross-border FX**.
+Stand-in approvals land in hardening (PLAN M9). Suggested order after that: **tokenization (M10) → simple fraud score → push payments (OCT) → account updater → 3DS directory → cross-border FX**.
 
 ## Key takeaways
 

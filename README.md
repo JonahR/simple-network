@@ -8,17 +8,25 @@ See [PLAN.md](PLAN.md) for the architecture and roadmap, and [Network KT](Networ
 
 ## Running
 
-Everything runs in Docker:
+For local development, serve the latest good commit of `main`:
+
+```sh
+make serve   # builds and tests each new commit of main, then restarts on it
+```
+
+It never reads your working tree, so only commits merged into `main` that build and pass tests are served. Service settings live in `serve.env`; logs are in `.run/logs/`. Stop it with `make serve-stop`.
+
+Or run everything in Docker:
 
 ```sh
 make up      # docker compose up --build -d
 ```
 
-Then open the POS terminal at **http://localhost:8080**.
+Either way, open the POS terminal at **http://localhost:8080**. `make serve` and `make up` use the same port, so run only one at a time.
 
 | Service | Port | Status |
 |---|---|---|
 | `pos` (merchant terminal) | 8080 | ✅ Builds 0100 auth requests; not yet sent to the network |
 | `acquirer`, `network`, `issuer` | — | Planned |
 
-Other commands: `make down`, `make logs`, `make test`, and `make run-pos` (runs the POS without Docker).
+Other commands: `make down`, `make logs`, `make test`, `make run-pos` (runs the POS from your working tree, without Docker), and `make hooks` (enables a pre-commit hook that blocks commits that don't build or pass tests).

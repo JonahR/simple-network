@@ -13,7 +13,7 @@ let cofIndicators = {};
 let binProducts = {};
 let productNames = {};
 
-const ENTRY = { manual: "010", swipe: "901", chip: "051", contactless: "071", ecommerce: "812", cof: "100" };
+const ENTRY = { manual: "011", swipe: "901", chip: "051", contactless: "071", ecommerce: "812", cof: "100" };
 
 // Human-readable labels for the ISO 8583 fields, in display order.
 const FIELDS = [
@@ -55,28 +55,29 @@ const ALL_METHODS = ["tap", "insert", "swipe", "key"];
 // The cardholder's cards. Numbers are Luhn-valid test numbers; BINs match the
 // terminal's BIN table so the right prompts appear. The two credit cards are
 // also provisioned to each mobile wallet with a distinct device token.
+// Expiries are relative to today so the test cards never expire.
 const WALLET = [
-  { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/29", cvv: "123", name: "Jane Doe",
+  { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: monthsFromNow(38), cvv: "123", name: "Jane Doe",
     methods: ALL_METHODS,
     tokens: {
-      apple_pay:   { number: "4895372051310681", expiry: "09/30" },
-      google_pay:  { number: "4895373708421368", expiry: "11/30" },
-      samsung_pay: { number: "4895377555006883", expiry: "06/30" },
+      apple_pay:   { number: "4895372051310681", expiry: monthsFromNow(47) },
+      google_pay:  { number: "4895373708421368", expiry: monthsFromNow(49) },
+      samsung_pay: { number: "4895377555006883", expiry: monthsFromNow(44) },
     } },
-  { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/28", cvv: "456", name: "John Smith",
+  { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: monthsFromNow(22), cvv: "456", name: "John Smith",
     methods: ALL_METHODS,
     tokens: {
-      apple_pay:   { number: "5220930238452479", expiry: "03/31" },
-      google_pay:  { number: "5220934871046911", expiry: "01/31" },
-      samsung_pay: { number: "5220933784416278", expiry: "05/31" },
+      apple_pay:   { number: "5220930238452479", expiry: monthsFromNow(53) },
+      google_pay:  { number: "5220934871046911", expiry: monthsFromNow(51) },
+      samsung_pay: { number: "5220933784416278", expiry: monthsFromNow(55) },
     } },
-  { label: "Checking Debit", style: "green", number: "4000056655665556", expiry: "05/29", cvv: "789", name: "Jane Doe",
+  { label: "Checking Debit", style: "green", number: "4000056655665556", expiry: monthsFromNow(31), cvv: "789", name: "Jane Doe",
     hint: "PIN 1234", methods: ALL_METHODS },
-  { label: "Gift Card", style: "purple", number: "4358805984634941", expiry: "07/28", cvv: "321", name: "",
+  { label: "Gift Card", style: "purple", number: "4358805984634941", expiry: monthsFromNow(21), cvv: "321", name: "",
     methods: ["swipe", "key"] },
-  { label: "Fleet Card", style: "orange", number: "5568007143162129", expiry: "02/29", cvv: "654", name: "Acme Logistics",
+  { label: "Fleet Card", style: "orange", number: "5568007143162129", expiry: monthsFromNow(28), cvv: "654", name: "Acme Logistics",
     hint: "Driver 4821", methods: ["insert", "swipe", "key"] },
-  { label: "Health Savings", style: "teal", number: "4716006861111015", expiry: "11/28", cvv: "852", name: "Jane Doe",
+  { label: "Health Savings", style: "teal", number: "4716006861111015", expiry: monthsFromNow(25), cvv: "852", name: "Jane Doe",
     methods: ALL_METHODS },
   // Buy now, pay later: the provider issues a new single-use virtual card for each purchase.
   { label: "Pay Later", style: "pink", virtual: true, bin: "485932", name: "Jane Doe", methods: ["key"] },
@@ -145,7 +146,7 @@ function presentCard(c, method) {
   form.cardholder_name.value = method === "tap" ? "" : c.name; // Contactless reads don't include the name
 
   if (method === "tap" || method === "insert") form.cryptogram.value = newCryptogram();
-  if (method === "swipe") form.track2.value = track2(c.number, c.expiry);
+  if (method === "swipe") form.track2.value = track2(c.number, c.expiry, c.methods.includes("insert"));
   const badge = { tap: "Contactless read", insert: "Chip read", swipe: "Stripe read" }[method];
   if (badge) setReadBadge(badge);
 
@@ -154,11 +155,14 @@ function presentCard(c, method) {
   focusNext();
 }
 
-// Track 2: PAN, "=", expiry as YYMM, service code 201 (chip card), discretionary data.
-function track2(pan, expiry) {
+// Track 2: PAN, "=", expiry as YYMM, service code, discretionary data. The
+// service code is 201 for a chip card (the terminal declines the swipe and asks
+// for the chip) and 101 for a stripe-only card.
+function track2(pan, expiry, hasChip) {
   const [mm, yy] = expiry.split("/");
+  const serviceCode = hasChip ? "201" : "101";
   const discretionary = String(Math.floor(Math.random() * 1e5)).padStart(5, "0");
-  return `${pan}=${yy}${mm}201${discretionary}`;
+  return `${pan}=${yy}${mm}${serviceCode}${discretionary}`;
 }
 
 // --- Mobile wallets ----------------------------------------------------------

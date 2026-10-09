@@ -39,7 +39,7 @@ A purchase goes through three phases:
   cmd/network/    # switch binary
   cmd/issuer/     # issuer simulator
   cmd/acquirer/   # acquirer simulator
-  cmd/pos/        # merchant CLI + load generator
+  cmd/pos/        # browser POS terminal (load generator planned)
   internal/iso8583/   # message types, MTIs, response codes
   internal/card/      # PAN generation, Luhn, BIN helpers
   internal/...        # shared packages (ledger, signing, store)
@@ -87,8 +87,8 @@ A purchase goes through three phases:
 | # | Milestone | Done when |
 |---|---|---|
 | 0 | Repo bootstrap | Git repo, README, plan ✅ |
-| 0.5 | POS terminal (browser) | Builds 0100 requests for keyed, swipe, chip, contactless, mobile wallets, debit + PIN, cash back, prepaid, fleet, HSA/FSA, BNPL virtual cards, and card on file ✅ |
-| 1 | Data models | Card, account, merchant, and ISO-style message schemas; Luhn and card generator |
+| 0.5 | POS terminal (browser) | Builds 0100 requests for keyed, swipe, chip, contactless, mobile wallets, debit + PIN, cash back, prepaid, fleet, HSA/FSA, BNPL single-use virtual cards (simulated as keyed credit), and card on file ✅ |
+| 1 | Data models | Card, account, merchant, and ISO-style message schemas; Luhn and card generator (partial: Luhn, card generator, and message schema done; account and merchant models pending) |
 | 2 | Issuer service | Can approve or decline an auth request directly ✅ Two banks (`cmd/issuer`): holds, PIN verification, partial approvals, reversals, fault simulation |
 | 3 | Network switch | Routes auths by BIN to two or more issuers; transaction log ✅ `cmd/network`: longest-prefix BIN routing, token vault, PIN translation, idempotency, 5s issuer timeout with 0420 reversal, per-issuer circuit breaker, per-step trace |
 | 4 | Acquirer + POS | End-to-end swipe from the CLI shows approved/declined (partial: the POS gets real approvals and declines, but sends straight to the network; the acquirer service is next) |
@@ -102,7 +102,7 @@ A purchase goes through three phases:
 
 This PoC must **never** handle real card data. Use test PANs only.
 - Generate fake cards on test BIN ranges.
-- Tokenize or mask PANs in logs (show only the last 4 digits).
+- Tokenize or mask PANs in logs (show only the first 6 and last 4 digits).
 - Sign messages between participants (HMAC first, mTLS later) to model network trust.
 - Keep the PCI-DSS concepts in mind: segmentation, no CVV storage after auth.
 

@@ -55,4 +55,4 @@ Run `make serve` (or `make run-pos`) and open **http://localhost:8080/learn/**. 
 2. **Authorization is a promise. Clearing is the claim. Settlement is the payment.** These are three different steps, run at three different times, and each one can fail on its own.
 3. **Every message must be traceable and idempotent.** STAN, RRN, and the original data elements let any party match, reverse, or dispute a transaction days or months later.
 4. **The rulebook is the product.** Liability rules, dispute rights, and fee schedules make strangers trust each other. The software only enforces them.
-5. **The network makes money on scale.** Its fees are fractions of a cent. Uptime and throughput are business requirements, not just engineering goals.
+5. **The network makes money on scale.** Its fees are a small slice of each transaction (roughly 0.15% plus a cent or two). Uptime and throughput are business requirements, not just engineering goals.

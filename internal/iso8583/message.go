@@ -37,9 +37,10 @@ func ProcessingCode(txn, fromAccount string) string {
 	return txn + fromAccount + AccountDefault
 }
 
-// POS entry modes (DE22).
+// POS entry modes (DE22). The first two digits say how the card was read; the
+// third is PIN capability: 0 unspecified, 1 PIN pad present, 2 no PIN entry.
 const (
-	EntryManual           = "010"
+	EntryManual           = "011"
 	EntryMagstripe        = "901"
 	EntryChip             = "051"
 	EntryContactless      = "071"

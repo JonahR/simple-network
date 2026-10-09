@@ -13,6 +13,7 @@ services:
       MERCHANT_NAME: "Simple Coffee Co"
       MERCHANT_CITY: "San Francisco"
       MERCHANT_COUNTRY: "US"
+      MERCHANT_TZ: "America/Los_Angeles"
       MCC: "5814"
       ACQUIRER_ID: "100001"
       NETWORK_URL: "http://network:8090"

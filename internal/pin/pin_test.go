@@ -16,6 +16,18 @@ func TestFormat0(t *testing.T) {
 	}
 }
 
+func TestFormat0ShortPAN(t *testing.T) {
+	// A 12-digit PAN leaves 11 digits without the check digit, so the PAN
+	// field is left-padded to 0000012345678901.
+	got, err := Format0("1234", "123456789012")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "041235DCBA9876FE" {
+		t.Errorf("Format0 = %s", got)
+	}
+}
+
 func TestEncryptRoundTrip(t *testing.T) {
 	key, _ := hex.DecodeString("0123456789ABCDEFFEDCBA9876543210")
 	enc, err := Encrypt("1234", "4111111111111111", key)

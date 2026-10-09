@@ -14,8 +14,10 @@ var testNow = time.Date(2026, 10, 9, 14, 30, 0, 0, time.UTC)
 
 func newTestServer() *server {
 	key, _ := hex.DecodeString(demokeys.AcquirerPIN)
+	loc, _ := time.LoadLocation("America/Los_Angeles")
 	return &server{
 		terminal:   Terminal{MerchantID: "M1", TerminalID: "T1", MerchantName: "Shop", City: "SF", Country: "US", MCC: "5814"},
+		location:   loc,
 		acquirerID: "100001",
 		pinKey:     key,
 	}
@@ -30,6 +32,7 @@ const (
 	healthPAN     = "4716006861111015"
 	applePayToken = "4895372051310681"
 	arqc          = "A1B2C3D4E5F60718"
+	tavv          = "AJkBBkhgQQAAAE4gSEJydAAAAAA=" // 20-byte in-app token cryptogram
 )
 
 func sale(pan string, entry string) SaleInput {
@@ -83,8 +86,12 @@ func TestKeyedSale(t *testing.T) {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
 	if req.MTI != "0100" || req.PAN != creditPAN || req.Amount != 475 || req.ProcessingCode != "003000" ||
-		req.Expiry != "2812" || req.STAN != "000001" || req.RRN != "628214000001" {
+		req.Expiry != "2812" || req.STAN != "000001" || req.RRN != "628214000001" || req.EntryMode != "011" {
 		t.Errorf("unexpected request: %+v", req)
+	}
+	// DE7 is UTC; DE12/DE13 are the merchant's local time (PDT, UTC-7).
+	if req.TransmissionTime != "1009143000" || req.LocalTime != "073000" || req.LocalDate != "1009" {
+		t.Errorf("DE7 %s, DE12 %s, DE13 %s", req.TransmissionTime, req.LocalTime, req.LocalDate)
 	}
 	if len(req.MerchantNameLoc) != 40 {
 		t.Errorf("DE43 length = %d, want 40", len(req.MerchantNameLoc))
@@ -116,9 +123,9 @@ func TestPaymentMethods(t *testing.T) {
 				t.Errorf("%+v", r)
 			}
 		}},
-		{"swipe", func() SaleInput {
-			in := sale(creditPAN, iso8583.EntryMagstripe)
-			in.Track2 = creditPAN + "=2812201123456"
+		{"swipe chipless gift card", func() SaleInput {
+			in := sale(prepaidPAN, iso8583.EntryMagstripe)
+			in.Track2 = prepaidPAN + "=2812101123456"
 			return in
 		}, func(t *testing.T, r iso8583.AuthRequest) {
 			if r.Track2 == "" || r.ARQC != "" {
@@ -157,8 +164,8 @@ func TestPaymentMethods(t *testing.T) {
 			}
 		}},
 		{"debit with cash back", func() SaleInput {
-			in := sale(debitPAN, iso8583.EntryMagstripe)
-			in.Track2 = debitPAN + "=2812201000000"
+			in := sale(debitPAN, iso8583.EntryChip)
+			in.Cryptogram = arqc
 			in.PIN = "1234"
 			in.Cashback = "20"
 			return in
@@ -208,15 +215,21 @@ func TestPaymentMethods(t *testing.T) {
 		}},
 		{"Google Pay in app", func() SaleInput {
 			in := sale(applePayToken, iso8583.EntryEcommerce)
-			in.Wallet, in.Cryptogram = iso8583.WalletGooglePay, arqc
+			in.Wallet, in.Cryptogram = iso8583.WalletGooglePay, tavv
 			return in
-		}, nil},
+		}, func(t *testing.T, r iso8583.AuthRequest) {
+			// Base64 is case-sensitive, so the cryptogram must not be upper-cased.
+			if r.ARQC != tavv || r.EntryMode != "812" {
+				t.Errorf("%+v", r)
+			}
+		}},
 		{"card on file, recurring", func() SaleInput {
 			in := SaleInput{Amount: "29.99", Currency: "840", EntryMode: iso8583.EntryCredentialOnFile,
 				CardOnFileID: "cof_acme", COFIndicator: iso8583.COFMerchantRecurring}
 			return in
 		}, func(t *testing.T, r iso8583.AuthRequest) {
-			if r.PAN != "5555555555554444" || r.Expiry != "2808" || r.COFIndicator != "mit_recurring" || r.CVV2 != "" {
+			stored, _ := cardOnFile("cof_acme")
+			if r.PAN != "5555555555554444" || r.Expiry != stored.Expiry[3:]+stored.Expiry[:2] || r.COFIndicator != "mit_recurring" || r.CVV2 != "" {
 				t.Errorf("%+v", r)
 			}
 		}},
@@ -247,6 +260,21 @@ func TestRejectedSales(t *testing.T) {
 		{"track 2 for another card", "form", func() SaleInput {
 			in := sale(creditPAN, iso8583.EntryMagstripe)
 			in.Track2 = debitPAN + "=2812201000000"
+			return in
+		}},
+		{"swipe chip card", "entry_mode", func() SaleInput {
+			in := sale(creditPAN, iso8583.EntryMagstripe)
+			in.Track2 = creditPAN + "=2812201123456"
+			return in
+		}},
+		{"in-app wallet with EMV cryptogram", "form", func() SaleInput {
+			in := sale(applePayToken, iso8583.EntryEcommerce)
+			in.Wallet, in.Cryptogram = iso8583.WalletGooglePay, arqc
+			return in
+		}},
+		{"in-store wallet with in-app cryptogram", "form", func() SaleInput {
+			in := sale(applePayToken, iso8583.EntryContactless)
+			in.Wallet, in.Cryptogram = iso8583.WalletApplePay, tavv
 			return in
 		}},
 		{"cryptogram on keyed sale", "form", func() SaleInput {

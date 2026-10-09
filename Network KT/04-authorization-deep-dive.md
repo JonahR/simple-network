@@ -63,7 +63,7 @@ The 4 digits mean **version · class · function · origin**.
 | 39 | Response Code | an2 | `00` | See the table below |
 | 41 | Terminal ID | ans8 | | |
 | 42 | Merchant ID | ans15 | | |
-| 43 | Merchant Name/Location | ans40 | `JOE'S DINER   AUSTIN TX` | Appears on statements |
+| 43 | Merchant Name/Location | ans40 | `JOE'S DINER              AUSTIN       US` | Appears on statements |
 | 49 | Currency Code, Transaction | n3 | `840` | ISO 4217 numeric (USD) |
 | 52 | PIN Data | b64 | | Encrypted PIN block |
 | 54 | Additional Amounts | | | Cashback, available balance, partial-approval amount |
@@ -84,15 +84,17 @@ The 4 digits mean **version · class · function · origin**.
   "de4_amount": 5420,
   "de7_transmission_datetime": "1009154301",
   "de11_stan": "004211",
+  "de12_local_time": "104301",
+  "de13_local_date": "1009",
   "de14_expiry": "2812",
   "de18_mcc": "5812",
   "de22_pos_entry_mode": "071",
   "de37_rrn": "628215004211",
   "de41_terminal_id": "TERM0001",
-  "de42_merchant_id": "MERCH000000042",
-  "de43_merchant_name_location": "JOE'S DINER AUSTIN TX US",
+  "de42_merchant_id": "MERCH0000000042",
+  "de43_merchant_name_location": "JOE'S DINER              AUSTIN       US",
   "de49_currency": "840",
-  "cvv2": "123"
+  "de55_arqc": "A1B2C3D4E5F60718"
 }
 ```
 
@@ -194,7 +196,7 @@ sequenceDiagram
 ```
 
 Rules to put in place:
-1. **Every hop has a timeout budget**, and the downstream timeout is shorter than the upstream one. For example, acquirer 15s > network 10s > issuer 5s. The exact values are a network rule. Pick them deliberately.
+1. **Every hop has a timeout budget**, and the downstream timeout is shorter than the upstream one. For example, POS 20s > acquirer 15s > issuer 5s (see [12](12-design-decisions.md), D8). The exact values are a network rule. Pick them deliberately.
 2. **A late response is never forwarded.** The network sends a reversal advice to clean up the issuer's hold.
 3. **The acquirer reverses on doubt.** If the acquirer gets no response, it sends a `0400` or `0420` reversal so that no orphan hold stays on the card.
 4. **Every message is idempotent**, keyed on (acquirer ID, STAN, transmission date/time). Retries return the cached response instead of creating a second hold.

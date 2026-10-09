@@ -316,7 +316,7 @@ pre.json .c { color: var(--muted); font-style: italic; }
   };
 
   /* ---------- the sample messages ---------- */
-  const DE43 = "JOE'S DINER".padEnd(23) + "AUSTIN".padEnd(13) + "TX" + "US";
+  const DE43 = "JOE'S DINER".padEnd(25) + "AUSTIN".padEnd(13) + "US";
   const REQ = {
     mti: "0100",
     de: {
@@ -463,7 +463,7 @@ pre.json .c { color: var(--muted); font-style: italic; }
       plain: "How the card number was captured, and whether the terminal can take a PIN. It tells the issuer how much to trust the card data.",
       parts: [["07", "PAN entry", "Contactless chip"], ["1", "PIN capability", "Terminal can accept a PIN"]],
       more: tbl([["01", "Keyed by hand", "Highest fraud risk"], ["05", "Chip (dipped)", "Cryptogram in DE55"], ["07", "Contactless chip", "Cryptogram in DE55"], ["90/02", "Magnetic stripe", ""], ["10", "Credential on file", "Stored card"], ["81", "E-commerce", "Card not present"]]),
-      sn: "json: de22_pos_entry_mode\nGo:   AuthRequest.EntryMode\nconsts: EntryManual 010, EntryMagstripe 901, EntryChip 051,\n        EntryContactless 071, EntryEcommerce 812",
+      sn: "json: de22_pos_entry_mode\nGo:   AuthRequest.EntryMode\nconsts: EntryManual 011, EntryMagstripe 901, EntryChip 051,\n        EntryContactless 071, EntryEcommerce 812",
       watch: ["Exact code lists differ between networks.", "This field drives fraud liability. Swipe a chip card on a chip terminal and the merchant usually eats the fraud."],
       links: ["k03cp", "k08liab", "k06ic", "wiki", "msgGo"], rel: ["de55", "de35", "de25"] },
     de25: { g: "purchase", tag: "DE25", fmt: "n2", name: "POS condition code",
@@ -517,7 +517,7 @@ pre.json .c { color: var(--muted); font-style: italic; }
       links: ["k02ids", "k02roles", "wiki"], rel: ["de41", "de43", "de18"] },
     de43: { g: "who", tag: "DE43", fmt: "ans40", name: "Card acceptor name / location",
       plain: "The merchant name and place, padded to exactly 40 characters. This is what the cardholder sees on the statement.",
-      parts: [["JOE'S DINER", "name", "padded to 23"], ["AUSTIN", "city", "padded to 13"], ["TX", "state", ""], ["US", "country", ""]],
+      parts: [["JOE'S DINER", "name", "padded to 25"], ["AUSTIN", "city", "padded to 13"], ["US", "country", "ISO 3166 alpha-2"]],
       who: "The acquirer, from merchant setup.",
       sn: "json: de43_merchant_name_location\nGo:   AuthRequest.MerchantNameLoc",
       watch: ["The sub-field layout varies by network.", "Unclear names cause \"I don't recognize this charge\" disputes."],
@@ -533,7 +533,7 @@ pre.json .c { color: var(--muted); font-style: italic; }
         ? "Data from the chip, as tag-length-value (TLV) records. The key part is the cryptogram the chip computed for this one transaction. It proves the card is genuine and the message isn't a replay. \"020\" says 20 bytes follow. Click each record."
         : "In the response the issuer sends back its own cryptogram (tag 91), so the card can check the answer really came from its issuer.",
       who: "The chip generates it. The terminal passes it through unchanged.",
-      sn: "json: de55_arqc (chip insert, tap, or mobile wallet)\nGo:   AuthRequest.ARQC\nsimple-network sends just the cryptogram, not the full TLV list.",
+      sn: "json: de55_arqc (chip insert, tap, or mobile wallet)\nGo:   AuthRequest.ARQC\nsimple-network sends just the cryptogram, not the full TLV list. In-app wallet payments (DE22 812) send a 28-character base64 token cryptogram (TAVV/UCAF style) instead.",
       watch: ["Real messages carry 15–20 tags (amount, unpredictable number, terminal verification results, and more). This sample keeps the three that matter most.", "The issuer checks the cryptogram with card keys kept in an HSM."],
       links: ["k07emv", "k09keys", "emvco", "emvw"], rel: ["tlv-9F26", "tlv-9F36", "tlv-9F27", "de22"] },
     "tlv-9F26": { g: "card", tag: "EMV 9F26", fmt: "b8", name: "Application cryptogram (ARQC)",
@@ -618,7 +618,7 @@ pre.json .c { color: var(--muted); font-style: italic; }
     if (id.startsWith("tlv-")) { const t = id.slice(4); const rec = (m.de[55] || []).find(r => r[0] === t); return rec ? tlvHex([rec]) : null; }
     if (id === "mti") return m.mti;
     if (id.startsWith("mti-")) return m.mti["vcfo".indexOf(id[4])];
-    if (id === "cvv2") return "\"123\" (only when keyed online)";
+    if (id === "cvv2") return "\"123\" (only on keyed or e-commerce sales)";
     return null;
   }
 
@@ -690,8 +690,8 @@ pre.json .c { color: var(--muted); font-style: italic; }
     let lines;
     if (mode === "req") {
       const d = REQ.de;
-      lines = [["mti", "mti", "0100"], ["de2", "de2_pan", d[2]], ["de3", "de3_processing_code", d[3]], ["de4", "de4_amount", 5420], ["de7", "de7_transmission_datetime", d[7]], ["de11", "de11_stan", d[11]], ["de12", "de12_local_time", d[12]], ["de13", "de13_local_date", d[13]], ["de14", "de14_expiry", d[14]], ["de18", "de18_mcc", d[18]], ["de22", "de22_pos_entry_mode", d[22]], ["de37", "de37_rrn", d[37]], ["de41", "de41_terminal_id", d[41]], ["de42", "de42_merchant_id", d[42]], ["de43", "de43_merchant_name_location", "JOE'S DINER AUSTIN TX US"], ["de49", "de49_currency", d[49]], ["de55", "de55_arqc", "1A2B3C4D5E6F7081"]];
-      document.getElementById("json-note").innerHTML = "Not in the struct yet, but on the wire: DE25, DE32. A tap sends the chip cryptogram (<code>de55_arqc</code>) instead of a CVV2, and contactless reads don't include the cardholder's name. <code>cvv2</code>, <code>cardholder_name</code> and <code>wallet_provider</code> are simple-network extras with no standard field number.";
+      lines = [["mti", "mti", "0100"], ["de2", "de2_pan", d[2]], ["de3", "de3_processing_code", d[3]], ["de4", "de4_amount", 5420], ["de7", "de7_transmission_datetime", d[7]], ["de11", "de11_stan", d[11]], ["de12", "de12_local_time", d[12]], ["de13", "de13_local_date", d[13]], ["de14", "de14_expiry", d[14]], ["de18", "de18_mcc", d[18]], ["de22", "de22_pos_entry_mode", d[22]], ["de32", "de32_acquirer_id", d[32]], ["de37", "de37_rrn", d[37]], ["de41", "de41_terminal_id", d[41]], ["de42", "de42_merchant_id", d[42]], ["de43", "de43_merchant_name_location", d[43]], ["de49", "de49_currency", d[49]], ["de55", "de55_arqc", d[55][0][1]], ["cardholder_name", "cardholder_name", "ALEX MORGAN"]];
+      document.getElementById("json-note").innerHTML = "Not in the struct yet, but on the wire: DE25. A tap sends the chip cryptogram (<code>de55_arqc</code>) instead of a CVV2, and contactless reads don't include the cardholder's name. <code>cvv2</code>, <code>cardholder_name</code> and <code>wallet_provider</code> are simple-network extras with no standard field number.";
       document.getElementById("json-sub").innerHTML = 'This is <code>iso8583.AuthRequest</code> from <a href="' + GH + 'internal/iso8583/message.go" target="_blank" rel="noopener">internal/iso8583/message.go</a>, serialized as JSON. The keys keep the ISO numbering.';
     } else {
       const d = RESP.de;

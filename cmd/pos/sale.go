@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strconv"
@@ -94,6 +95,7 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 
 	stan := s.nextSTAN()
 	utc := now.UTC()
+	local := now.In(s.location) // DE12/DE13 are the merchant's local time
 	t := s.terminal
 	return iso8583.AuthRequest{
 		MTI:              iso8583.MTIAuthRequest,
@@ -102,8 +104,8 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 		Amount:           amount + cashback,
 		TransmissionTime: utc.Format("0102150405"),
 		STAN:             stan,
-		LocalTime:        now.Format("150405"),
-		LocalDate:        now.Format("0102"),
+		LocalTime:        local.Format("150405"),
+		LocalDate:        local.Format("0102"),
 		Expiry:           expiry,
 		MCC:              t.MCC,
 		EntryMode:        entry,
@@ -129,6 +131,11 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 // checkCardRead validates what the card or phone supplied for the entry mode:
 // a cryptogram for chip, contactless, and wallet payments, and track 2 data
 // for swipes. It returns the normalized cryptogram and track 2.
+//
+// Chip, contactless, and in-store wallet payments carry an 8-byte EMV
+// cryptogram as 16 hex characters. In-app and online wallet payments carry a
+// 20-byte token cryptogram (Visa TAVV, Mastercard UCAF) as 28 base64
+// characters, which is case-sensitive and so is not upper-cased.
 func checkCardRead(in SaleInput, pan, expiry string, errs fieldErrors) (arqc, track2 string) {
 	entry := in.EntryMode
 	if in.Wallet != "" {
@@ -140,12 +147,18 @@ func checkCardRead(in SaleInput, pan, expiry string, errs fieldErrors) (arqc, tr
 		}
 	}
 
-	arqc = strings.ToUpper(strings.TrimSpace(in.Cryptogram))
+	arqc = strings.TrimSpace(in.Cryptogram)
 	needsARQC := entry == iso8583.EntryChip || entry == iso8583.EntryContactless || in.Wallet != ""
+	inApp := in.Wallet != "" && entry == iso8583.EntryEcommerce
+	if !inApp {
+		arqc = strings.ToUpper(arqc)
+	}
 	switch {
 	case needsARQC && arqc == "" && in.Wallet == "":
 		errs["entry_mode"] = "chip and contactless reads come from the card: insert or tap one from the wallet"
-	case needsARQC && !isHex(arqc, 16):
+	case inApp && !isBase64(arqc, 20):
+		errs["form"] = "in-app wallet cryptogram must be 28 base64 characters"
+	case needsARQC && !inApp && !isHex(arqc, 16):
 		errs["form"] = "cryptogram must be 16 hex characters"
 	case !needsARQC && arqc != "":
 		errs["form"] = "cryptograms are only sent for chip, contactless, and wallet payments"
@@ -157,6 +170,8 @@ func checkCardRead(in SaleInput, pan, expiry string, errs fieldErrors) (arqc, tr
 			errs["entry_mode"] = "swipe a card from the wallet to read its magnetic stripe"
 		} else if err := checkTrack2(track2, pan, expiry); err != nil {
 			errs["form"] = err.Error()
+		} else if chipCard(track2) {
+			errs["entry_mode"] = "this card has a chip: insert or tap it instead of swiping"
 		}
 	} else if track2 != "" {
 		errs["form"] = "track 2 data is only sent for swiped cards"
@@ -175,6 +190,15 @@ func checkTrack2(track2, pan, expiry string) error {
 		return errors.New("track 2 data does not match the card number and expiry")
 	}
 	return nil
+}
+
+// chipCard reports whether track 2's service code starts with 2, meaning the
+// card has a chip. A chip-capable terminal must read the chip, so swiping it
+// is declined. (Real terminals allow a swipe as fallback after a failed chip
+// read, flagged in DE22; this terminal doesn't model that.)
+func chipCard(track2 string) bool {
+	_, rest, _ := strings.Cut(track2, "=")
+	return rest[4] == '2'
 }
 
 // checkCVV requires a CVV when a card is keyed or used online, since nothing
@@ -336,6 +360,12 @@ func parseAmount(s string) (int64, error) {
 // isHex reports whether s is exactly n hexadecimal characters.
 func isHex(s string, n int) bool {
 	return len(s) == n && strings.Trim(s, "0123456789ABCDEFabcdef") == ""
+}
+
+// isBase64 reports whether s is standard base64 encoding exactly n bytes.
+func isBase64(s string, n int) bool {
+	b, err := base64.StdEncoding.DecodeString(s)
+	return err == nil && len(b) == n
 }
 
 // isDigits reports whether s is between min and max decimal digits long.

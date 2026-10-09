@@ -15,6 +15,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	_ "time/tzdata" // The distroless image has no zoneinfo for MERCHANT_TZ
 
 	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/demokeys"
@@ -33,6 +34,7 @@ type Terminal struct {
 	City         string `json:"city"`
 	Country      string `json:"country"`
 	MCC          string `json:"mcc"`
+	TimeZone     string `json:"time_zone"` // IANA zone for DE12/DE13 local time
 }
 
 // SaleInput is what the cashier enters for one sale.
@@ -72,10 +74,16 @@ type StoredCard struct {
 }
 
 // cardsOnFile is the merchant's card vault. The browser only ever sees the
-// masked number; the full PAN stays on the terminal server.
+// masked number; the full PAN stays on the terminal server. Expiries are set
+// relative to startup so the demo cards never expire.
 var cardsOnFile = []StoredCard{
-	{ID: "cof_jane", Customer: "Jane Doe · loyalty account", PAN: "4242424242424242", Expiry: "12/29"},
-	{ID: "cof_acme", Customer: "Acme Corp · monthly subscription", PAN: "5555555555554444", Expiry: "08/28"},
+	{ID: "cof_jane", Customer: "Jane Doe · loyalty account", PAN: "4242424242424242", Expiry: expiryFromNow(3, 2)},
+	{ID: "cof_acme", Customer: "Acme Corp · monthly subscription", PAN: "5555555555554444", Expiry: expiryFromNow(2, 10)},
+}
+
+// expiryFromNow returns an MM/YY expiry the given years and months from now.
+func expiryFromNow(years, months int) string {
+	return time.Now().AddDate(years, months, 0).Format("01/06")
 }
 
 func cardOnFile(id string) (StoredCard, bool) {
@@ -98,6 +106,7 @@ type Transaction struct {
 
 type server struct {
 	terminal     Terminal
+	location     *time.Location // Merchant's time zone, for DE12/DE13
 	acquirerID   string
 	pinKey       []byte // PIN key shared between this acquirer and the network
 	network      *networkClient
@@ -116,6 +125,7 @@ func main() {
 		City:         env("MERCHANT_CITY", "San Francisco"),
 		Country:      env("MERCHANT_COUNTRY", "US"),
 		MCC:          env("MCC", "5814"),
+		TimeZone:     env("MERCHANT_TZ", "America/Los_Angeles"),
 	}
 	addr := env("POS_ADDR", ":8080")
 
@@ -124,10 +134,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	loc, err := time.LoadLocation(t.TimeZone)
+	if err != nil {
+		log.Fatalf("MERCHANT_TZ must be an IANA time zone like America/New_York: %v", err)
+	}
+
 	// The POS sends straight to the network for now, carrying its acquirer's
 	// ID; an acquirer service will sit in between later.
 	s := &server{
 		terminal:     t,
+		location:     loc,
 		acquirerID:   env("ACQUIRER_ID", "100001"),
 		pinKey:       pinKey,
 		network:      newNetworkClient(env("NETWORK_URL", "http://localhost:8090")),
@@ -178,7 +194,7 @@ func (s *server) handleTestCard(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	expiry := time.Now().AddDate(3, 0, 0).Format("01/06")
+	expiry := expiryFromNow(3, 0)
 	writeJSON(w, http.StatusOK, map[string]string{"card_number": pan, "expiry": expiry, "cvv": "123"})
 }
 

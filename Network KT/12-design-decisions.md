@@ -22,7 +22,7 @@ This document turns the previous eleven into decisions. Each one is written as a
 | D14 | Participant trust | HMAC + nonce + timestamp, then mTLS | Moving off localhost |
 | D15 | Card data | Own test BIN prefix, masked logs, CVV never stored, PAN in as few services as possible | Never |
 | D16 | Products | Credit first. Funding source on the BIN from day one. Prepaid next. | Debit regulation work |
-| D17 | Tokenization | Yes, as a separate vault service, after the core lifecycle | |
+| D17 | Tokenization | Yes, as a separate vault service, in M10, after hardening (M9) | |
 | D18 | Testing | Certification harness + deterministic simulators + property tests on ledger invariants | |
 | D19 | Observability | Per-hop latency, approval rate, and response-code mix from day one (feeds M8 dashboard) | |
 | D20 | Time | All timestamps in UTC. Business date and cycle are explicit fields. Injectable clock. | |
@@ -41,7 +41,7 @@ This document turns the previous eleven into decisions. Each one is written as a
 
 **Options.** (a) Free-form JSON. (b) JSON named after ISO data elements. (c) Binary ISO 8583 from the start.
 
-**Decision.** (b). Use field names like `de4_amount_minor` and `de39_response_code`, and keep MTIs and response codes as defined by ISO.
+**Decision.** (b). Use field names like `de4_amount` and `de39_response_code`, and keep MTIs and response codes as defined by ISO.
 
 **Why.** It is readable and easy to debug, and anyone from the industry can read it. A binary codec can be added later as an **edge adapter** without changing internal models.
 
@@ -187,7 +187,7 @@ Follow [06](06-economics-and-fees.md) and [10](10-rules-governance-and-regulatio
 
 Answers to PLAN.md's open questions:
 - **Credit only, or debit and prepaid?** Credit first. Put `funding_source` and `product` on BIN entries immediately. Prepaid is the best second product (partial auth, balance inquiry). Debit with single-message comes after that.
-- **Tokenization?** Yes, after M7 (the full lifecycle), as its own service and database. It is the most valuable modern network service and good practice for keeping PAN handling in one place.
+- **Tokenization?** Yes, in M10, after hardening (M9), as its own service and database. It is the most valuable modern network service and good practice for keeping PAN handling in one place.
 
 ## D18: Testing strategy
 
@@ -198,7 +198,7 @@ Answers to PLAN.md's open questions:
 | Contract | Shared `internal/iso8583` types | Every service encodes and decodes the same structs |
 | **Certification harness** | Scripted scenarios | Approve, decline, timeout, late response, duplicate, partial reversal, over-tolerance clearing, chargeback → representment |
 | Chaos | Fault injection | Kill an issuer mid-day. Delay responses. Drop clearing files. |
-| Load | The `cmd/pos` load generator, or `vegeta` / `k6` (PLAN M4/M9) | p99 latency, throughput limit per hop |
+| Load | A planned `cmd/pos` load mode, or `vegeta` / `k6` (PLAN M4/M9) | p99 latency, throughput limit per hop |
 
 ## D19: Observability (feeds the M8 dashboard)
 
@@ -245,7 +245,7 @@ The metrics that matter to a network operator:
 ## Key takeaways
 
 - Most correctness comes from a few non-negotiables: idempotency, append-only events, integer money, double-entry, and rules as data.
-- PLAN.md's open questions: **table-driven fees (small table)**, **credit first with funding source modeled**, **tokenization yes, after the lifecycle works**.
+- PLAN.md's open questions: **table-driven fees (small table)**, **credit first with funding source modeled**, **tokenization yes, in M10 after hardening (M9)**.
 - Build the certification harness and observability early. They make the PoC credible and make the M8 dashboard nearly free.
 
 Next: [13: Glossary](13-glossary.md)

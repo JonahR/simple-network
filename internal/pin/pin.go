@@ -34,13 +34,12 @@ func Format0(pin, pan string) (string, error) {
 	if err := Validate(pin); err != nil {
 		return "", err
 	}
-	if len(pan) < 13 {
-		return "", errors.New("PAN too short for PIN block")
-	}
 	pinField := fmt.Sprintf("0%X%s", len(pin), pin)
 	pinField += strings.Repeat("F", 16-len(pinField))
-	// PAN field: four zeros, then the 12 rightmost PAN digits excluding the check digit.
-	panField := "0000" + pan[len(pan)-13:len(pan)-1]
+	// PAN field: four zeros, then the 12 rightmost PAN digits excluding the
+	// check digit, left-padded with zeros when the PAN is shorter.
+	p := strings.Repeat("0", 13) + pan
+	panField := "0000" + p[len(p)-13:len(p)-1]
 
 	a, _ := hex.DecodeString(pinField)
 	b, _ := hex.DecodeString(panField)

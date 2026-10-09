@@ -96,7 +96,7 @@ flowchart LR
 
 | Region | Rule | Effect |
 |---|---|---|
-| US | **Durbin Amendment / Regulation II** (2011) | Debit interchange for issuers with $10B+ in assets capped at 21¢ + 0.05% + 1¢ fraud adjustment. Requires at least two unaffiliated networks on every debit card. The Fed proposed lowering the cap in 2023. |
+| US | **Durbin Amendment / Regulation II** (2011) | Debit interchange for issuers with $10B+ in assets capped at 21¢ + 0.05% + 1¢ fraud adjustment. Requires at least two unaffiliated networks on every debit card. The Fed proposed lowering the cap in 2023 (not finalized). In 2025 a federal court vacated the fee standard; the ruling is stayed pending an Eighth Circuit appeal, so the current cap still applies. |
 | US | Credit Card Competition Act (proposed, not law) | Would require a second network option on credit cards from large issuers |
 | EU | **Interchange Fee Regulation** (2015) | Consumer debit capped at 0.2%, consumer credit at 0.3% |
 | UK | EU-style caps kept after Brexit | The networks raised UK–EEA cross-border interchange afterward, which drew regulator (PSR) scrutiny |

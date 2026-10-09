@@ -132,7 +132,7 @@ Run by the PCI Security Standards Council (founded by the card brands). The curr
 | Principle | Highlights |
 |---|---|
 | Build and maintain a secure network | Firewalls/segmentation, no vendor-default passwords |
-| Protect account data | **Never store** full track data, CVV2, or PIN after authorization. Store PAN encrypted or tokenized. Show at most the first 6 / last 4 digits. |
+| Protect account data | **Never store** full track data, CVV2, or PIN after authorization. Store PAN encrypted or tokenized. Show at most the BIN (first 6, or 8 for 8-digit BINs) and last 4 digits. |
 | Vulnerability management | Patching, anti-malware, secure development |
 | Strong access control | Need-to-know, unique IDs, MFA |
 | Monitor and test | Logging, file-integrity monitoring, pen tests, scans |

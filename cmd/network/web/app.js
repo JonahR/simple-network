@@ -20,7 +20,7 @@ const STEP_NAMES = {
   respond: "Respond",
   reversal: "Reversal 0420",
 };
-const ENTRY_SHORT = { "010": "Keyed", "901": "Swipe", "051": "Chip", "071": "Contactless", "812": "E-commerce", "100": "On file" };
+const ENTRY_SHORT = { "011": "Keyed", "901": "Swipe", "051": "Chip", "071": "Contactless", "812": "E-commerce", "100": "On file" };
 
 // --- Formatting --------------------------------------------------------------
 

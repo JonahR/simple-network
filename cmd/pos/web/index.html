@@ -33,7 +33,7 @@
 
     <section class="panel mobile-wallets">
       <h2><span data-term="mobile-wallet">Mobile Wallets</span></h2>
-      <p class="hint">Pays with a <span data-term="device-token">device token</span> and <span data-term="cryptogram">one-time cryptogram</span>. The card number never leaves the phone.</p>
+      <p class="hint">Pays with a <span data-term="device-token">device token</span> and <span data-term="cryptogram">one-time cryptogram</span>. The real card number is never stored on the phone or sent to the merchant.</p>
       <div id="mw-phone" class="phone">
         <div id="mw-tabs" class="mw-tabs" role="tablist" aria-label="Mobile wallet"></div>
         <div class="phone-label">Choose card</div>
@@ -53,6 +53,7 @@
           <select name="currency" id="currency" data-term="de49"></select>
           <input name="amount" inputmode="decimal" placeholder="0.00" autocomplete="off">
         </div>
+        <small class="err" data-for="currency"></small>
         <small class="err" data-for="amount"></small>
       </label>
 

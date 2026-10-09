@@ -115,7 +115,8 @@ stateDiagram-v2
     Requested --> Approved: DE39 = 00
     Requested --> TimedOut: no response
     TimedOut --> StandInApproved: STIP rules allow
-    TimedOut --> Declined: STIP rules deny (DE39 = 91)
+    TimedOut --> Declined: STIP declines (e.g., 05/61)
+    TimedOut --> Declined: no STIP, issuer unavailable (91)
     TimedOut --> Reversed: acquirer sends 0400
     StandInApproved --> Approved
     Approved --> Reversed: 0400 void / partial reversal
@@ -150,7 +151,7 @@ stateDiagram-v2
 | Authentication | EMV cryptogram (ARQC), PIN or CDCVM | CVV2, AVS, 3-D Secure, network token cryptogram |
 | Fraud rate | Low (chip is hard to counterfeit) | Much higher. Most fraud is CNP today. |
 | Interchange | Lower | Higher (to cover the risk) |
-| Fraud liability (default) | Whoever has the weaker technology (EMV liability shift) | Merchant, unless 3DS authenticated or tokenized |
+| Fraud liability (default) | Whoever has the weaker technology (EMV liability shift) | Merchant, unless 3DS authenticated (or a device-wallet token verified with CDCVM). Card-on-file tokens alone do not shift liability. |
 | Key fields | DE22 entry mode 05/07, DE55 chip data | DE22 entry mode 01/10/81, e-commerce indicator, stored credential flags |
 
 ## Merchant-initiated and stored-credential transactions

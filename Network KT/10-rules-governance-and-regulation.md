@@ -1,6 +1,6 @@
 # 10: Rules, Governance, and Regulation
 
-Software moves the messages. **Rules** make thousands of independent banks trust each other enough to move real money based on those messages. Visa's and Mastercard's public rulebooks run to well over a thousand pages. The rulebook is a core part of the product.
+Software moves the messages. **Rules** make thousands of independent banks trust each other enough to move real money based on those messages. Visa's and Mastercard's public rulebooks run to hundreds of pages (thousands, counting the private technical manuals). The rulebook is a core part of the product.
 
 ## What the rulebook covers
 
@@ -87,8 +87,9 @@ Before a participant goes live, it must pass a **certification**: a test suite r
 
 | Program | Watches | Consequence |
 |---|---|---|
-| Dispute monitoring | Merchant chargeback ratio | Escalating monthly fines, then merchant termination |
-| Fraud monitoring | Merchant fraud-to-sales ratio | Fines, liability shift to the acquirer |
+| Dispute monitoring | Merchant chargeback ratio (Mastercard ECM) | Escalating monthly fines, then merchant termination |
+| Fraud monitoring | Merchant fraud-to-sales ratio (Mastercard EFM) | Fines, liability shift to the acquirer |
+| Combined fraud + dispute monitoring | Visa VAMP: (fraud reports + disputes) ÷ settled card-not-present sales; replaced Visa's separate dispute and fraud programs (VDMP/VFMP) in 2025 | Per-transaction fees, then merchant termination |
 | Excessive retries | Declined auths resubmitted | Per-transaction fees |
 | Data security | PCI compliance, breaches | Fines, forensic investigation, account data compromise recovery costs |
 | Brand protection | Illegal or brand-damaging merchants | Fines, termination |

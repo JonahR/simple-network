@@ -112,9 +112,10 @@ For `simple-network`, this means the **switch service must never read or write t
 | 2004 | PCI DSS formed from the brands' separate security programs | Security rules for anyone touching card data |
 | 2006–2008 | Mastercard (2006) and Visa (2008) IPO; they stop being bank-owned cooperatives | Networks become for-profit companies, under antitrust scrutiny |
 | 2010 | Durbin Amendment caps US debit interchange | Regulated vs unregulated interchange tables |
+| Early 2010s–2015 | Real-time push payments: Visa Direct, then Mastercard Send (2015) | Card rails used for payouts, not only purchases |
 | 2014 | Apple Pay; EMVCo tokenization specification | Network tokens, Token Service Providers |
 | 2015 | US EMV liability shift; EU caps interchange (IFR) | Liability shift rules |
-| 2016+ | 3-D Secure 2, real-time push payments (Visa Direct, Mastercard Send) | Card rails used for payouts, not only purchases |
+| 2016+ | 3-D Secure 2 (EMVCo specification, 2016) | Issuer authentication for card-not-present payments |
 
 The **dual-message design** is the most important legacy. Online authorization was added to an existing paper-batch clearing process, and that split is still how credit cards work. It explains why a hotel can hold $300 and later charge $412, and why your pending charge disappears and returns as a posted charge. See [03](03-transaction-lifecycle.md).
 

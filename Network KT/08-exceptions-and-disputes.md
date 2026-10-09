@@ -110,7 +110,7 @@ Who loses on a fraud chargeback depends on authentication:
 
 ### Compliance monitoring
 
-Networks track each merchant's **dispute ratio** (chargebacks ÷ transactions) and **fraud ratio**. Merchants above thresholds (for example, about 0.9% of transactions or about 100 disputes a month) go into monitoring programs. They pay monthly fines that grow over time, and the acquirer can lose the merchant if it does not improve. This protects the whole system from bad merchants.
+Networks track each merchant's **dispute ratio** (chargebacks ÷ transactions) and **fraud ratio**. Merchants above thresholds go into monitoring programs. Visa's VAMP combines fraud reports and disputes into one ratio over CNP sales (Excessive merchant ≥1.5% and ≥1,500 events/month in most regions since April 2026). Mastercard's ECM starts at 1.5% and 100 chargebacks. Merchants in these programs pay fines that grow over time, and the acquirer can lose the merchant if it does not improve. This protects the whole system from bad merchants.
 
 ### Pre-dispute services
 

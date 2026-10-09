@@ -1,6 +1,6 @@
 # One Dockerfile for every service. Pick the binary with --build-arg SERVICE=<name>,
 # where <name> is a directory under cmd/.
-FROM golang:1.26-alpine AS build
+FROM golang:1.26.3-alpine AS build
 ARG SERVICE
 WORKDIR /src
 COPY go.mod ./
