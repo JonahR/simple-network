@@ -59,7 +59,14 @@ start_services() {
     [[ -x "$bin" && -f "$bin" ]] || continue
     name="$(basename "$bin")"
     (
-      [[ -f "$dir/serve.env" ]] && { set -a; source "$dir/serve.env"; set +a; }
+      # serve.env supplies defaults; variables already set in the environment win.
+      if [[ -f "$dir/serve.env" ]]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+          [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || continue
+          key="${line%%=*}"
+          [[ -n "${!key+x}" ]] || eval "export $line"
+        done < "$dir/serve.env"
+      fi
       export SERVE_COMMIT="$sha"
       cd "$dir" && exec "$bin"
     ) >>"$LOGS/$name.log" 2>&1 &
