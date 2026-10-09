@@ -24,10 +24,6 @@
           "https://en.wikipedia.org/wiki/Credit_card"
         ]
       ],
-      "see": [
-        "issuer",
-        "card-present"
-      ],
       "aliases": [
         "Cardholder",
         "Cardholder and card",
@@ -52,12 +48,6 @@
           "Merchant account (Wikipedia)",
           "https://en.wikipedia.org/wiki/Merchant_account"
         ]
-      ],
-      "see": [
-        "acquirer",
-        "de42",
-        "de18",
-        "mdr"
       ],
       "aliases": [
         "Merchant",
@@ -88,12 +78,6 @@
           "Visa Core Rules (public PDF)",
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
-      ],
-      "see": [
-        "merchant",
-        "processor",
-        "de32-acquirer-id",
-        "funding"
       ],
       "aliases": [
         "Acquirer",
@@ -129,12 +113,6 @@
           "Visa Core Rules (public PDF)",
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
-      ],
-      "see": [
-        "cardholder",
-        "de39",
-        "auth-hold",
-        "statement"
       ],
       "aliases": [
         "Issuer",
@@ -185,12 +163,6 @@
           "https://www.mastercard.us/en-us/business/overview/support/rules.html"
         ]
       ],
-      "see": [
-        "four-party-model",
-        "bin",
-        "stip",
-        "rules-compliance"
-      ],
       "aliases": [
         "Network",
         "NETWORK SWITCH",
@@ -215,11 +187,6 @@
           "https://en.wikipedia.org/wiki/Payment_processor"
         ]
       ],
-      "see": [
-        "acquirer",
-        "issuer",
-        "gateway"
-      ],
       "aliases": [
         "Issuer Processor",
         "Acquirer Processor",
@@ -240,10 +207,6 @@
           "Payment gateway (Wikipedia)",
           "https://en.wikipedia.org/wiki/Payment_gateway"
         ]
-      ],
-      "see": [
-        "ecommerce",
-        "three-ds"
       ],
       "aliases": [
         "Payment Gateway",
@@ -268,10 +231,6 @@
           "Payment service provider (Wikipedia)",
           "https://en.wikipedia.org/wiki/Payment_service_provider"
         ]
-      ],
-      "see": [
-        "acquirer",
-        "merchant"
       ],
       "aliases": [
         "PayFac / ISO",
@@ -299,10 +258,6 @@
           "Fedwire (Wikipedia)",
           "https://en.wikipedia.org/wiki/Fedwire"
         ]
-      ],
-      "see": [
-        "settlement",
-        "net-settlement"
       ],
       "aliases": [
         "Settlement Bank",
@@ -337,11 +292,6 @@
           "https://developer.mastercard.com/mdes-digital-enablement/documentation/"
         ]
       ],
-      "see": [
-        "network-token",
-        "device-token",
-        "cryptogram"
-      ],
       "aliases": [
         "Token Service",
         "Network Token Service",
@@ -373,11 +323,6 @@
           "https://www.emvco.com/emv-technologies/emv-contact-chip/"
         ]
       ],
-      "see": [
-        "de22",
-        "de41",
-        "terminal-prompts"
-      ],
       "aliases": [
         "Merchant POS",
         "POS",
@@ -405,10 +350,6 @@
           "https://en.wikipedia.org/wiki/Card_scheme"
         ]
       ],
-      "see": [
-        "three-party-model",
-        "network"
-      ],
       "aliases": [
         "Four-party model"
       ]
@@ -427,9 +368,6 @@
           "Card scheme (Wikipedia)",
           "https://en.wikipedia.org/wiki/Card_scheme"
         ]
-      ],
-      "see": [
-        "four-party-model"
       ],
       "aliases": [
         "Network = Issuer = Acquirer"
@@ -457,12 +395,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "msg-0100",
-        "msg-0110",
-        "auth-hold",
-        "clearing"
       ],
       "aliases": [
         "Authorization",
@@ -492,11 +424,6 @@
           "https://en.wikipedia.org/wiki/Authorization_hold"
         ]
       ],
-      "see": [
-        "authorization",
-        "clearing",
-        "reversal"
-      ],
       "aliases": [
         "Hold",
         "Expired",
@@ -517,10 +444,6 @@
           "Clearing (Wikipedia)",
           "https://en.wikipedia.org/wiki/Clearing_(finance)"
         ]
-      ],
-      "see": [
-        "clearing",
-        "presentment"
       ],
       "aliases": [
         "Capture"
@@ -553,12 +476,6 @@
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
       ],
-      "see": [
-        "presentment",
-        "interchange",
-        "settlement",
-        "arn"
-      ],
       "aliases": [
         "Clearing",
         "Cleared",
@@ -580,11 +497,6 @@
           "Visa Core Rules (public PDF)",
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
-      ],
-      "see": [
-        "clearing",
-        "arn",
-        "capture"
       ],
       "aliases": [
         "Presentment",
@@ -609,11 +521,6 @@
           "Settlement (Wikipedia)",
           "https://en.wikipedia.org/wiki/Settlement_(finance)"
         ]
-      ],
-      "see": [
-        "clearing",
-        "settlement",
-        "t-plus"
       ],
       "aliases": [
         "Cutoff",
@@ -643,11 +550,6 @@
           "https://en.wikipedia.org/wiki/Netting"
         ]
       ],
-      "see": [
-        "net-settlement",
-        "settlement-bank",
-        "funding"
-      ],
       "aliases": [
         "Settlement",
         "Settled",
@@ -674,11 +576,6 @@
           "https://en.wikipedia.org/wiki/Netting"
         ]
       ],
-      "see": [
-        "settlement",
-        "interchange",
-        "network-fees"
-      ],
       "aliases": [
         "Net settlement",
         "Net positions + invariant check"
@@ -702,11 +599,6 @@
           "Merchant account (Wikipedia)",
           "https://en.wikipedia.org/wiki/Merchant_account"
         ]
-      ],
-      "see": [
-        "mdr",
-        "acquirer",
-        "settlement"
       ],
       "aliases": [
         "Funding",
@@ -732,11 +624,6 @@
           "https://en.wikipedia.org/wiki/Settlement_date"
         ]
       ],
-      "see": [
-        "settlement",
-        "funding",
-        "cutoff"
-      ],
       "aliases": [
         "T+0",
         "T+1",
@@ -758,10 +645,6 @@
           "https://en.wikipedia.org/wiki/Revolving_credit"
         ]
       ],
-      "see": [
-        "issuer",
-        "credit-card"
-      ],
       "aliases": [
         "Statement"
       ]
@@ -780,11 +663,6 @@
           "Visa Core Rules (public PDF)",
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
-      ],
-      "see": [
-        "reversal",
-        "chargeback",
-        "de3"
       ],
       "aliases": [
         "Refund",
@@ -810,10 +688,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "auth-hold",
-        "refund"
       ],
       "aliases": [
         "Reversed",
@@ -846,11 +720,6 @@
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
       ],
-      "see": [
-        "dispute-window",
-        "refund",
-        "dispute-prevention"
-      ],
       "aliases": [
         "Chargeback",
         "Disputed",
@@ -877,9 +746,6 @@
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
       ],
-      "see": [
-        "chargeback"
-      ],
       "aliases": [
         "Dispute window"
       ]
@@ -898,10 +764,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "authorization",
-        "clearing"
       ],
       "aliases": [
         "Dual-message"
@@ -925,11 +787,6 @@
           "Card not present transaction (Wikipedia)",
           "https://en.wikipedia.org/wiki/Card_not_present_transaction"
         ]
-      ],
-      "see": [
-        "de22",
-        "ecommerce",
-        "three-ds"
       ],
       "aliases": [
         "Card-present",
@@ -958,11 +815,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "mti",
-        "bitmap",
-        "msg-0100"
       ],
       "aliases": [
         "ISO 8583",
@@ -993,11 +845,6 @@
           "https://www.iso.org/standard/79451.html"
         ]
       ],
-      "see": [
-        "msg-0100",
-        "msg-0110",
-        "iso8583"
-      ],
       "aliases": [
         "MTI",
         "Message type"
@@ -1025,11 +872,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "mti",
-        "msg-0110",
-        "authorization"
       ],
       "aliases": [
         "0100",
@@ -1060,11 +902,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "de39",
-        "de38",
-        "msg-0100"
-      ],
       "aliases": [
         "0110",
         "0110 back",
@@ -1090,10 +927,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "iso8583",
-        "mti"
-      ],
       "aliases": [
         "Bitmap"
       ]
@@ -1117,11 +950,6 @@
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
       ],
-      "see": [
-        "arn",
-        "de37",
-        "de11"
-      ],
       "aliases": [
         "Network transaction ID",
         "Network txn ID"
@@ -1141,10 +969,6 @@
           "Visa Core Rules (public PDF)",
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
-      ],
-      "see": [
-        "presentment",
-        "network-txn-id"
       ],
       "aliases": [
         "ARN"
@@ -1172,12 +996,6 @@
           "ISO/IEC 7812 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO/IEC_7812"
         ]
-      ],
-      "see": [
-        "bin",
-        "luhn",
-        "pan-masking",
-        "device-token"
       ],
       "aliases": [
         "DE2",
@@ -1207,11 +1025,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "de4",
-        "cashback",
-        "refund"
-      ],
       "aliases": [
         "DE3",
         "Processing code"
@@ -1235,11 +1048,6 @@
           "ISO 4217 minor units (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_4217"
         ]
-      ],
-      "see": [
-        "de49",
-        "auth-hold",
-        "de54"
       ],
       "aliases": [
         "DE4",
@@ -1269,10 +1077,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "de11",
-        "de12"
-      ],
       "aliases": [
         "DE7",
         "Transmission date/time"
@@ -1297,11 +1101,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "de37",
-        "de7",
-        "network-txn-id"
-      ],
       "aliases": [
         "DE11",
         "STAN",
@@ -1322,9 +1121,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "de7"
       ],
       "aliases": [
         "DE12",
@@ -1352,10 +1148,6 @@
           "Payment card number (Wikipedia)",
           "https://en.wikipedia.org/wiki/Payment_card_number"
         ]
-      ],
-      "see": [
-        "de2",
-        "de39"
       ],
       "aliases": [
         "DE14",
@@ -1387,10 +1179,6 @@
           "Merchant category code (Wikipedia)",
           "https://en.wikipedia.org/wiki/Merchant_category_code"
         ]
-      ],
-      "see": [
-        "merchant",
-        "interchange"
       ],
       "aliases": [
         "DE18",
@@ -1425,14 +1213,6 @@
           "https://www.emvco.com/emv-technologies/emv-contact-chip/"
         ]
       ],
-      "see": [
-        "manual-entry",
-        "magstripe",
-        "chip-emv",
-        "contactless",
-        "ecommerce",
-        "credential-on-file"
-      ],
       "aliases": [
         "DE22",
         "Entry mode",
@@ -1462,9 +1242,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "acquirer"
-      ],
       "aliases": [
         "DE32",
         "Acquirer ID"
@@ -1493,11 +1270,6 @@
           "https://www.pcisecuritystandards.org/standards/pci-dss/"
         ]
       ],
-      "see": [
-        "magstripe",
-        "de2",
-        "de14"
-      ],
       "aliases": [
         "DE35",
         "Track 2",
@@ -1523,10 +1295,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "de11",
-        "network-txn-id"
-      ],
       "aliases": [
         "DE37",
         "RRN",
@@ -1547,10 +1315,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "de39",
-        "msg-0110"
       ],
       "aliases": [
         "DE38",
@@ -1578,11 +1342,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "msg-0110",
-        "de38",
-        "stip"
-      ],
       "aliases": [
         "DE39",
         "Response code",
@@ -1605,10 +1364,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "de42",
-        "pos-terminal"
       ],
       "aliases": [
         "DE41",
@@ -1639,11 +1394,6 @@
           "https://en.wikipedia.org/wiki/Merchant_account"
         ]
       ],
-      "see": [
-        "merchant",
-        "de41",
-        "de43"
-      ],
       "aliases": [
         "DE42",
         "Merchant ID",
@@ -1669,10 +1419,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "merchant",
-        "de42"
-      ],
       "aliases": [
         "DE43",
         "Merchant name/location"
@@ -1697,10 +1443,6 @@
           "https://en.wikipedia.org/wiki/Fleet_card"
         ]
       ],
-      "see": [
-        "fleet-card",
-        "terminal-prompts"
-      ],
       "aliases": [
         "Fleet data",
         "Odometer",
@@ -1722,10 +1464,6 @@
           "Visa Core Rules (public PDF)",
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
-      ],
-      "see": [
-        "credential-on-file",
-        "account-updater"
       ],
       "aliases": [
         "Credential on file",
@@ -1753,9 +1491,6 @@
           "https://en.wikipedia.org/wiki/ISO_4217"
         ]
       ],
-      "see": [
-        "de4"
-      ],
       "aliases": [
         "DE49",
         "Currency",
@@ -1780,10 +1515,6 @@
           "PCI PIN Security",
           "https://www.pcisecuritystandards.org/standards/pin-security/"
         ]
-      ],
-      "see": [
-        "pin",
-        "hsm"
       ],
       "aliases": [
         "DE52",
@@ -1814,11 +1545,6 @@
           "https://en.wikipedia.org/wiki/Inventory_information_approval_system"
         ]
       ],
-      "see": [
-        "cashback",
-        "healthcare-amount",
-        "de4"
-      ],
       "aliases": [
         "DE54",
         "Additional amounts"
@@ -1847,11 +1573,6 @@
           "https://en.wikipedia.org/wiki/EMV"
         ]
       ],
-      "see": [
-        "cryptogram",
-        "chip-emv",
-        "contactless"
-      ],
       "aliases": [
         "DE55",
         "ARQC",
@@ -1874,9 +1595,6 @@
           "https://en.wikipedia.org/wiki/Magnetic_stripe_card"
         ]
       ],
-      "see": [
-        "de35"
-      ],
       "aliases": [
         "Cardholder name",
         "Cardholder name (optional)"
@@ -1896,10 +1614,6 @@
           "EMVCo payment tokenisation",
           "https://www.emvco.com/emv-technologies/payment-tokenisation/"
         ]
-      ],
-      "see": [
-        "mobile-wallet",
-        "device-token"
       ],
       "aliases": [
         "Wallet provider"
@@ -1923,10 +1637,6 @@
           "Card security code (Wikipedia)",
           "https://en.wikipedia.org/wiki/Card_security_code"
         ]
-      ],
-      "see": [
-        "cvv2",
-        "de22"
       ],
       "aliases": [
         "Key in",
@@ -1952,10 +1662,6 @@
           "https://en.wikipedia.org/wiki/Magnetic_stripe_card"
         ]
       ],
-      "see": [
-        "de35",
-        "chip-emv"
-      ],
       "aliases": [
         "Swipe",
         "Stripe read",
@@ -1980,10 +1686,6 @@
           "EMV (Wikipedia)",
           "https://en.wikipedia.org/wiki/EMV"
         ]
-      ],
-      "see": [
-        "de55",
-        "cryptogram"
       ],
       "aliases": [
         "Insert",
@@ -2019,10 +1721,6 @@
           "https://en.wikipedia.org/wiki/Near-field_communication"
         ]
       ],
-      "see": [
-        "de55",
-        "mobile-wallet"
-      ],
       "aliases": [
         "Tap",
         "Contactless read",
@@ -2053,11 +1751,6 @@
           "https://www.emvco.com/emv-technologies/3-d-secure/"
         ]
       ],
-      "see": [
-        "three-ds",
-        "cvv2",
-        "card-present"
-      ],
       "aliases": [
         "E-commerce"
       ]
@@ -2080,11 +1773,6 @@
           "Visa Account Updater (developer)",
           "https://developer.visa.com/capabilities/vau"
         ]
-      ],
-      "see": [
-        "de48-cof",
-        "account-updater",
-        "network-token"
       ],
       "aliases": [
         "Card on file",
@@ -2110,12 +1798,6 @@
           "Point of sale (Wikipedia)",
           "https://en.wikipedia.org/wiki/Point_of_sale"
         ]
-      ],
-      "see": [
-        "pin",
-        "cashback",
-        "de48-fleet",
-        "healthcare-amount"
       ],
       "aliases": [
         "Terminal prompts"
@@ -2143,11 +1825,6 @@
           "Revolving credit (Wikipedia)",
           "https://en.wikipedia.org/wiki/Revolving_credit"
         ]
-      ],
-      "see": [
-        "interchange",
-        "rewards",
-        "debit-card"
       ],
       "aliases": [
         "Credit",
@@ -2179,11 +1856,6 @@
           "https://www.federalreserve.gov/paymentsystems/regii-about.htm"
         ]
       ],
-      "see": [
-        "pin",
-        "cashback",
-        "dual-message"
-      ],
       "aliases": [
         "Debit",
         "Checking Debit"
@@ -2212,10 +1884,6 @@
           "https://en.wikipedia.org/wiki/Gift_card"
         ]
       ],
-      "see": [
-        "de54",
-        "terminal-prompts"
-      ],
       "aliases": [
         "Prepaid",
         "Gift Card"
@@ -2235,10 +1903,6 @@
           "Fleet card (Wikipedia)",
           "https://en.wikipedia.org/wiki/Fleet_card"
         ]
-      ],
-      "see": [
-        "de48-fleet",
-        "commercial-card"
       ],
       "aliases": [
         "Fleet",
@@ -2268,10 +1932,6 @@
           "https://en.wikipedia.org/wiki/Flexible_spending_account"
         ]
       ],
-      "see": [
-        "healthcare-amount",
-        "de54"
-      ],
       "aliases": [
         "HSA/FSA",
         "Health Savings"
@@ -2291,10 +1951,6 @@
           "Controlled payment number (Wikipedia)",
           "https://en.wikipedia.org/wiki/Controlled_payment_number"
         ]
-      ],
-      "see": [
-        "bnpl",
-        "network-token"
       ],
       "aliases": [
         "Virtual / single-use",
@@ -2317,10 +1973,6 @@
           "https://en.wikipedia.org/wiki/Buy_now,_pay_later"
         ]
       ],
-      "see": [
-        "virtual-card",
-        "installments"
-      ],
       "aliases": [
         "Pay Later"
       ]
@@ -2339,10 +1991,6 @@
           "Purchasing card (Wikipedia)",
           "https://en.wikipedia.org/wiki/Purchasing_card"
         ]
-      ],
-      "see": [
-        "fleet-card",
-        "interchange"
       ],
       "aliases": [
         "Commercial / fleet",
@@ -2376,12 +2024,6 @@
           "https://www.emvco.com/emv-technologies/payment-tokenisation/"
         ]
       ],
-      "see": [
-        "device-token",
-        "cryptogram",
-        "cdcvm",
-        "apple-pay"
-      ],
       "aliases": [
         "Mobile Wallets",
         "Mobile wallet",
@@ -2409,10 +2051,6 @@
           "https://en.wikipedia.org/wiki/Apple_Pay"
         ]
       ],
-      "see": [
-        "mobile-wallet",
-        "device-token"
-      ],
       "aliases": [
         "Apple Pay",
         "Apple"
@@ -2437,10 +2075,6 @@
           "https://en.wikipedia.org/wiki/Google_Pay"
         ]
       ],
-      "see": [
-        "mobile-wallet",
-        "device-token"
-      ],
       "aliases": [
         "Google Pay",
         "Google"
@@ -2464,10 +2098,6 @@
           "Samsung Wallet (Wikipedia)",
           "https://en.wikipedia.org/wiki/Samsung_Wallet"
         ]
-      ],
-      "see": [
-        "mobile-wallet",
-        "device-token"
       ],
       "aliases": [
         "Samsung Pay",
@@ -2496,11 +2126,6 @@
           "Tokenization (Wikipedia)",
           "https://en.wikipedia.org/wiki/Tokenization_(data_security)"
         ]
-      ],
-      "see": [
-        "network-token",
-        "token-service",
-        "cryptogram"
       ],
       "aliases": [
         "Device token",
@@ -2533,11 +2158,6 @@
           "https://en.wikipedia.org/wiki/EMV"
         ]
       ],
-      "see": [
-        "de55",
-        "device-token",
-        "hsm"
-      ],
       "aliases": [
         "One-time cryptogram",
         "cryptogram",
@@ -2562,10 +2182,6 @@
           "Biometrics (Wikipedia)",
           "https://en.wikipedia.org/wiki/Biometrics"
         ]
-      ],
-      "see": [
-        "mobile-wallet",
-        "pin"
       ],
       "aliases": [
         "Face ID…",
@@ -2596,11 +2212,6 @@
           "https://en.wikipedia.org/wiki/Payment_card_number"
         ]
       ],
-      "see": [
-        "de2",
-        "mii",
-        "bin-registry"
-      ],
       "aliases": [
         "BIN",
         "BIN / IIN",
@@ -2628,10 +2239,6 @@
           "https://en.wikipedia.org/wiki/Luhn_algorithm"
         ]
       ],
-      "see": [
-        "de2",
-        "test-card"
-      ],
       "aliases": [
         "Luhn",
         "Luhn check digit"
@@ -2652,10 +2259,6 @@
           "https://en.wikipedia.org/wiki/ISO/IEC_7812"
         ]
       ],
-      "see": [
-        "bin",
-        "brand-prefixes"
-      ],
       "aliases": [
         "MII"
       ]
@@ -2675,10 +2278,6 @@
           "https://en.wikipedia.org/wiki/Payment_card_number"
         ]
       ],
-      "see": [
-        "bin",
-        "luhn"
-      ],
       "aliases": [
         "Account identifier"
       ]
@@ -2697,10 +2296,6 @@
           "Payment card number (Wikipedia)",
           "https://en.wikipedia.org/wiki/Payment_card_number"
         ]
-      ],
-      "see": [
-        "bin",
-        "mii"
       ],
       "aliases": [
         "Brand prefixes"
@@ -2729,10 +2324,6 @@
           "https://www.pcisecuritystandards.org/standards/pci-dss/"
         ]
       ],
-      "see": [
-        "manual-entry",
-        "ecommerce"
-      ],
       "aliases": [
         "CVV",
         "CVV2",
@@ -2758,10 +2349,6 @@
           "https://www.pcisecuritystandards.org/standards/pin-security/"
         ]
       ],
-      "see": [
-        "de52",
-        "debit-card"
-      ],
       "aliases": [
         "PIN entry"
       ]
@@ -2780,11 +2367,6 @@
           "Debit card (Wikipedia)",
           "https://en.wikipedia.org/wiki/Debit_card"
         ]
-      ],
-      "see": [
-        "de54",
-        "de3",
-        "debit-card"
       ],
       "aliases": [
         "Cash back",
@@ -2810,10 +2392,6 @@
           "https://www.irs.gov/publications/p969"
         ]
       ],
-      "see": [
-        "hsa-fsa-card",
-        "de54"
-      ],
       "aliases": [
         "HSA/FSA-eligible amount"
       ]
@@ -2836,10 +2414,6 @@
           "PCI DSS",
           "https://www.pcisecuritystandards.org/standards/pci-dss/"
         ]
-      ],
-      "see": [
-        "de2",
-        "security"
       ],
       "aliases": [
         "Masked card number"
@@ -2867,10 +2441,6 @@
           "Payment card number (Wikipedia)",
           "https://en.wikipedia.org/wiki/Payment_card_number"
         ]
-      ],
-      "see": [
-        "luhn",
-        "bin"
       ],
       "aliases": [
         "Fill test card"
@@ -2903,10 +2473,6 @@
           "https://developer.mastercard.com/mdes-digital-enablement/documentation/"
         ]
       ],
-      "see": [
-        "device-token",
-        "token-service"
-      ],
       "aliases": [
         "Tokenization",
         "Network tokens",
@@ -2931,11 +2497,6 @@
           "PCI PIN Security",
           "https://www.pcisecuritystandards.org/standards/pin-security/"
         ]
-      ],
-      "see": [
-        "de52",
-        "cryptogram",
-        "security"
       ],
       "aliases": [
         "HSM"
@@ -2963,11 +2524,6 @@
           "Interchange fee (Wikipedia)",
           "https://en.wikipedia.org/wiki/Interchange_fee"
         ]
-      ],
-      "see": [
-        "interchange",
-        "network-fees",
-        "acquirer-margin"
       ],
       "aliases": [
         "MDR",
@@ -3001,11 +2557,6 @@
           "https://www.federalreserve.gov/paymentsystems/regii-about.htm"
         ]
       ],
-      "see": [
-        "mdr",
-        "rewards",
-        "de18"
-      ],
       "aliases": [
         "Interchange",
         "Interchange to issuer"
@@ -3030,10 +2581,6 @@
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
       ],
-      "see": [
-        "mdr",
-        "fee-engine"
-      ],
       "aliases": [
         "Network fees",
         "Network revenue",
@@ -3055,10 +2602,6 @@
           "https://en.wikipedia.org/wiki/Merchant_account"
         ]
       ],
-      "see": [
-        "mdr",
-        "interchange-plus"
-      ],
       "aliases": [
         "Acquirer margin"
       ]
@@ -3078,10 +2621,6 @@
           "https://en.wikipedia.org/wiki/Interchange_fee"
         ]
       ],
-      "see": [
-        "mdr",
-        "acquirer-margin"
-      ],
       "aliases": [
         "Interchange-plus"
       ]
@@ -3100,10 +2639,6 @@
           "Rewards card (Wikipedia)",
           "https://en.wikipedia.org/wiki/Rewards_card"
         ]
-      ],
-      "see": [
-        "interchange",
-        "credit-card"
       ],
       "aliases": [
         "Rewards"
@@ -3127,10 +2662,6 @@
           "Visa Core Rules (public PDF)",
           "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
         ]
-      ],
-      "see": [
-        "de39",
-        "issuer"
       ],
       "aliases": [
         "Stand-in (STIP)",
@@ -3157,10 +2688,6 @@
           "Credit card fraud (Wikipedia)",
           "https://en.wikipedia.org/wiki/Credit_card_fraud"
         ]
-      ],
-      "see": [
-        "three-ds",
-        "issuer"
       ],
       "aliases": [
         "Fraud scoring",
@@ -3194,10 +2721,6 @@
           "https://en.wikipedia.org/wiki/3-D_Secure"
         ]
       ],
-      "see": [
-        "ecommerce",
-        "fraud-scoring"
-      ],
       "aliases": [
         "3DS directory",
         "3DS Directory Server",
@@ -3218,10 +2741,6 @@
           "Visa Account Updater (developer)",
           "https://developer.visa.com/capabilities/vau"
         ]
-      ],
-      "see": [
-        "credential-on-file",
-        "network-token"
       ],
       "aliases": [
         "Account updater"
@@ -3246,9 +2765,6 @@
           "https://developer.mastercard.com/"
         ]
       ],
-      "see": [
-        "fraud-scoring"
-      ],
       "aliases": [
         "Card controls"
       ]
@@ -3267,10 +2783,6 @@
           "Chargeback (Wikipedia)",
           "https://en.wikipedia.org/wiki/Chargeback"
         ]
-      ],
-      "see": [
-        "chargeback",
-        "refund"
       ],
       "aliases": [
         "Dispute prevention"
@@ -3291,10 +2803,6 @@
           "https://www.emvco.com/emv-technologies/secure-remote-commerce/"
         ]
       ],
-      "see": [
-        "ecommerce",
-        "network-token"
-      ],
       "aliases": [
         "Click to Pay"
       ]
@@ -3314,9 +2822,6 @@
           "https://en.wikipedia.org/wiki/Buy_now,_pay_later"
         ]
       ],
-      "see": [
-        "bnpl"
-      ],
       "aliases": [
         "Installments"
       ]
@@ -3335,9 +2840,6 @@
           "Loyalty program (Wikipedia)",
           "https://en.wikipedia.org/wiki/Loyalty_program"
         ]
-      ],
-      "see": [
-        "rewards"
       ],
       "aliases": [
         "Offers / loyalty"
@@ -3362,9 +2864,6 @@
           "https://developer.visa.com/capabilities/visa_direct"
         ]
       ],
-      "see": [
-        "aft"
-      ],
       "aliases": [
         "Push (OCT)",
         "Push payments",
@@ -3385,9 +2884,6 @@
           "Visa Direct (developer)",
           "https://developer.visa.com/capabilities/visa_direct"
         ]
-      ],
-      "see": [
-        "oct"
       ],
       "aliases": [
         "Funding (AFT)",
@@ -3413,10 +2909,6 @@
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
       ],
-      "see": [
-        "de3",
-        "refund"
-      ],
       "aliases": [
         "Purchase"
       ]
@@ -3435,10 +2927,6 @@
           "Automated teller machine (Wikipedia)",
           "https://en.wikipedia.org/wiki/Automated_teller_machine"
         ]
-      ],
-      "see": [
-        "de3",
-        "pin"
       ],
       "aliases": [
         "Cash / ATM"
@@ -3463,9 +2951,6 @@
           "https://developer.visa.com/"
         ]
       ],
-      "see": [
-        "consulting"
-      ],
       "aliases": [
         "Analytics & benchmarks",
         "5 · Data & new rails"
@@ -3486,9 +2971,6 @@
           "https://en.wikipedia.org/wiki/Card_scheme"
         ]
       ],
-      "see": [
-        "analytics"
-      ],
       "aliases": [
         "Consulting"
       ]
@@ -3508,9 +2990,6 @@
           "https://en.wikipedia.org/wiki/Open_banking"
         ]
       ],
-      "see": [
-        "oct"
-      ],
       "aliases": [
         "Open banking / A2A"
       ]
@@ -3529,9 +3008,6 @@
           "Stablecoin (Wikipedia)",
           "https://en.wikipedia.org/wiki/Stablecoin"
         ]
-      ],
-      "see": [
-        "settlement"
       ],
       "aliases": [
         "Stablecoin settlement pilots"
@@ -3555,11 +3031,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "network",
-        "stip",
-        "bin"
       ],
       "aliases": [
         "Auth switch · M3",
@@ -3587,10 +3058,6 @@
           "https://usa.visa.com/support/small-business/regulations-fees.html"
         ]
       ],
-      "see": [
-        "interchange",
-        "network-fees"
-      ],
       "aliases": [
         "Fee engine · M6",
         "Fee engine"
@@ -3614,10 +3081,6 @@
           "ISO/IEC 7812 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO/IEC_7812"
         ]
-      ],
-      "see": [
-        "bin",
-        "network"
       ],
       "aliases": [
         "Participant & BIN registry · M1–3"
@@ -3645,10 +3108,6 @@
           "Mastercard Rules",
           "https://www.mastercard.us/en-us/business/overview/support/rules.html"
         ]
-      ],
-      "see": [
-        "network",
-        "chargeback"
       ],
       "aliases": [
         "Rules & compliance",
@@ -3678,10 +3137,6 @@
           "https://en.wikipedia.org/wiki/Payment_Card_Industry_Data_Security_Standard"
         ]
       ],
-      "see": [
-        "hsm",
-        "pan-masking"
-      ],
       "aliases": [
         "Security · M9",
         "Security"
@@ -3710,9 +3165,6 @@
           "https://developer.mastercard.com/"
         ]
       ],
-      "see": [
-        "rules-compliance"
-      ],
       "aliases": [
         "Certification"
       ]
@@ -3735,10 +3187,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "msg-0100",
-        "de39"
       ],
       "aliases": [
         "Status",
@@ -3767,13 +3215,6 @@
           "https://en.wikipedia.org/wiki/Payment_card"
         ]
       ],
-      "see": [
-        "credit-card",
-        "debit-card",
-        "prepaid-card",
-        "commercial-card",
-        "bin"
-      ],
       "aliases": [
         "Card products",
         "2 · Card products",
@@ -3794,13 +3235,6 @@
           "ISO 8583 (Wikipedia)",
           "https://en.wikipedia.org/wiki/ISO_8583"
         ]
-      ],
-      "see": [
-        "purchase",
-        "refund",
-        "oct",
-        "aft",
-        "de3"
       ],
       "aliases": [
         "Payment flows",
@@ -3830,12 +3264,6 @@
           "https://developer.mastercard.com/"
         ]
       ],
-      "see": [
-        "network-token",
-        "fraud-scoring",
-        "three-ds",
-        "stip"
-      ],
       "aliases": [
         "Value-added services",
         "4 · Value-added"
@@ -3859,12 +3287,6 @@
           "Card scheme (Wikipedia)",
           "https://en.wikipedia.org/wiki/Card_scheme"
         ]
-      ],
-      "see": [
-        "auth-switch",
-        "clearing",
-        "settlement",
-        "chargeback"
       ],
       "aliases": [
         "Core rails",
@@ -3894,11 +3316,6 @@
           "https://en.wikipedia.org/wiki/Stored-value_card"
         ]
       ],
-      "see": [
-        "de4",
-        "de39",
-        "prepaid-card"
-      ],
       "aliases": [
         "Approved amount",
         "DE4 Approved",
@@ -3927,10 +3344,6 @@
           "Percentile (Wikipedia)",
           "https://en.wikipedia.org/wiki/Percentile"
         ]
-      ],
-      "see": [
-        "timeout",
-        "switch-trace"
       ],
       "aliases": [
         "Latency",
@@ -3962,10 +3375,6 @@
           "https://sre.google/sre-book/monitoring-distributed-systems/"
         ]
       ],
-      "see": [
-        "de39",
-        "latency"
-      ],
       "aliases": [
         "Approval rate",
         "Approved %"
@@ -3994,11 +3403,6 @@
           "https://martinfowler.com/bliki/CircuitBreaker.html"
         ]
       ],
-      "see": [
-        "timeout",
-        "issuer-health",
-        "stip"
-      ],
       "aliases": [
         "Breaker",
         "Breaker open",
@@ -4025,11 +3429,6 @@
           "https://en.wikipedia.org/wiki/Timeout_(computing)"
         ]
       ],
-      "see": [
-        "reversal",
-        "stip",
-        "circuit-breaker"
-      ],
       "aliases": [
         "Timeout",
         "timeout"
@@ -4053,11 +3452,6 @@
           "Fault tolerance (Wikipedia)",
           "https://en.wikipedia.org/wiki/Fault_tolerance"
         ]
-      ],
-      "see": [
-        "circuit-breaker",
-        "timeout",
-        "stip"
       ],
       "aliases": [
         "Health",
@@ -4093,11 +3487,6 @@
           "https://opentelemetry.io/docs/concepts/signals/traces/"
         ]
       ],
-      "see": [
-        "auth-switch",
-        "latency",
-        "network-txn-id"
-      ],
       "aliases": [
         "Trace",
         "Follow latest",
@@ -4119,11 +3508,6 @@
           "Data validation (Wikipedia)",
           "https://en.wikipedia.org/wiki/Data_validation"
         ]
-      ],
-      "see": [
-        "duplicate-detection",
-        "luhn",
-        "auth-switch"
       ],
       "aliases": [
         "Validate"
@@ -4148,11 +3532,6 @@
           "https://www.pcisecuritystandards.org/standards/pin-security/"
         ]
       ],
-      "see": [
-        "de52",
-        "hsm",
-        "pin"
-      ],
       "aliases": [
         "PIN translate",
         "PIN"
@@ -4173,11 +3552,6 @@
           "https://en.wikipedia.org/wiki/Idempotence"
         ]
       ],
-      "see": [
-        "de11",
-        "de7",
-        "switch-validate"
-      ],
       "aliases": [
         "duplicates answered from cache",
         "Duplicate"
@@ -4197,10 +3571,6 @@
           "EMVCo payment tokenisation",
           "https://www.emvco.com/emv-technologies/payment-tokenisation/"
         ]
-      ],
-      "see": [
-        "device-token",
-        "token-service"
       ],
       "aliases": [
         "Active",

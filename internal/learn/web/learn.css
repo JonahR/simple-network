@@ -51,9 +51,6 @@ svg text[data-term] { text-decoration: underline dotted; text-underline-offset: 
 .learn-links a { display: flex; gap: 8px; align-items: baseline; color: var(--learn-accent); text-decoration: none; }
 .learn-links a:hover { text-decoration: underline; }
 .learn-tag { flex: none; min-width: 26px; text-align: center; font: 600 10px/1.6 ui-monospace, Menlo, monospace; color: var(--learn-muted); border: 1px solid var(--learn-border); border-radius: 4px; padding: 0 4px; }
-.learn-related { display: flex; flex-wrap: wrap; gap: 6px; }
-.learn-related button { border: 1px solid var(--learn-border); background: var(--learn-soft); color: var(--learn-text); border-radius: 999px; padding: 3px 10px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font: 12.5px/1.4 system-ui, -apple-system, sans-serif; cursor: pointer; }
-.learn-related button:hover { border-color: var(--learn-accent); }
 .learn-all { justify-self: start; font-size: 12.5px; color: var(--learn-muted); margin-top: 2px; }
 
 @media (max-width: 640px) {

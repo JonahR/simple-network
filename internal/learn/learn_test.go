@@ -113,11 +113,6 @@ func TestGlossaryEntriesAreComplete(t *testing.T) {
 				t.Errorf("%s: KT link %q: no heading with that anchor", id, l[1])
 			}
 		}
-		for _, s := range tm.See {
-			if _, ok := terms[s]; !ok {
-				t.Errorf("%s: related term %q doesn't exist", id, s)
-			}
-		}
 		for _, a := range tm.Aliases {
 			n := Normalize(a)
 			if other, ok := aliasOwner[n]; ok && other != id {

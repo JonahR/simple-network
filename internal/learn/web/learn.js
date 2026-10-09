@@ -81,10 +81,6 @@
       h += `<h4>Official &amp; reference</h4><ul class="learn-links">` +
         t.ext.map(([label, url]) => `<li><a href="${esc(url)}" target="_blank" rel="noopener"><span class="learn-tag ext">↗</span>${esc(label)}</a></li>`).join("") + `</ul>`;
     }
-    if (t.see && t.see.length) {
-      h += `<h4>Related</h4><div class="learn-related">` +
-        t.see.filter((s) => terms[s]).map((s) => `<button type="button" data-learn-goto="${esc(s)}">${esc(terms[s].name.replace(/ \(.*\)$/, ""))}</button>`).join("") + `</div>`;
-    }
     h += `<a class="learn-all" href="${BASE}#glossary">All terms →</a>`;
     popBody.innerHTML = h;
     popBody.scrollTop = 0;
@@ -156,8 +152,6 @@
 
   // Capture phase so Explain mode can stop buttons from acting.
   document.addEventListener("click", (e) => {
-    const goto = e.target.closest("[data-learn-goto]");
-    if (goto) { e.preventDefault(); ready.then(() => show(anchor || goto, goto.dataset.learnGoto, true)); return; }
     if (e.target.closest(".learn-pop-close")) { hide(); return; }
     const toggle = e.target.closest("[data-learn-toggle]");
     if (toggle) { setExplain(!explain); return; }

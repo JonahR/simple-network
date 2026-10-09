@@ -52,7 +52,6 @@ type Term struct {
 	Def     string      `json:"def"`
 	KT      [][2]string `json:"kt"`  // [label, "file.md#heading"]
 	Ext     [][2]string `json:"ext"` // [label, "https://..."]
-	See     []string    `json:"see"`
 	Aliases []string    `json:"aliases"`
 }
 
