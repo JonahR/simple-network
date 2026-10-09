@@ -100,6 +100,9 @@ func outcome(req iso8583.AuthRequest, resp iso8583.AuthResponse) (string, string
 		rest := float64(req.Amount-resp.Amount) / 100
 		return "PARTIAL", fmt.Sprintf("Partially approved: %.2f approved, collect %.2f another way. Auth code %s.",
 			float64(resp.Amount)/100, rest, resp.AuthCode)
+	case req.AuthType == iso8583.AuthEstimated && iso8583.IsApproved(resp.ResponseCode):
+		return "APPROVED", fmt.Sprintf("Pre-authorized: %s is held. Add to it if the bill grows, then capture the final amount. Auth code %s.",
+			cents(resp.Amount), resp.AuthCode)
 	case iso8583.IsApproved(resp.ResponseCode):
 		return "APPROVED", "Approved. Auth code " + resp.AuthCode + "."
 	default:

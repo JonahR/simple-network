@@ -10,6 +10,8 @@ const (
 	MTIAuthResponse     = "0110"
 	MTIReversalAdvice   = "0420"
 	MTIReversalResponse = "0430"
+	MTICompletion       = "0220" // The final amount of an authorized sale, terminal to acquirer
+	MTICompletionResp   = "0230"
 )
 
 // MTINames maps message type indicators to display names.
@@ -18,6 +20,8 @@ var MTINames = map[string]string{
 	MTIAuthResponse:     "Authorization response",
 	MTIReversalAdvice:   "Reversal advice",
 	MTIReversalResponse: "Reversal advice response",
+	MTICompletion:       "Completion advice",
+	MTICompletionResp:   "Completion advice response",
 }
 
 // Processing code (DE3) parts: two digits each for the transaction type,
@@ -175,6 +179,13 @@ type AuthRequest struct {
 	ECI  string   `json:"eci,omitempty"`  // 05 authenticated, 06 attempted, 07 not authenticated
 	CAVV string   `json:"cavv,omitempty"` // Proof of authentication from the issuer's ACS
 
+	// Authorizations whose final amount isn't known yet (hotels, car rental,
+	// bar tabs). AuthType "estimated" places a hold for an estimate;
+	// "incremental" adds to an earlier one, named by OriginalTxnID (Visa
+	// carries the original's transaction identifier in DE62).
+	AuthType      string `json:"auth_type,omitempty"`
+	OriginalTxnID string `json:"original_txn_id,omitempty"`
+
 	// Set by the network on the request it forwards to the issuer.
 	NetworkTxnID string `json:"network_txn_id,omitempty"`
 	Token        string `json:"token,omitempty"` // The device token, when the network replaced it with the card number in DE2
@@ -282,6 +293,19 @@ type ThreeDSChallenge struct {
 	OTP string `json:"otp"`
 }
 
+// Authorization types (AuthRequest.AuthType). Empty is a final
+// authorization: the amount won't change, except for a tip.
+const (
+	AuthEstimated   = "estimated"
+	AuthIncremental = "incremental"
+)
+
+// AuthTypes explains authorization types.
+var AuthTypes = map[string]string{
+	AuthEstimated:   "Estimated authorization (pre-auth): holds an estimate until the final amount is captured",
+	AuthIncremental: "Incremental authorization: adds to an earlier authorization's hold",
+}
+
 // IsBalanceInquiry reports whether DE3 asks for a balance rather than a payment.
 func IsBalanceInquiry(processingCode string) bool {
 	return strings.HasPrefix(processingCode, TxnBalanceInquiry)
@@ -331,6 +355,31 @@ type OriginalData struct {
 	STAN             string `json:"stan"`              // Original DE11
 	TransmissionTime string `json:"transmission_time"` // Original DE7, MMDDhhmmss
 	AcquirerID       string `json:"acquirer_id"`       // Original DE32
+}
+
+// Completion is an 0220 completion advice: the terminal tells its acquirer
+// the final amount of a sale it authorized, such as a pre-auth's final bill
+// or a sale plus tip. In a dual-message network it goes no further than the
+// acquirer; the final amount reaches the issuer in clearing.
+type Completion struct {
+	MTI          string        `json:"mti"`
+	STAN         string        `json:"de11_stan"`
+	Amount       int64         `json:"de4_amount"` // The final amount, tip included
+	Currency     string        `json:"de49_currency"`
+	TerminalID   string        `json:"de41_terminal_id"`
+	MerchantID   string        `json:"de42_merchant_id"`
+	OriginalData *OriginalData `json:"de90_original_data"` // The authorization's STAN and DE7
+}
+
+// CompletionResponse is the acquirer's 0230.
+type CompletionResponse struct {
+	MTI          string `json:"mti"`
+	STAN         string `json:"de11_stan"`
+	ResponseCode string `json:"de39_response_code"` // 00 accepted, 12 refused
+	Message      string `json:"message"`
+	NetworkTxnID string `json:"network_txn_id,omitempty"`
+	Authorized   int64  `json:"authorized"` // Everything approved, increments included
+	Captured     int64  `json:"captured"`   // What clearing will present
 }
 
 // ReversalResponse is the 0430 acknowledgement of an 0420.

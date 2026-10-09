@@ -200,20 +200,23 @@ func TestFileControls(t *testing.T) {
 
 func TestMatchingRejects(t *testing.T) {
 	a := auths{
-		"ok":       {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840", Product: card.Credit},
-		"declined": {AcquirerID: "A1", IssuerID: "I1", Approved: false, Amount: 0, Currency: "840"},
-		"reversed": {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840", Reversed: true},
-		"other":    {AcquirerID: "A2", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840"},
-		"tip":      {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840", Product: card.Credit},
-		"over":     {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840"},
-		"inquiry":  {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 0, Currency: "840", ProcessingCode: "303000"},
+		"ok":        {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840", Product: card.Credit},
+		"declined":  {AcquirerID: "A1", IssuerID: "I1", Approved: false, Amount: 0, Currency: "840"},
+		"reversed":  {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840", Reversed: true},
+		"other":     {AcquirerID: "A2", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840"},
+		"tip":       {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840", Product: card.Credit},
+		"over":      {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840"},
+		"inquiry":   {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 0, Currency: "840", ProcessingCode: "303000"},
+		"increment": {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 500, Currency: "840", Incremental: true},
 	}
 	e, _, _ := newEngine(DefaultFees(), a, []string{"I1"}, []string{"A1", "A2"})
 	tip := pres("tip", 1200)
 	tip.MCC = "5812" // Restaurants allow 20% over for the tip.
+	over := pres("over", 1001)
+	over.MCC = "5411" // Grocery stores get no tolerance.
 	ack := e.Receive(NewFile(FileHeader{FileID: "f1", AcquirerID: "A1", Sequence: 1}, []Presentment{
 		pres("ok", 1000), pres("ok", 1000), pres("missing", 1000), pres("declined", 1000),
-		pres("reversed", 1000), pres("other", 1000), tip, pres("over", 1001), pres("inquiry", 1000),
+		pres("reversed", 1000), pres("other", 1000), tip, over, pres("inquiry", 1000), pres("increment", 500),
 	}))
 	if ack.Accepted != 2 {
 		t.Errorf("accepted %d, want 2 (ok, tip)", ack.Accepted)
@@ -225,7 +228,7 @@ func TestMatchingRejects(t *testing.T) {
 	for id, want := range map[string]string{
 		"ok": "already presented", "missing": "no matching", "declined": "declined",
 		"reversed": "reversed", "other": "another acquirer", "over": "tolerance",
-		"inquiry": "balance inquiry",
+		"inquiry": "balance inquiry", "increment": "cleared with the original",
 	} {
 		if !strings.Contains(reasons[id], want) {
 			t.Errorf("%s: reason %q, want %q", id, reasons[id], want)

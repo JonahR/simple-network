@@ -75,6 +75,14 @@ func (c *clearer) presentments() []clearing.Presentment {
 	var out []clearing.Presentment
 	records := c.acq.Records()
 	slices.Reverse(records) // Oldest first
+	// Approved increments, by the authorization they add to.
+	increments := map[string]int64{}
+	for _, r := range records {
+		if r.Request.AuthType == iso8583.AuthIncremental && iso8583.IsApproved(r.Response.ResponseCode) &&
+			(r.Reversal == "" || r.Reversal == ReversalRejected) {
+			increments[r.Request.OriginalTxnID] += r.Response.Amount
+		}
+	}
 	for _, r := range records {
 		id := r.Response.NetworkTxnID
 		if r.Status == "DECLINED" || id == "" || c.status[id] != "" || !iso8583.IsApproved(r.Response.ResponseCode) {
@@ -89,6 +97,15 @@ func (c *clearer) presentments() []clearing.Presentment {
 		if r.Reversal != "" && r.Reversal != ReversalRejected {
 			continue
 		}
+		// An increment is cleared as part of its original, and a pre-auth
+		// waits until the terminal captures the final amount.
+		if r.Request.AuthType == iso8583.AuthIncremental || (r.Request.AuthType == iso8583.AuthEstimated && r.Captured == 0) {
+			continue
+		}
+		amount := r.Response.Amount + increments[id]
+		if r.Captured > 0 {
+			amount = r.Captured
+		}
 		var cashback int64
 		for _, a := range r.Request.AdditionalAmounts {
 			if a.Type == iso8583.AmountCashback {
@@ -100,8 +117,8 @@ func (c *clearer) presentments() []clearing.Presentment {
 			RRN:            r.Request.RRN,
 			AuthCode:       r.Response.AuthCode,
 			PAN:            r.Request.PAN, // Already masked in the record
-			Amount:         r.Response.Amount,
-			Cashback:       min(cashback, r.Response.Amount),
+			Amount:         amount,
+			Cashback:       min(cashback, amount),
 			Currency:       r.Request.Currency,
 			MerchantID:     r.MerchantID,
 			MerchantName:   r.MerchantName,
@@ -112,6 +129,15 @@ func (c *clearer) presentments() []clearing.Presentment {
 		})
 	}
 	return out
+}
+
+// Capture applies a terminal's completion advice, unless the sale was
+// already put in a clearing file. It holds c.mu so a file can't be built
+// halfway through.
+func (c *clearer) Capture(comp iso8583.Completion) (iso8583.CompletionResponse, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.acq.Capture(comp, func(id string) bool { return c.status[id] != "" })
 }
 
 // arn builds a 23-digit acquirer reference number: 7, the acquirer ID, the

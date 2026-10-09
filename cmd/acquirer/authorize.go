@@ -88,6 +88,10 @@ type Record struct {
 	ReversalReason string `json:"reversal_reason,omitempty"`
 	// ReversalAdvice is the 0420 the acquirer sent the network, PAN masked.
 	ReversalAdvice *iso8583.ReversalAdvice `json:"reversal_advice,omitempty"`
+	// Captured is the final amount from the terminal's 0220 (a pre-auth's
+	// final bill, or a sale plus tip). Clearing presents it instead of the
+	// authorized amount.
+	Captured int64 `json:"captured,omitempty"`
 }
 
 // leg is what the acquirer sent the network for one terminal request, so a

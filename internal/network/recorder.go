@@ -31,6 +31,7 @@ type Record struct {
 	IssuerUS      int64                 `json:"issuer_us"` // Time spent waiting on the issuer
 	Duplicates    int                   `json:"duplicates"`
 	Reversed      bool                  `json:"reversed,omitempty"`       // The issuer acknowledged a reversal (0420/0430)
+	Incremented   int64                 `json:"incremented,omitempty"`    // Approved incremental authorizations added to this one
 	Request       iso8583.AuthRequest   `json:"request"`                  // As received from the acquirer
 	IssuerRequest *iso8583.AuthRequest  `json:"issuer_request,omitempty"` // As forwarded to the issuer
 	Response      *iso8583.AuthResponse `json:"response,omitempty"`       // As returned to the acquirer
@@ -132,6 +133,17 @@ func (r *Recorder) Subscribe() (<-chan Event, func()) {
 }
 
 // Get returns a copy of one record.
+// updateID applies fn to the record with the given ID, if it is still kept.
+func (r *Recorder) updateID(id string, fn func(*Record)) bool {
+	r.mu.Lock()
+	rec, ok := r.byID[id]
+	r.mu.Unlock()
+	if ok {
+		r.update(rec, fn)
+	}
+	return ok
+}
+
 func (r *Recorder) Get(id string) (Record, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

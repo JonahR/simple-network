@@ -34,7 +34,7 @@ func (a recordAuths) Lookup(id string) (clearing.AuthInfo, bool) {
 		AcquirerID: r.AcquirerID,
 		IssuerID:   r.IssuerID,
 		Approved:   r.Status == "approved",
-		Amount:     r.Response.Amount,
+		Amount:     r.Response.Amount + r.Incremented,
 		Currency:   r.Response.Currency,
 		AuthCode:   r.Response.AuthCode,
 	}
@@ -47,6 +47,7 @@ func (a recordAuths) Lookup(id string) (clearing.AuthInfo, bool) {
 	}
 	info.Reversed = r.Reversed
 	info.ProcessingCode = r.Request.ProcessingCode
+	info.Incremental = r.Request.AuthType == iso8583.AuthIncremental
 	return info, true
 }
 

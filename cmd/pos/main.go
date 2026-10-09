@@ -125,6 +125,10 @@ type SaleInput struct {
 	BillingZip    string `json:"billing_zip"`
 	BillingStreet string `json:"billing_street"`
 	ThreeDS       bool   `json:"three_ds"`
+
+	// PreAuth holds an estimate instead of charging a final amount; the
+	// cashier captures the final amount later.
+	PreAuth bool `json:"pre_auth"`
 }
 
 // StoredCard is a card the merchant keeps on file for a returning customer.
@@ -168,6 +172,13 @@ type Transaction struct {
 	Tender     string `json:"tender"`                // "card" or "cash"
 	SplitOf    string `json:"split_of,omitempty"`    // STAN of the first tender
 	BalanceDue int64  `json:"balance_due,omitempty"` // On the first tender: still to collect
+
+	// Pre-auths and tips. An increment names the pre-auth it adds to; the
+	// final amount, once captured, is what clearing presents.
+	IncrementOf string                      `json:"increment_of,omitempty"` // STAN of the pre-auth
+	Authorized  int64                       `json:"authorized,omitempty"`   // Approved so far, increments included
+	Captured    int64                       `json:"captured,omitempty"`     // Final amount sent in the 0220
+	Completion  *iso8583.CompletionResponse `json:"completion,omitempty"`   // The acquirer's 0230
 
 	// The 0100 as sent, unmasked, so a reversal can identify the sale. Never
 	// serialized; the PIN block, CVV, track data and cryptogram are dropped.
@@ -226,6 +237,8 @@ func main() {
 	mux.HandleFunc("GET /api/terminal", s.handleTerminal)
 	mux.HandleFunc("POST /api/sale", s.handleSale)
 	mux.HandleFunc("POST /api/3ds/challenge", s.handleChallenge)
+	mux.HandleFunc("POST /api/increment", s.handleIncrement)
+	mux.HandleFunc("POST /api/capture", s.handleCapture)
 	mux.HandleFunc("POST /api/void", s.handleVoid)
 	mux.HandleFunc("POST /api/chip-failure", s.handleChipFailure)
 	mux.HandleFunc("POST /api/cash", s.handleCash)
@@ -338,7 +351,7 @@ func (s *server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	out := []Transaction{}
 	for i := len(s.history) - 1; i >= 0; i-- {
 		if tx := s.history[i]; only == "" || tx.Request.TerminalID == only {
-			out = append(out, copyTx(tx))
+			out = append(out, s.copyTx(tx))
 		}
 	}
 	s.mu.Unlock()
@@ -350,7 +363,21 @@ func (s *server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 func (s *server) snapshot(tx *Transaction) Transaction {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return copyTx(tx)
+	return s.copyTx(tx)
+}
+
+// copyTx copies tx for the browser, with its authorized total worked out
+// from any increments. The caller holds s.mu.
+func (s *server) copyTx(tx *Transaction) Transaction {
+	c := copyTx(tx)
+	if tx.Request.AuthType == iso8583.AuthEstimated {
+		c.Authorized = s.authorizedTotal(tx)
+	}
+	if tx.Completion != nil {
+		comp := *tx.Completion
+		c.Completion = &comp
+	}
+	return c
 }
 
 func copyTx(tx *Transaction) Transaction {

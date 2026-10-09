@@ -199,6 +199,10 @@ func (s *Switch) process(req iso8583.AuthRequest, a *attempt, early bool) iso858
 			r.Status = "approved"
 		}
 	})
+	if req.AuthType == iso8583.AuthIncremental && iso8583.IsApproved(resp.ResponseCode) {
+		// Clearing presents the original once, for everything authorized.
+		s.Recorder.updateID(req.OriginalTxnID, func(r *Record) { r.Incremented += resp.Amount })
+	}
 	tr.step("respond", fmt.Sprintf("0110 %s %s to acquirer %s", resp.ResponseCode, resp.ResponseText, req.AcquirerID), true, began)
 	if s.Fraud != nil {
 		var approved int64
@@ -230,6 +234,15 @@ func (s *Switch) authorize(req iso8583.AuthRequest, id string, tr *tracer) (iso8
 		return decline(iso8583.RCFormatError)
 	}
 	tr.step("validate", "0100 well formed, PAN passes Luhn", true, t0)
+	if req.AuthType == iso8583.AuthIncremental {
+		t0 = s.Now()
+		detail, err := s.linkIncremental(req)
+		if err != nil {
+			tr.step("link", "incremental authorization: "+err.Error(), false, t0)
+			return decline(iso8583.RCInvalidTransaction)
+		}
+		tr.step("link", "incremental authorization "+detail, true, t0)
+	}
 
 	// 2. Route by BIN, detokenizing wallet payments first.
 	fwd := req
@@ -359,7 +372,7 @@ func (s *Switch) detokenize(req iso8583.AuthRequest) (Token, string, string) {
 		return tok, iso8583.RCDoNotHonor, fmt.Sprintf("token belongs to %s, used as %q", wallet, req.WalletProvider)
 	case req.EntryMode != iso8583.EntryContactless && req.EntryMode != iso8583.EntryEcommerce:
 		return tok, iso8583.RCDoNotHonor, "token domain: wallet tokens are contactless or in-app only"
-	case req.ARQC == "":
+	case req.ARQC == "" && req.AuthType != iso8583.AuthIncremental: // An increment rides on the original's cryptogram
 		return tok, iso8583.RCDoNotHonor, "token used without a cryptogram"
 	}
 	return tok, "", fmt.Sprintf("%s token → card %s", wallet, card.Mask(tok.PAN))
@@ -463,7 +476,16 @@ func (s *Switch) reverse(ctx context.Context, iss *Issuer, fwd iso8583.AuthReque
 				detail = sent + " acknowledged: no hold yet, issuer will decline the late authorization"
 			}
 			tr.step("reversal", detail, true, t0)
-			s.Recorder.update(tr.rec, func(r *Record) { r.Reversed = true })
+			var undo int64
+			s.Recorder.update(tr.rec, func(r *Record) {
+				if !r.Reversed && r.Status == "approved" && r.Request.AuthType == iso8583.AuthIncremental && r.Response != nil {
+					undo = r.Response.Amount
+				}
+				r.Reversed = true
+			})
+			if undo > 0 {
+				s.Recorder.updateID(fwd.OriginalTxnID, func(r *Record) { r.Incremented -= undo })
+			}
 			return
 		}
 		if ctx.Err() != nil {
@@ -561,8 +583,38 @@ func validate(r iso8583.AuthRequest) error {
 		return errors.New("DE37: RRN must be 12 characters")
 	case iso8583.Currencies[r.Currency] == "":
 		return fmt.Errorf("DE49: unsupported currency %q", r.Currency)
+	case r.AuthType != "" && iso8583.AuthTypes[r.AuthType] == "":
+		return fmt.Errorf("unknown authorization type %q", r.AuthType)
+	case r.AuthType != "" && iso8583.IsBalanceInquiry(r.ProcessingCode):
+		return errors.New("a balance inquiry can't be an estimated or incremental authorization")
+	case r.AuthType == iso8583.AuthIncremental && r.OriginalTxnID == "":
+		return errors.New("an incremental authorization must name the original's transaction ID")
+	case r.AuthType != iso8583.AuthIncremental && r.OriginalTxnID != "":
+		return errors.New("only an incremental authorization names an original")
 	}
 	return nil
+}
+
+// linkIncremental checks that an incremental authorization adds to a live
+// authorization of the same card from the same acquirer.
+func (s *Switch) linkIncremental(req iso8583.AuthRequest) (string, error) {
+	orig, ok := s.Recorder.Get(req.OriginalTxnID)
+	switch {
+	case !ok:
+		return "", fmt.Errorf("original %s not found", req.OriginalTxnID)
+	case orig.Status != "approved":
+		return "", errors.New("the original authorization wasn't approved")
+	case orig.Reversed:
+		return "", errors.New("the original authorization was reversed")
+	case orig.Request.AuthType == iso8583.AuthIncremental:
+		return "", errors.New("name the first authorization, not another increment")
+	case orig.AcquirerID != req.AcquirerID:
+		return "", errors.New("the original belongs to another acquirer")
+	case orig.Request.PAN != card.Mask(req.PAN):
+		return "", errors.New("the original was for a different card")
+	}
+	total := orig.Response.Amount + orig.Incremented
+	return fmt.Sprintf("adds to %s, authorized so far %d", orig.ID, total), nil
 }
 
 // validateReversal checks an acquirer's 0420.

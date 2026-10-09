@@ -81,6 +81,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /authorize", s.handleAuthorize)
 	mux.HandleFunc("POST /reverse", s.handleReverse)
+	mux.HandleFunc("POST /capture", s.handleCapture)
 	mux.HandleFunc("POST /3ds/authenticate", s.handleAuthenticate3DS)
 	mux.HandleFunc("POST /3ds/challenge", s.handleChallenge3DS)
 	mux.Handle("GET /", http.FileServerFS(static))
@@ -251,6 +252,27 @@ func (s *server) handleSubmitClearing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, sent)
+}
+
+// handleCapture takes a terminal's 0220 completion advice (a pre-auth's
+// final amount, or a tip) and answers with an 0230.
+func (s *server) handleCapture(w http.ResponseWriter, r *http.Request) {
+	var c iso8583.Completion
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&c); err != nil {
+		http.Error(w, "invalid 0220 message", http.StatusBadRequest)
+		return
+	}
+	if m, ok := s.acq.merchant(c.MerchantID); !ok || !m.HasTerminal(c.TerminalID) {
+		http.Error(w, "merchant or terminal is not on file", http.StatusBadRequest)
+		return
+	}
+	resp, err := s.clr.Capture(c)
+	if err != nil {
+		http.Error(w, "invalid 0220: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	log.Printf("capture terminal=%s orig_stan=%s amount=%d rc=%s", c.TerminalID, c.OriginalData.STAN, c.Amount, resp.ResponseCode)
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // handleAdvice receives the network's settlement advice and funds merchants.

@@ -18,11 +18,14 @@ type AuthInfo struct {
 	AcquirerID string
 	IssuerID   string
 	Approved   bool
-	Amount     int64 // Approved amount
-	Currency   string
-	AuthCode   string
-	Product    card.Product
-	Reversed   bool // An 0420 or 0400 released the issuer's hold
+	Amount     int64 // Approved amount, including approved incremental authorizations
+	// Incremental marks an authorization that added to another; it is
+	// cleared as part of that one, never on its own.
+	Incremental bool
+	Currency    string
+	AuthCode    string
+	Product     card.Product
+	Reversed    bool // An 0420 or 0400 released the issuer's hold
 	// ProcessingCode is the 0100's DE3. A balance inquiry (30) moves no
 	// money, so it can't be presented.
 	ProcessingCode string
@@ -188,8 +191,21 @@ func (c *Cycle) clone() Cycle {
 var tolerances = map[string]int64{
 	"5812": 2_000, // Restaurants: tips up to 20%
 	"5813": 2_000, // Bars
+	"5814": 2_000, // Quick service and coffee shops that take tips
+	"4121": 2_000, // Taxis and rideshare
+	"7230": 2_000, // Salons and barbers
 	"7011": 1_500, // Hotels: final bill against the estimate
 	"7512": 1_500, // Car rental
+}
+
+// Tolerance is how far over the authorized amount, in basis points, a
+// merchant in this MCC may capture (a tip, or a final bill above the
+// estimate) without asking for more.
+func Tolerance(mcc string) int64 { return tolerances[mcc] }
+
+// MaxCapture is the most a merchant may clear against authorized.
+func MaxCapture(authorized int64, mcc string) int64 {
+	return authorized + BPS(authorized, tolerances[mcc])
 }
 
 // Engine runs clearing and settlement for the network.
@@ -328,6 +344,8 @@ func (e *Engine) match(c *Cycle, acquirerID string, p Presentment) (Item, string
 		return Item{}, "the authorization was declined"
 	case iso8583.IsBalanceInquiry(auth.ProcessingCode):
 		return Item{}, "a balance inquiry moves no money and can't be presented"
+	case auth.Incremental:
+		return Item{}, "an incremental authorization is cleared with the original it adds to"
 	case auth.Reversed:
 		return Item{}, "the authorization was reversed"
 	case auth.AcquirerID != acquirerID:
@@ -338,7 +356,7 @@ func (e *Engine) match(c *Cycle, acquirerID string, p Presentment) (Item, string
 		return Item{}, "currency differs from the authorization"
 	case p.Amount <= 0:
 		return Item{}, "amount must be positive"
-	case p.Amount > auth.Amount+BPS(auth.Amount, tolerances[p.MCC]):
+	case p.Amount > MaxCapture(auth.Amount, p.MCC):
 		return Item{}, fmt.Sprintf("amount %d is over the authorized %d plus the tolerance for MCC %s", p.Amount, auth.Amount, p.MCC)
 	}
 	ch := ChannelOf(p.EntryMode)

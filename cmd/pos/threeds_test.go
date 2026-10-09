@@ -15,8 +15,9 @@ import (
 // bankAcquirer stands in for the acquirer, network, and issuer: it answers
 // 3-D Secure and authorizations with a real issuer bank.
 type bankAcquirer struct {
-	bank *issuer.Bank
-	sent []iso8583.AuthRequest
+	bank     *issuer.Bank
+	sent     []iso8583.AuthRequest
+	captures []iso8583.Completion
 }
 
 func (a *bankAcquirer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -30,6 +31,11 @@ func (a *bankAcquirer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var c iso8583.ThreeDSChallenge
 		json.NewDecoder(r.Body).Decode(&c)
 		json.NewEncoder(w).Encode(a.bank.Challenge3DS(c))
+	case "/capture":
+		var c iso8583.Completion
+		json.NewDecoder(r.Body).Decode(&c)
+		a.captures = append(a.captures, c)
+		json.NewEncoder(w).Encode(iso8583.CompletionResponse{MTI: "0230", STAN: c.STAN, ResponseCode: "00", Captured: c.Amount})
 	case "/authorize":
 		var req iso8583.AuthRequest
 		json.NewDecoder(r.Body).Decode(&req)

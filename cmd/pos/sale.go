@@ -81,6 +81,13 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 	arqc, track2 := checkCardRead(in, pan, expiry, s.chipFailedRecently(pan, now), errs)
 	cvv := checkCVV(in, errs)
 	avs := checkCardNotPresent(in, inquiry, errs)
+	authType := ""
+	if in.PreAuth {
+		authType = iso8583.AuthEstimated
+		if inquiry || in.SplitOf != "" || in.Cashback != "" {
+			errs["form"] = "a pre-auth holds an estimate: it can't be a balance inquiry, a split tender, or include cash back"
+		}
+	}
 	clearPIN := checkPIN(in, product, errs)
 	var cashback, healthcare int64
 	var fleet *iso8583.FleetData
@@ -148,6 +155,7 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 		WalletProvider:    in.Wallet,
 		AVS:               avs,
 		ECI:               defaultECI(in),
+		AuthType:          authType,
 	}, nil
 }
 

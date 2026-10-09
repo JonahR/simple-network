@@ -122,8 +122,9 @@ type Bank struct {
 	accounts    map[string]*Account // by PAN
 	order       []string            // PANs in the order accounts were opened
 	enroll      []AutoEnroll
-	holds       map[string]hold     // by network transaction ID
-	reversed    map[string]struct{} // reversals that arrived before their authorization
+	holds       map[string]hold      // by network transaction ID
+	increments  map[string]increment // by the increment's network transaction ID
+	reversed    map[string]struct{}  // reversals that arrived before their authorization
 	decisions   []Decision
 	reversals   []Reversal
 	postedFiles map[string]clearing.IssuerAck // Clearing files already posted, by file ID
@@ -139,17 +140,25 @@ type hold struct {
 	amount int64
 }
 
+// increment is an approved incremental authorization, folded into the hold
+// of the authorization it adds to.
+type increment struct {
+	of     string // The original's network transaction ID
+	amount int64
+}
+
 // NewBank creates a bank with the given accounts and PIN key.
 func NewBank(id, name string, pinKey []byte, accounts []Account, enroll []AutoEnroll) *Bank {
 	b := &Bank{
-		ID:       id,
-		Name:     name,
-		pinKey:   pinKey,
-		now:      time.Now,
-		accounts: map[string]*Account{},
-		enroll:   enroll,
-		holds:    map[string]hold{},
-		reversed: map[string]struct{}{},
+		ID:         id,
+		Name:       name,
+		pinKey:     pinKey,
+		now:        time.Now,
+		accounts:   map[string]*Account{},
+		enroll:     enroll,
+		holds:      map[string]hold{},
+		reversed:   map[string]struct{}{},
+		increments: map[string]increment{},
 
 		challenges: map[string]*challenge{},
 		cavvs:      map[string]*cavvRecord{},
@@ -226,8 +235,17 @@ func (b *Bank) Authorize(req iso8583.AuthRequest) iso8583.AuthResponse {
 		resp.AuthCode = authCode()
 		resp.Amount = approved // Less than requested on a partial approval
 		acct.Available -= approved
-		b.holds[req.NetworkTxnID] = hold{pan: req.PAN, amount: approved}
-		d.Hold = "active"
+		if req.AuthType == iso8583.AuthIncremental {
+			// One hold grows; clearing the original releases all of it.
+			h := b.holds[req.OriginalTxnID]
+			h.amount += approved
+			b.holds[req.OriginalTxnID] = h
+			b.increments[req.NetworkTxnID] = increment{of: req.OriginalTxnID, amount: approved}
+			d.Hold = "added to " + req.OriginalTxnID
+		} else {
+			b.holds[req.NetworkTxnID] = hold{pan: req.PAN, amount: approved}
+			d.Hold = "active"
+		}
 	}
 	if acct != nil {
 		d.AvailableAfter = acct.Available
@@ -331,6 +349,18 @@ func (b *Bank) decide(req iso8583.AuthRequest, d *Decision) (*Account, string, i
 		check("PIN", Pass, fmt.Sprintf("Decrypted under the %s key and verified", b.ID))
 	}
 
+	switch req.AuthType {
+	case iso8583.AuthIncremental:
+		h, ok := b.holds[req.OriginalTxnID]
+		if !ok || h.pan != req.PAN {
+			code, amt := fail("Incremental", "No live hold on this card for the original "+req.OriginalTxnID+": it was cleared, reversed or never approved", iso8583.RCInvalidTransaction)
+			return acct, code, amt
+		}
+		check("Incremental", Pass, fmt.Sprintf("Adds to the %s hold of %s", money(h.amount, req.Currency), req.OriginalTxnID))
+	case iso8583.AuthEstimated:
+		check("Estimated", Pass, "An estimate: the merchant captures the final amount later, and may ask for more")
+	}
+
 	if iso8583.IsBalanceInquiry(req.ProcessingCode) {
 		check("Balance inquiry", Pass, fmt.Sprintf("Processing code 30: report %s available; nothing is held", money(acct.Available, req.Currency)))
 		return acct, iso8583.RCApproved, 0
@@ -418,6 +448,18 @@ func (b *Bank) Reverse(adv iso8583.ReversalAdvice) iso8583.ReversalResponse {
 				b.decisions[i].Hold = "released"
 			}
 		}
+	} else if inc, ok := b.increments[adv.NetworkTxnID]; ok {
+		// Undo an increment: shrink the hold it was added to.
+		delete(b.increments, adv.NetworkTxnID)
+		resp.Matched = true
+		if h, live := b.holds[inc.of]; live {
+			acct := b.accounts[h.pan]
+			h.amount -= inc.amount
+			b.holds[inc.of] = h
+			acct.Available += inc.amount
+			rev.Matched, rev.Released, rev.AccountID = true, inc.amount, acct.ID
+		}
+		b.setHold(adv.NetworkTxnID, "released")
 	} else {
 		b.reversed[adv.NetworkTxnID] = struct{}{}
 	}
