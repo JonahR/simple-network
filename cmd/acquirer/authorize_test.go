@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -176,7 +177,7 @@ func TestAuthorizeRetryGetsSameAnswer(t *testing.T) {
 	if len(net.got) != 1 {
 		t.Errorf("network called %d times for a retry, want 1", len(net.got))
 	}
-	if first != second {
+	if !reflect.DeepEqual(first, second) {
 		t.Errorf("retry got %+v, want %+v", second, first)
 	}
 }
@@ -244,7 +245,7 @@ func TestAuthorizeNetworkDownSendsReversal(t *testing.T) {
 			}
 
 			// A retry of the same terminal request gets the same 91 and no second reversal.
-			if again := a.Authorize(context.Background(), req); again != resp {
+			if again := a.Authorize(context.Background(), req); !reflect.DeepEqual(again, resp) {
 				t.Errorf("retry got %+v, want %+v", again, resp)
 			}
 			if len(net.got) != 1 || len(net.sentReversals()) != 1 {

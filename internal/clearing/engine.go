@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
+	"github.com/JonahR/simple-network/internal/iso8583"
 )
 
 // AuthInfo is what the network knows about an authorization, for matching
@@ -22,6 +23,9 @@ type AuthInfo struct {
 	AuthCode   string
 	Product    card.Product
 	Reversed   bool // An 0420 or 0400 released the issuer's hold
+	// ProcessingCode is the 0100's DE3. A balance inquiry (30) moves no
+	// money, so it can't be presented.
+	ProcessingCode string
 }
 
 // AuthSource looks up authorizations by network transaction ID.
@@ -322,6 +326,8 @@ func (e *Engine) match(c *Cycle, acquirerID string, p Presentment) (Item, string
 		return Item{}, "no matching authorization"
 	case !auth.Approved:
 		return Item{}, "the authorization was declined"
+	case iso8583.IsBalanceInquiry(auth.ProcessingCode):
+		return Item{}, "a balance inquiry moves no money and can't be presented"
 	case auth.Reversed:
 		return Item{}, "the authorization was reversed"
 	case auth.AcquirerID != acquirerID:

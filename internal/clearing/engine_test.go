@@ -206,13 +206,14 @@ func TestMatchingRejects(t *testing.T) {
 		"other":    {AcquirerID: "A2", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840"},
 		"tip":      {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840", Product: card.Credit},
 		"over":     {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 1000, Currency: "840"},
+		"inquiry":  {AcquirerID: "A1", IssuerID: "I1", Approved: true, Amount: 0, Currency: "840", ProcessingCode: "303000"},
 	}
 	e, _, _ := newEngine(DefaultFees(), a, []string{"I1"}, []string{"A1", "A2"})
 	tip := pres("tip", 1200)
 	tip.MCC = "5812" // Restaurants allow 20% over for the tip.
 	ack := e.Receive(NewFile(FileHeader{FileID: "f1", AcquirerID: "A1", Sequence: 1}, []Presentment{
 		pres("ok", 1000), pres("ok", 1000), pres("missing", 1000), pres("declined", 1000),
-		pres("reversed", 1000), pres("other", 1000), tip, pres("over", 1001),
+		pres("reversed", 1000), pres("other", 1000), tip, pres("over", 1001), pres("inquiry", 1000),
 	}))
 	if ack.Accepted != 2 {
 		t.Errorf("accepted %d, want 2 (ok, tip)", ack.Accepted)
@@ -224,6 +225,7 @@ func TestMatchingRejects(t *testing.T) {
 	for id, want := range map[string]string{
 		"ok": "already presented", "missing": "no matching", "declined": "declined",
 		"reversed": "reversed", "other": "another acquirer", "over": "tolerance",
+		"inquiry": "balance inquiry",
 	} {
 		if !strings.Contains(reasons[id], want) {
 			t.Errorf("%s: reason %q, want %q", id, reasons[id], want)

@@ -57,8 +57,16 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 	}
 	product := card.ProductFor(pan)
 
+	// A balance inquiry asks the issuer what's left; it has no amount.
+	inquiry := in.BalanceInquiry
 	amount, err := parseAmount(in.Amount)
-	if err != nil {
+	switch {
+	case inquiry:
+		amount = 0
+		if in.Cashback != "" || in.HealthcareAmount != "" || in.SplitOf != "" {
+			errs["form"] = "a balance inquiry can't include cash back, a healthcare amount, or a split tender"
+		}
+	case err != nil:
 		errs["amount"] = err.Error()
 	}
 	if _, ok := iso8583.Currencies[in.Currency]; !ok {
@@ -68,9 +76,13 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 	arqc, track2 := checkCardRead(in, pan, expiry, s.chipFailedRecently(pan, now), errs)
 	cvv := checkCVV(in, errs)
 	clearPIN := checkPIN(in, product, errs)
-	cashback := checkCashback(in, product, clearPIN != "", errs)
-	fleet := checkFleet(in, product, errs)
-	healthcare := checkHealthcare(in, product, amount, errs)
+	var cashback, healthcare int64
+	var fleet *iso8583.FleetData
+	if !inquiry {
+		cashback = checkCashback(in, product, clearPIN != "", errs)
+		fleet = checkFleet(in, product, errs)
+		healthcare = checkHealthcare(in, product, amount, errs)
+	}
 	if amount+cashback > maxAmount {
 		errs["amount"] = "amount exceeds terminal limit"
 	}
@@ -86,6 +98,9 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 	}
 
 	txn := iso8583.TxnPurchase
+	if inquiry {
+		txn = iso8583.TxnBalanceInquiry
+	}
 	var extra []iso8583.AdditionalAmount
 	if cashback > 0 {
 		txn = iso8583.TxnPurchaseCashback

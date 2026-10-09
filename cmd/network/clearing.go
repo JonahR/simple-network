@@ -46,6 +46,7 @@ func (a recordAuths) Lookup(id string) (clearing.AuthInfo, bool) {
 		}
 	}
 	info.Reversed = r.Reversed
+	info.ProcessingCode = r.Request.ProcessingCode
 	return info, true
 }
 

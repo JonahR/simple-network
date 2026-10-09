@@ -201,7 +201,12 @@ func (b *Bank) Authorize(req iso8583.AuthRequest) iso8583.AuthResponse {
 		d.AccountID, d.Product, d.Limit = acct.ID, string(acct.Product), acct.Limit
 		d.AvailableBefore = acct.Available
 	}
-	if iso8583.IsApproved(code) {
+	switch {
+	case iso8583.IsApproved(code) && iso8583.IsBalanceInquiry(req.ProcessingCode):
+		// A balance inquiry is answered, never held (DE54 type 02).
+		resp.Amount = 0
+		resp.AdditionalAmounts = []iso8583.AdditionalAmount{{Type: iso8583.AmountAvailable, Amount: acct.Available}}
+	case iso8583.IsApproved(code):
 		resp.AuthCode = authCode()
 		resp.Amount = approved // Less than requested on a partial approval
 		acct.Available -= approved
@@ -284,6 +289,11 @@ func (b *Bank) decide(req iso8583.AuthRequest, d *Decision) (*Account, string, i
 			return acct, code, amt
 		}
 		check("PIN", Pass, fmt.Sprintf("Decrypted under the %s key and verified", b.ID))
+	}
+
+	if iso8583.IsBalanceInquiry(req.ProcessingCode) {
+		check("Balance inquiry", Pass, fmt.Sprintf("Processing code 30: report %s available; nothing is held", money(acct.Available, req.Currency)))
+		return acct, iso8583.RCApproved, 0
 	}
 
 	var cashback, healthcare int64

@@ -46,7 +46,7 @@ const FIELDS = [
   ["wallet_provider", "", "Wallet provider"],
 ];
 
-const TXN_TYPES = { "00": "Purchase", "09": "Purchase with cash back", "20": "Refund" };
+const TXN_TYPES = { "00": "Purchase", "09": "Purchase with cash back", "20": "Refund", "30": "Balance inquiry" };
 const ACCOUNT_TYPES = { "00": "default account", "20": "checking", "30": "credit" };
 const AMOUNT_TYPES = { "40": "Cash back", "4S": "HSA/FSA eligible" };
 
@@ -411,6 +411,7 @@ form.addEventListener("submit", async (e) => {
   try {
     const body = Object.fromEntries(new FormData(form));
     body.lose_response = form.lose_response.checked;
+    body.balance_inquiry = e.submitter && e.submitter.id === "balance";
     const res = await fetch("/api/sale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -524,6 +525,7 @@ const STATUS = {
   NO_RESPONSE: ["critical", "!", "No response"],
   VOIDED: ["", "↩", "Voided"],
   CASH: ["good", "$", "Cash"],
+  BALANCE: ["good", "$", "Balance"],
 };
 const REVERSAL_STATUS = {
   PENDING: ["warning", "…", "Reversal pending"],
@@ -648,6 +650,7 @@ function responseRows(tx) {
     ["MTI", "Message type", resp.mti],
     ["DE39", "Response code", `${resp.de39_response_code}  (${resp.response_text})`],
     ["DE38", "Auth code", resp.de38_auth_code],
+    ["DE54", "Available balance", (resp.de54_additional_amounts || []).filter((a) => a.type === "02").map((a) => `${a.amount}  (${money(a.amount, r.de49_currency)})`)[0] || ""],
     ["DE37", "Retrieval reference number", resp.de37_rrn !== r.de37_rrn ? resp.de37_rrn : ""],
     ["DE4", "Approved amount", resp.de4_amount ? `${resp.de4_amount}  (${money(resp.de4_amount, r.de49_currency)})` : ""],
     ["", "Network transaction ID", resp.network_txn_id],

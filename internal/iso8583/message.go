@@ -26,6 +26,7 @@ const (
 	TxnPurchase         = "00"
 	TxnPurchaseCashback = "09"
 	TxnRefund           = "20"
+	TxnBalanceInquiry   = "30" // Asks for the balance; moves no money and is never cleared
 
 	AccountDefault  = "00"
 	AccountChecking = "20"
@@ -80,6 +81,7 @@ var COFIndicators = map[string]string{
 const (
 	AmountCashback   = "40"
 	AmountHealthcare = "4S" // Total amount eligible for HSA/FSA
+	AmountAvailable  = "02" // Available balance, returned by the issuer
 )
 
 // MCCs maps common merchant category codes (DE18) to display names.
@@ -202,6 +204,13 @@ type AuthResponse struct {
 	Currency         string `json:"de49_currency"`
 	NetworkTxnID     string `json:"network_txn_id"`
 	ResponseText     string `json:"response_text"`
+	// DE54 from the issuer: for a balance inquiry, the available balance (type 02).
+	AdditionalAmounts []AdditionalAmount `json:"de54_additional_amounts,omitempty"`
+}
+
+// IsBalanceInquiry reports whether DE3 asks for a balance rather than a payment.
+func IsBalanceInquiry(processingCode string) bool {
+	return strings.HasPrefix(processingCode, TxnBalanceInquiry)
 }
 
 // Redacted returns a copy with the PAN masked.

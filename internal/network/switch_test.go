@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
@@ -274,7 +275,7 @@ func TestDuplicateRequestIsIdempotent(t *testing.T) {
 	r := auth("4242424242424242", "3312", 1000)
 	first := f.sw.Authorize(context.Background(), r)
 	second := f.sw.Authorize(context.Background(), r)
-	if first != second {
+	if !reflect.DeepEqual(first, second) {
 		t.Errorf("responses differ:\n%+v\n%+v", first, second)
 	}
 	if f.fsb.calls.Load() != 1 {
@@ -529,7 +530,7 @@ func TestAcquirerReversalBeforeAuthorization(t *testing.T) {
 		t.Errorf("reversal steps %+v", steps)
 	}
 	// A retry of the 0100 gets the same decline.
-	if again := f.sw.Authorize(context.Background(), req); again != resp {
+	if again := f.sw.Authorize(context.Background(), req); !reflect.DeepEqual(again, resp) {
 		t.Errorf("retry: %+v", again)
 	}
 }

@@ -29,6 +29,7 @@ function receiptHTML(tx, copy) {
   const b = brand(r.de2_pan);
   const chip = [ENTRY.chip, ENTRY.contactless].includes(r.de22_pos_entry_mode) || r.wallet_provider;
   const approved = tx.status === "APPROVED" || tx.status === "PARTIAL" || tx.status === "VOIDED";
+  const charged = approved && !r.de3_processing_code.startsWith("30");
   const cashback = (r.de54_additional_amounts || []).find((a) => a.type === "40");
   const when = `${r.de13_local_date.slice(0, 2)}/${r.de13_local_date.slice(2)}/${new Date(tx.created).getFullYear()}  ${r.de12_local_time.match(/../g).join(":")}`;
   const line = (label, value, term) =>
@@ -36,7 +37,9 @@ function receiptHTML(tx, copy) {
   const rule = `<div class="r-rule"></div>`;
 
   let title = "SALE";
-  if (tx.status === "VOIDED") title = "VOID";
+  const inquiry = r.de3_processing_code.startsWith("30");
+  if (inquiry) title = "BALANCE INQUIRY";
+  else if (tx.status === "VOIDED") title = "VOID";
   else if (r.de3_processing_code.startsWith("20")) title = "REFUND";
 
   const body = [];
@@ -56,7 +59,12 @@ function receiptHTML(tx, copy) {
     body.push(line("AMOUNT", money(r.de4_amount - cashback.amount, cur), "de4"));
     body.push(line("CASH BACK", money(cashback.amount, cur), "cashback"));
   }
-  body.push(`<div class="r-line r-total"><span data-term="de4">TOTAL</span><span>${title === "VOID" ? "-" : ""}${money(r.de4_amount, cur)}</span></div>`);
+  const available = resp && (resp.de54_additional_amounts || []).find((a) => a.type === "02");
+  if (inquiry) {
+    body.push(`<div class="r-line r-total"><span data-term="balance-inquiry">AVAILABLE</span><span>${available ? money(available.amount, cur) : "—"}</span></div>`);
+  } else {
+    body.push(`<div class="r-line r-total"><span data-term="de4">TOTAL</span><span>${title === "VOID" ? "-" : ""}${money(r.de4_amount, cur)}</span></div>`);
+  }
   if (tx.status === "PARTIAL" && resp) {
     body.push(line("APPROVED", money(resp.de4_amount, cur), "partial-approval"));
     body.push(line("BALANCE DUE", money(r.de4_amount - resp.de4_amount, cur), "partial-approval"));
@@ -73,7 +81,7 @@ function receiptHTML(tx, copy) {
   body.push(line(`RRN ${(resp && resp.de37_rrn) || r.de37_rrn}`, `STAN ${r.de11_stan}`, "de37"));
   if (tx.reversal && tx.reversal.advice) body.push(line(`REVERSAL STAN ${tx.reversal.advice.de11_stan}`, tx.reversal.status, "reversal"));
 
-  const cvm = cvmLine(r, approved && tx.status !== "VOIDED");
+  const cvm = cvmLine(r, charged && tx.status !== "VOIDED");
   if (cvm) {
     body.push(rule);
     if (cvm[0] === "SIGNATURE" && copy === "merchant") {
@@ -83,7 +91,7 @@ function receiptHTML(tx, copy) {
     }
   }
   body.push(rule);
-  if (approved && tx.status !== "VOIDED") body.push(`<div class="r-center">I agree to pay the above total amount<br>according to the card issuer agreement</div>`);
+  if (charged && tx.status !== "VOIDED") body.push(`<div class="r-center">I agree to pay the above total amount<br>according to the card issuer agreement</div>`);
   body.push(`<div class="r-center r-copy" data-term="receipt">${copy === "merchant" ? "MERCHANT COPY" : "CUSTOMER COPY"}</div>`);
   return `<div class="receipt">${body.join("")}</div>`;
 }

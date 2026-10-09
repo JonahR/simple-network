@@ -73,6 +73,10 @@ type SaleInput struct {
 	// SplitOf collects the balance due on an earlier partially approved sale
 	// (its STAN) with this card.
 	SplitOf string `json:"split_of"`
+
+	// BalanceInquiry asks the issuer for the card's available balance
+	// (processing code 30) instead of charging it.
+	BalanceInquiry bool `json:"balance_inquiry"`
 }
 
 // StoredCard is a card the merchant keeps on file for a returning customer.

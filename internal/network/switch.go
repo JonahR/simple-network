@@ -521,7 +521,9 @@ func validate(r iso8583.AuthRequest) error {
 		return fmt.Errorf("MTI %q is not 0100", r.MTI)
 	case card.ValidatePAN(r.PAN) != nil:
 		return fmt.Errorf("DE2: %v", card.ValidatePAN(r.PAN))
-	case r.Amount <= 0:
+	case iso8583.IsBalanceInquiry(r.ProcessingCode) && r.Amount != 0:
+		return errors.New("DE4: a balance inquiry has no amount")
+	case r.Amount <= 0 && !iso8583.IsBalanceInquiry(r.ProcessingCode):
 		return errors.New("DE4: amount must be positive")
 	case !isDigits(r.STAN, 6):
 		return errors.New("DE11: STAN must be 6 digits")

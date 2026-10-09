@@ -80,6 +80,10 @@ func (c *clearer) presentments() []clearing.Presentment {
 		if r.Status == "DECLINED" || id == "" || c.status[id] != "" || !iso8583.IsApproved(r.Response.ResponseCode) {
 			continue
 		}
+		// A balance inquiry asked a question; there is nothing to clear.
+		if iso8583.IsBalanceInquiry(r.Request.ProcessingCode) {
+			continue
+		}
 		// A voided or timed-out sale is reversed, not presented. Only a
 		// reversal the network refused leaves the sale standing.
 		if r.Reversal != "" && r.Reversal != ReversalRejected {

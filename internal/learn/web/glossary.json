@@ -4066,6 +4066,37 @@
         "PIN tries",
         "PIN try limit"
       ]
+    },
+    "balance-inquiry": {
+      "name": "Balance inquiry",
+      "def": "An 0100 with processing code 30 that asks the issuer how much is left on a card, common for prepaid, gift and HSA/FSA cards. It has no amount, the issuer places no hold, and the answer comes back in DE54 as the available balance (type 02). Because no money moves, it is never cleared or settled.",
+      "kt": [
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ],
+        [
+          "Data elements you will use most",
+          "04-authorization-deep-dive.md#data-elements-you-will-use-most"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ],
+        [
+          "Stored-value card (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Stored-value_card"
+        ]
+      ],
+      "aliases": [
+        "Balance inquiry",
+        "Check balance",
+        "Balance",
+        "BALANCE INQUIRY",
+        "Available balance"
+      ]
     }
   }
 }

@@ -76,6 +76,13 @@ func (c *acquirerClient) post(ctx context.Context, path string, in, out any) err
 // outcome turns an 0110 into the status and message the cashier sees.
 func outcome(req iso8583.AuthRequest, resp iso8583.AuthResponse) (string, string) {
 	switch {
+	case iso8583.IsBalanceInquiry(req.ProcessingCode) && iso8583.IsApproved(resp.ResponseCode):
+		for _, a := range resp.AdditionalAmounts {
+			if a.Type == iso8583.AmountAvailable {
+				return "BALANCE", fmt.Sprintf("Available balance: %s. Nothing was charged or held.", cents(a.Amount))
+			}
+		}
+		return "BALANCE", "The issuer answered but sent no balance."
 	case resp.ResponseCode == iso8583.RCPartialApproval:
 		rest := float64(req.Amount-resp.Amount) / 100
 		return "PARTIAL", fmt.Sprintf("Partially approved: %.2f approved, collect %.2f another way. Auth code %s.",
