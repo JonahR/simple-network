@@ -20,13 +20,13 @@
 </header>
 
 <main class="hub-main">
-  <section class="hub-intro">
+  <section class="hub-intro" data-term-scope="network">
     <h1>How a card network works, one step at a time</h1>
     <p>Every label on this page, in the <a href="/" data-link="pos">POS terminal</a>, in the <a href="/" data-link="dashboard">network dashboard</a>, and in the docs' diagrams has a definition. Press <b>Help</b> (or <kbd>H</kbd>) to pause the page, then click anything outlined or underlined to see what it means, with links to the <span data-term="network">network</span> docs in this repo and to official sources. Press <kbd>H</kbd> or <kbd>Esc</kbd> to turn Help off and use the page again.</p>
   </section>
 
   <ol class="steps">
-    <li class="step" id="parties">
+    <li class="step" id="parties" data-term-scope="four-party-model">
       <div class="step-text">
         <h2>Who's involved</h2>
         <p>A purchase connects four parties through the network: the <span data-term="cardholder">cardholder</span> and their <span data-term="issuer">issuer</span>, the <span data-term="merchant">merchant</span> and its <span data-term="acquirer">acquirer</span>. Blue arrows are messages; green ones are money.</p>
@@ -35,7 +35,7 @@
       <figure class="visual" data-svg="kt/visuals/four-party-model.svg"></figure>
     </li>
 
-    <li class="step" id="authorization">
+    <li class="step" id="authorization" data-term-scope="authorization">
       <div class="step-text">
         <h2>Authorization: asking the issuer</h2>
         <p>At checkout the <span data-term="pos-terminal">terminal</span> builds an <span data-term="msg-0100">0100 authorization request</span>. The network routes it by <span data-term="bin">BIN</span> to the issuer, which answers with an <span data-term="msg-0110">0110</span> and places a <span data-term="auth-hold">hold</span>. No money moves yet.</p>
@@ -47,7 +47,7 @@
       </div>
     </li>
 
-    <li class="step" id="lifecycle">
+    <li class="step" id="lifecycle" data-term-scope="dual-message">
       <div class="step-text">
         <h2>Clearing, settlement and funding</h2>
         <p>That night the acquirer sends the final amounts (<span data-term="clearing">clearing</span>). The next day banks pay each other one <span data-term="net-settlement">net amount</span> (<span data-term="settlement">settlement</span>), and the acquirer pays the merchant (<span data-term="funding">funding</span>). Disputes can follow for months.</p>
@@ -56,7 +56,7 @@
       <figure class="visual" data-svg="kt/visuals/transaction-timeline.svg"></figure>
     </li>
 
-    <li class="step" id="money">
+    <li class="step" id="money" data-term-scope="interchange">
       <div class="step-text">
         <h2>Where the money goes</h2>
         <p>The merchant pays a <span data-term="mdr">merchant discount rate</span>. Most of it is <span data-term="interchange">interchange</span> to the issuer; the network keeps a small <span data-term="network-fees">fee</span>; the acquirer keeps the rest.</p>
@@ -65,7 +65,7 @@
       <figure class="visual" data-svg="kt/visuals/money-waterfall.svg"></figure>
     </li>
 
-    <li class="step" id="card">
+    <li class="step" id="card" data-term-scope="de2">
       <div class="step-text">
         <h2>The card number</h2>
         <p>The <span data-term="de2">card number</span> routes the payment: its <span data-term="bin">BIN</span> picks the issuer and its last digit is a <span data-term="luhn">Luhn check</span>. Chips and phones add a <span data-term="cryptogram">one-time cryptogram</span>, and wallets swap the number for a <span data-term="network-token">token</span>.</p>
@@ -74,7 +74,7 @@
       <figure class="visual" data-svg="kt/visuals/pan-anatomy.svg"></figure>
     </li>
 
-    <li class="step" id="capabilities">
+    <li class="step" id="capabilities" data-term-scope="value-added-services">
       <div class="step-text">
         <h2>What a network supports</h2>
         <p>On top of the <span data-term="core-rails">core rails</span> sit <span data-term="card-products">card products</span>, <span data-term="payment-flows">payment flows</span>, <span data-term="value-added-services">value-added services</span> and data. Each tag shows where simple-network builds it.</p>
@@ -84,13 +84,13 @@
     </li>
   </ol>
 
-  <section id="docs" class="hub-section">
+  <section id="docs" class="hub-section" data-term-scope="network">
     <h2>Read the docs</h2>
     <p class="sub">The full Network KT, rendered here with clickable diagrams. Read in order for the complete picture.</p>
     <div class="doc-grid" id="doc-grid"></div>
   </section>
 
-  <section id="glossary" class="hub-section">
+  <section id="glossary" class="hub-section" data-term-scope="network">
     <h2>Glossary</h2>
     <p class="sub"><span id="term-count"></span> terms. Click a name for links to the docs and official sources.</p>
     <label class="search"><span class="visually-hidden">Filter terms</span><input id="term-filter" type="search" placeholder="Filter terms, e.g. BIN, chargeback, DE22" autocomplete="off"></label>

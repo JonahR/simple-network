@@ -74,7 +74,7 @@ function renderKPIs() {
     ["Reversals received", "reversal", s.reversals],
   ];
   document.getElementById("kpis").innerHTML = kpis
-    .map(([label, term, value]) => `<div class="kpi"><small><span data-term="${term}">${label}</span></small><b>${value}</b></div>`)
+    .map(([label, term, value]) => `<div class="kpi" data-term="${term}"><small><span data-term="${term}">${label}</span></small><b>${value}</b></div>`)
     .join("");
 }
 

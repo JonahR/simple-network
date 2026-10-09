@@ -21,7 +21,7 @@
     list.innerHTML = ids.map((id) => {
       const t = terms[id];
       const search = [t.name, ...(t.aliases || []), t.def].join(" ").toLowerCase();
-      return `<div class="entry" id="term-${esc(id)}" data-search="${esc(search)}">
+      return `<div class="entry" id="term-${esc(id)}" data-search="${esc(search)}" data-term="${esc(id)}">
         <dt><span data-term="${esc(id)}">${esc(t.name)}</span></dt>
         <dd>${esc(t.def)}</dd></div>`;
     }).join("");
