@@ -1,0 +1,16 @@
+services:
+  pos:
+    build:
+      context: .
+      args:
+        SERVICE: pos
+    ports:
+      - "8080:8080"
+    environment:
+      POS_ADDR: ":8080"
+      MERCHANT_ID: "000000000012345"
+      TERMINAL_ID: "TERM0001"
+      MERCHANT_NAME: "Simple Coffee Co"
+      MERCHANT_CITY: "San Francisco"
+      MERCHANT_COUNTRY: "US"
+      MCC: "5814"

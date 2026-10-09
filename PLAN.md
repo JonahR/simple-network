@@ -33,7 +33,7 @@ A purchase goes through three phases:
                                └─────────────────┘
 ```
 
-- **Stack:** Go. Each service is an HTTP server built on the standard library's `net/http` (Go 1.22+ routing). Each service has its own SQLite database through `modernc.org/sqlite`, a pure-Go driver that needs no cgo. A `Makefile` builds and starts everything (`make run`), and `docker compose` can come later. Go's concurrency model and low latency suit a payment switch.
+- **Stack:** Go. Each service is an HTTP server built on the standard library's `net/http` (Go 1.22+ routing). Each service has its own SQLite database through `modernc.org/sqlite`, a pure-Go driver that needs no cgo. Every service runs in its own Docker container from one shared multi-stage `Dockerfile` (`--build-arg SERVICE=<name>`), all managed by `docker-compose.yml` (`make up`). Go's concurrency model and low latency suit a payment switch.
 - **Repo layout:**
   ```
   cmd/network/    # switch binary
@@ -86,7 +86,8 @@ A purchase goes through three phases:
 
 | # | Milestone | Done when |
 |---|---|---|
-| 0 | Repo bootstrap | Git repo, README, plan *(this commit)* |
+| 0 | Repo bootstrap | Git repo, README, plan ✅ |
+| 0.5 | POS terminal (browser) | Enter card + amount, validate, build 0100 auth request ✅ |
 | 1 | Data models | Card, account, merchant, and ISO-style message schemas; Luhn and card generator |
 | 2 | Issuer service | Can approve or decline an auth request directly |
 | 3 | Network switch | Routes auths by BIN to two or more issuers; transaction log |

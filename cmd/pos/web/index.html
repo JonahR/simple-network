@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>simple-network POS</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">simple-network <span>POS</span></div>
+  <div class="merchant" id="merchant">Loading terminal…</div>
+</header>
+
+<main>
+  <section class="panel terminal">
+    <h2>New sale</h2>
+    <form id="sale" novalidate>
+      <label class="amount">
+        <span>Amount</span>
+        <div class="amount-row">
+          <select name="currency" id="currency"></select>
+          <input name="amount" inputmode="decimal" placeholder="0.00" autocomplete="off">
+        </div>
+        <small class="err" data-for="amount"></small>
+      </label>
+
+      <label>
+        <span>Entry mode</span>
+        <select name="entry_mode" id="entry_mode"></select>
+        <small class="err" data-for="entry_mode"></small>
+      </label>
+
+      <label>
+        <span>Card number</span>
+        <input name="card_number" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off">
+        <small class="err" data-for="card_number"></small>
+      </label>
+
+      <div class="row">
+        <label>
+          <span>Expiry</span>
+          <input name="expiry" placeholder="MM/YY" maxlength="5" autocomplete="off">
+          <small class="err" data-for="expiry"></small>
+        </label>
+        <label>
+          <span>CVV</span>
+          <input name="cvv" inputmode="numeric" placeholder="123" maxlength="4" autocomplete="off">
+          <small class="err" data-for="cvv"></small>
+        </label>
+      </div>
+
+      <label>
+        <span>Cardholder name <em>(optional)</em></span>
+        <input name="cardholder_name" placeholder="Jane Doe" autocomplete="off">
+      </label>
+
+      <small class="err" data-for="form"></small>
+      <div class="actions">
+        <button type="button" id="testcard" class="secondary">Fill test card</button>
+        <button type="submit" id="charge">Charge</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel result">
+    <h2>Authorization request</h2>
+    <div id="result" class="empty">Submit a sale to see the 0100 message the terminal will send to the network.</div>
+  </section>
+
+  <section class="panel history">
+    <h2>Transactions</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Time</th><th>STAN</th><th>RRN</th><th>Card</th><th>Mode</th><th class="num">Amount</th><th>Status</th></tr></thead>
+        <tbody id="history"><tr><td colspan="7" class="empty">No transactions yet.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
