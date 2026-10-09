@@ -14,17 +14,18 @@ import (
 // posTimeout is how long the terminal waits for an answer (D8: POS → acquirer 20s).
 const posTimeout = 20 * time.Second
 
-// networkClient sends authorization requests to the card network.
-type networkClient struct {
+// acquirerClient sends authorization requests to the merchant's acquirer,
+// which forwards them to the card network.
+type acquirerClient struct {
 	url  string
 	http *http.Client
 }
 
-func newNetworkClient(url string) *networkClient {
-	return &networkClient{url: url, http: &http.Client{Timeout: posTimeout}}
+func newAcquirerClient(url string) *acquirerClient {
+	return &acquirerClient{url: url, http: &http.Client{Timeout: posTimeout}}
 }
 
-func (c *networkClient) authorize(ctx context.Context, req iso8583.AuthRequest) (iso8583.AuthResponse, error) {
+func (c *acquirerClient) authorize(ctx context.Context, req iso8583.AuthRequest) (iso8583.AuthResponse, error) {
 	var resp iso8583.AuthResponse
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -37,14 +38,14 @@ func (c *networkClient) authorize(ctx context.Context, req iso8583.AuthRequest) 
 	httpReq.Header.Set("Content-Type", "application/json")
 	res, err := c.http.Do(httpReq)
 	if err != nil {
-		return resp, fmt.Errorf("network unreachable at %s", c.url)
+		return resp, fmt.Errorf("acquirer unreachable at %s", c.url)
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("network returned HTTP %d", res.StatusCode)
+		return resp, fmt.Errorf("acquirer returned HTTP %d", res.StatusCode)
 	}
 	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
-		return resp, fmt.Errorf("unreadable network response: %v", err)
+		return resp, fmt.Errorf("unreadable acquirer response: %v", err)
 	}
 	return resp, nil
 }

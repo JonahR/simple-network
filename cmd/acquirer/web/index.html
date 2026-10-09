@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>simple-network Acquirer</title>
+<link rel="stylesheet" href="/ui/nav.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">simple-network <span>Acquirer</span></div>
+  <div class="bank" id="bank">Loading…</div>
+  <nav class="sn-nav" data-page="acquirer"></nav>
+</header>
+
+<main>
+  <div class="kpis" id="kpis"></div>
+
+  <section class="panel path-panel">
+    <div class="panel-head">
+      <h2>Message path</h2>
+      <span class="muted" id="path-title"></span>
+    </div>
+    <div id="path" class="empty">No authorizations yet. Charge a sale on the POS and it appears here.</div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Authorizations</h2>
+      <span class="muted">Select a row to see its path</span>
+    </div>
+    <div class="table-wrap">
+      <table class="list">
+        <thead><tr><th>Time</th><th>Merchant</th><th>Terminal</th><th>STAN</th><th>Card</th><th class="num">Amount</th><th>Response</th><th class="num">Time taken</th></tr></thead>
+        <tbody id="txns"><tr><td colspan="8" class="empty">No authorizations yet.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Merchants</h2>
+      <span class="muted">Pending settlement since start-up (estimate)</span>
+    </div>
+    <div class="table-wrap">
+      <table class="list">
+        <thead><tr><th>Merchant</th><th>Category (MCC)</th><th>Terminals</th><th class="num">Discount rate</th><th class="num">Approved / declined</th><th class="num">Sales</th><th class="num">Refunds</th><th class="num">Fees</th><th class="num">Owed to merchant</th></tr></thead>
+        <tbody id="merchants"></tbody>
+      </table>
+    </div>
+    <p class="hint">After settlement the acquirer pays each merchant its sales minus refunds, keeping the discount rate as its fee. Interchange and network fees come out of that fee.</p>
+  </section>
+</main>
+
+<script src="/ui/nav.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -25,6 +25,7 @@ import (
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/network"
+	"github.com/JonahR/simple-network/internal/ui"
 )
 
 //go:embed web
@@ -91,6 +92,7 @@ func main() {
 	mux.HandleFunc("GET /api/stream", s.handleStream)
 	mux.HandleFunc("POST /api/tokens/{token}/active", s.handleTokenActive)
 	mux.HandleFunc("POST /api/sim/issuers/{id}/mode", s.handleIssuerMode)
+	ui.Register(mux, ui.PagesFromEnv())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 
 	log.Printf("network switch and dashboard listening on %s", addr)

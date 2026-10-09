@@ -1,8 +1,8 @@
 // Command pos runs a browser-based point-of-sale terminal. It reads a card
 // (keyed, swiped, inserted, tapped, from a mobile wallet, or from the
 // merchant's card-on-file vault), prompts for whatever the card requires, and
-// builds an ISO 8583-style 0100 authorization request. Sending the request to
-// the network comes later.
+// builds an ISO 8583-style 0100 authorization request. It sends the request to
+// the merchant's acquirer, which forwards it to the card network.
 package main
 
 import (
@@ -21,6 +21,7 @@ import (
 	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
+	"github.com/JonahR/simple-network/internal/ui"
 )
 
 //go:embed web
@@ -100,17 +101,17 @@ type Transaction struct {
 	Status   string                `json:"status"` // APPROVED, PARTIAL, DECLINED, or NO_RESPONSE
 	Message  string                `json:"message"`
 	Request  iso8583.AuthRequest   `json:"request"`            // Redacted
-	Response *iso8583.AuthResponse `json:"response,omitempty"` // Redacted; nil if the network never answered
+	Response *iso8583.AuthResponse `json:"response,omitempty"` // Redacted; nil if the acquirer never answered
 	Created  time.Time             `json:"created"`
 }
 
 type server struct {
 	terminal     Terminal
 	location     *time.Location // Merchant's time zone, for DE12/DE13
-	acquirerID   string
-	pinKey       []byte // PIN key shared between this acquirer and the network
-	network      *networkClient
+	pinKey       []byte         // PIN key shared between the acquirer and the network
+	acquirer     *acquirerClient
 	dashboardURL string
+	acquirerURL  string // For the browser
 	stan         atomic.Uint32
 
 	mu      sync.Mutex
@@ -139,15 +140,13 @@ func main() {
 		log.Fatalf("MERCHANT_TZ must be an IANA time zone like America/New_York: %v", err)
 	}
 
-	// The POS sends straight to the network for now, carrying its acquirer's
-	// ID; an acquirer service will sit in between later.
 	s := &server{
 		terminal:     t,
 		location:     loc,
-		acquirerID:   env("ACQUIRER_ID", "100001"),
 		pinKey:       pinKey,
-		network:      newNetworkClient(env("NETWORK_URL", "http://localhost:8090")),
+		acquirer:     newAcquirerClient(env("ACQUIRER_URL", "http://localhost:8081")),
 		dashboardURL: env("NETWORK_DASHBOARD_URL", "http://localhost:8090"),
+		acquirerURL:  env("ACQUIRER_PUBLIC_URL", "http://localhost:8081"),
 	}
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
@@ -163,6 +162,7 @@ func main() {
 	mux.HandleFunc("POST /api/sale", s.handleSale)
 	mux.HandleFunc("GET /api/transactions", s.handleTransactions)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
+	ui.Register(mux, ui.PagesFromEnv())
 
 	log.Printf("POS terminal %s (merchant %s) listening on %s", t.TerminalID, t.MerchantID, addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
@@ -185,6 +185,7 @@ func (s *server) handleTerminal(w http.ResponseWriter, _ *http.Request) {
 		"product_names":  card.ProductNames,
 		"cards_on_file":  saved,
 		"dashboard_url":  s.dashboardURL,
+		"acquirer_url":   s.acquirerURL,
 	})
 }
 
@@ -211,9 +212,9 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tx := Transaction{Request: req.Redacted(card.Mask), Created: time.Now()}
-	resp, err := s.network.authorize(r.Context(), req)
+	resp, err := s.acquirer.authorize(r.Context(), req)
 	if err != nil {
-		tx.Status, tx.Message = "NO_RESPONSE", "No response from the network: "+err.Error()
+		tx.Status, tx.Message = "NO_RESPONSE", "No response from the acquirer: "+err.Error()
 	} else {
 		redacted := resp.Redacted(card.Mask)
 		tx.Response = &redacted

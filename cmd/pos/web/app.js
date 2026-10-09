@@ -9,6 +9,7 @@ let currencies = {};
 let entryModes = {};
 let wallets = {};
 let dashboardURL = "";
+let acquirerURL = "";
 let cofIndicators = {};
 let binProducts = {};
 let productNames = {};
@@ -497,12 +498,17 @@ function statusBadge(tx) {
   return `<span class="status ${cls}"><span aria-hidden="true">${icon}</span> ${escapeHTML(label + code)}</span>`;
 }
 
-// responseRows shows the network's 0110 answer.
+// responseRows shows the 0110 answer the acquirer passed back from the network.
 function responseRows(tx) {
   const resp = tx.response;
   if (!resp) return "";
   const r = tx.request;
-  const link = dashboardURL ? ` <a href="${dashboardURL}/#txn=${encodeURIComponent(resp.network_txn_id)}" target="_blank" rel="noopener">View in network →</a>` : "";
+  const txn = encodeURIComponent(resp.network_txn_id || "");
+  const links = [
+    acquirerURL && `<a href="${acquirerURL}/#txn=${txn}" target="_blank" rel="noopener">View at acquirer →</a>`,
+    dashboardURL && resp.network_txn_id && `<a href="${dashboardURL}/#txn=${txn}" target="_blank" rel="noopener">View in network →</a>`,
+  ].filter(Boolean);
+  const link = links.join(" · ");
   const rows = [
     ["MTI", "Message type", resp.mti],
     ["DE39", "Response code", `${resp.de39_response_code}  (${resp.response_text})`],
@@ -613,6 +619,7 @@ async function init() {
   entryModes = data.entry_modes;
   wallets = data.wallets;
   dashboardURL = data.dashboard_url;
+  acquirerURL = data.acquirer_url;
   cofIndicators = data.cof_indicators;
   binProducts = data.bin_products;
   productNames = data.product_names;

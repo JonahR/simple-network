@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>simple-network Operations</title>
+<link rel="stylesheet" href="/ui/nav.css">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="/learn/learn.css">
 </head>
@@ -19,6 +20,7 @@
     <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" title="Click any label or button to learn what it is. Shortcut: ?">Explain mode</button>
   </nav>
   <div id="conn" class="conn" aria-live="polite"><span class="dot"></span><span class="label">Connecting…</span></div>
+  <nav class="sn-nav" data-page="network"></nav>
 </header>
 
 <main>
@@ -85,6 +87,7 @@
 </main>
 
 <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+<script src="/ui/nav.js"></script>
 <script src="app.js"></script>
 <script src="/learn/learn.js"></script>
 <script src="dashboard-terms.js"></script>

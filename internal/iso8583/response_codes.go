@@ -4,6 +4,7 @@ package iso8583
 const (
 	RCApproved          = "00"
 	RCPartialApproval   = "10"
+	RCInvalidMerchant   = "03"
 	RCDoNotHonor        = "05"
 	RCInvalidCard       = "14"
 	RCNoSuchIssuer      = "15"
@@ -24,7 +25,7 @@ const (
 type ResponseCode struct {
 	Text     string `json:"text"`
 	Approved bool   `json:"approved"`
-	// Source is who normally sends it: "issuer" or "network".
+	// Source is who normally sends it: "issuer", "network", or "acquirer".
 	Source string `json:"source"`
 }
 
@@ -32,6 +33,7 @@ type ResponseCode struct {
 var ResponseCodes = map[string]ResponseCode{
 	RCApproved:          {"Approved", true, "issuer"},
 	RCPartialApproval:   {"Partial approval", true, "issuer"},
+	RCInvalidMerchant:   {"Invalid merchant", false, "acquirer"},
 	RCDoNotHonor:        {"Do not honor", false, "issuer"},
 	RCInvalidCard:       {"Invalid card number", false, "issuer"},
 	RCNoSuchIssuer:      {"No such issuer", false, "network"},

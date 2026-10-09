@@ -109,7 +109,6 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 		Expiry:           expiry,
 		MCC:              t.MCC,
 		EntryMode:        entry,
-		AcquirerID:       s.acquirerID,
 		Track2:           track2,
 		// RRN: last digit of year, day of year, hour, then the STAN (12 chars).
 		RRN:               fmt.Sprintf("%s%03d%02d%s", utc.Format("2006")[3:], utc.YearDay(), utc.Hour(), stan),

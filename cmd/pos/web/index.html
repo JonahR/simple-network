@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>simple-network POS</title>
+<link rel="stylesheet" href="/ui/nav.css">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="/learn/learn.css">
 </head>
@@ -15,6 +16,7 @@
     <a href="/learn/">Learn the network</a>
     <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" title="Click any label, button or field to learn what it is. Shortcut: ?">Explain mode</button>
   </nav>
+  <nav class="sn-nav" data-page="pos"></nav>
 </header>
 
 <main>
@@ -154,7 +156,7 @@
 
   <section class="panel result">
     <h2><span data-term="authorization">Authorization</span></h2>
-    <div id="result" class="empty">Charge a sale to send an <span data-term="msg-0100">0100</span> to the network and see its answer.</div>
+    <div id="result" class="empty">Charge a sale to send an <span data-term="msg-0100">0100</span> to the <span data-term="acquirer">acquirer</span> and see the answer that comes back from the network.</div>
   </section>
 
   <section class="panel history">
@@ -168,6 +170,7 @@
   </section>
 </main>
 
+<script src="/ui/nav.js"></script>
 <script src="app.js"></script>
 <script src="/learn/learn.js"></script>
 <script src="pos-terms.js"></script>

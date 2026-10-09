@@ -15,9 +15,37 @@ services:
       MERCHANT_COUNTRY: "US"
       MERCHANT_TZ: "America/Los_Angeles"
       MCC: "5814"
+      ACQUIRER_URL: "http://acquirer:8081"
+      # Opened by your browser, not the container
+      POS_PUBLIC_URL: "http://localhost:8080"
+      ACQUIRER_PUBLIC_URL: "http://localhost:8081"
+      NETWORK_DASHBOARD_URL: "http://localhost:8090"
+    depends_on:
+      - acquirer
+
+  acquirer:
+    build:
+      context: .
+      args:
+        SERVICE: acquirer
+    ports:
+      - "8081:8081"
+    environment:
+      ACQUIRER_ADDR: ":8081"
       ACQUIRER_ID: "100001"
+      ACQUIRER_NAME: "Simple Merchant Bank"
+      MERCHANT_DISCOUNT_BPS: "250"
+      # The merchant the POS is set up for, signed up with this acquirer
+      MERCHANT_ID: "000000000012345"
+      TERMINAL_ID: "TERM0001"
+      MERCHANT_NAME: "Simple Coffee Co"
+      MERCHANT_CITY: "San Francisco"
+      MERCHANT_COUNTRY: "US"
+      MCC: "5814"
       NETWORK_URL: "http://network:8090"
-      NETWORK_DASHBOARD_URL: "http://localhost:8090" # Opened by your browser, not the container
+      POS_PUBLIC_URL: "http://localhost:8080"
+      ACQUIRER_PUBLIC_URL: "http://localhost:8081"
+      NETWORK_DASHBOARD_URL: "http://localhost:8090"
     depends_on:
       - network
 
@@ -33,6 +61,9 @@ services:
       ACQUIRER_ID: "100001"
       ISSUER_FSB_URL: "http://issuer:8091"
       ISSUER_UCB_URL: "http://issuer:8092"
+      POS_PUBLIC_URL: "http://localhost:8080"
+      ACQUIRER_PUBLIC_URL: "http://localhost:8081"
+      NETWORK_DASHBOARD_URL: "http://localhost:8090"
     depends_on:
       - issuer
 

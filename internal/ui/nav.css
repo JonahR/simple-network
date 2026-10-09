@@ -1,0 +1,26 @@
+/* Navigation between the participants' pages. Uses each page's color tokens
+   when it defines them, with fallbacks so it works on any page. */
+.sn-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--code-bg, rgba(127, 127, 127, .12));
+  font: 600 13px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.sn-nav:empty { display: none; }
+.sn-nav a {
+  padding: 5px 12px;
+  border-radius: 7px;
+  color: var(--muted, #6b6b66);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sn-nav a:hover { color: var(--text, inherit); }
+.sn-nav a[aria-current="page"] {
+  background: var(--panel, #fff);
+  color: var(--text, inherit);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
+}
+.sn-nav-arrow { color: var(--muted, #6b6b66); font-weight: 400; opacity: .7; }
