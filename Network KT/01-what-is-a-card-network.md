@@ -107,7 +107,7 @@ For `simple-network`, this means the **switch service must never read or write t
 | 1958 | Bank of America launches BankAmericard in Fresno | Bank-issued revolving credit |
 | 1966 | Interbank Card Association (later Mastercard) forms | Bank cooperatives as networks |
 | 1970s | BankAmericard becomes Visa; electronic authorization (BASE I) replaces phone calls | The dual-message system: online auth plus batch clearing |
-| 1987 | ISO 8583 first published | The message format still used today |
+| 1987 | ISO 8583 first published (revised 1993, 2003; current edition ISO 8583:2023) | The message format still used today. Most networks still run the 1987 layout. |
 | 1990s | EMV chip standard (Europay, Mastercard, Visa) | Chip cryptograms, DE55 |
 | 2004 | PCI DSS formed from the brands' separate security programs | Security rules for anyone touching card data |
 | 2006–2008 | Mastercard (2006) and Visa (2008) IPO; they stop being bank-owned cooperatives | Networks become for-profit companies, under antitrust scrutiny |

@@ -35,23 +35,28 @@
 
 ### Luhn algorithm
 
-```python
-def luhn_valid(pan: str) -> bool:
-    total = 0
-    for i, ch in enumerate(reversed(pan)):
-        d = int(ch)
-        if i % 2 == 1:          # double every second digit from the right
-            d *= 2
-            if d > 9:
-                d -= 9
-        total += d
-    return total % 10 == 0
+Implemented in `internal/card/card.go` (`Luhn`, plus `Generate`, which computes the check digit for test cards). The algorithm:
 
-def luhn_check_digit(partial: str) -> str:
-    for d in "0123456789":
-        if luhn_valid(partial + d):
-            return d
+```go
+// Starting from the rightmost digit, double every second digit;
+// if doubling gives > 9, subtract 9. The PAN is valid when the sum % 10 == 0.
+func luhnSum(digits string) int {
+	sum, double := 0, false
+	for i := len(digits) - 1; i >= 0; i-- {
+		d := int(digits[i] - '0')
+		if double {
+			if d *= 2; d > 9 {
+				d -= 9
+			}
+		}
+		sum += d
+		double = !double
+	}
+	return sum
+}
 ```
+
+Worked example: `4000 0012 3456 7899` is valid. `9100 0012 3456 789?` needs check digit `7`.
 
 ## The BIN table: the routing core
 

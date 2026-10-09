@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="1000" height="600" role="img" aria-labelledby="title desc">
+  <title id="title">Where $100 goes: merchant discount waterfall</title>
+  <desc id="desc">Cardholder pays $100.00. Interchange to the issuer takes $1.90, network fees $0.16, acquirer margin $0.44, leaving the merchant $97.50. The value axis starts at $97 to make the small slices visible.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .bg { fill: #fcfcfb; }
+    .t1 { fill: #0b0b0b; }
+    .t2 { fill: #52514e; }
+    .grid { stroke: #e4e2dc; stroke-width: 1; }
+    .axis { stroke: #8a8880; stroke-width: 1; }
+    .conn { stroke: #8a8880; stroke-width: 1; stroke-dasharray: 3 3; }
+    .total { fill: #6b6a65; }
+    .s1 { fill: #2a78d6; }
+    .s2 { fill: #eb6834; }
+    .s3 { fill: #1baf7a; }
+    .brk { fill: #fcfcfb; stroke: #8a8880; stroke-width: 1.2; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a19; }
+      .brk { fill: #1a1a19; }
+      .t1 { fill: #ffffff; }
+      .t2 { fill: #c3c2b7; }
+      .grid { stroke: #383835; }
+      .total { fill: #8e8d86; }
+      .s1 { fill: #3987e5; }
+      .s2 { fill: #d95926; }
+      .s3 { fill: #199e70; }
+    }
+  </style>
+  <rect class="bg" width="1000" height="600"/>
+  <text class="t1" x="40" y="42" font-size="22" font-weight="700">Where $100 goes</text>
+  <text class="t2" x="40" y="66" font-size="14">Rewards credit card, merchant on interchange-plus pricing, 2.50% merchant discount rate (illustrative)</text>
+
+  <!-- scale: y = 100 + (100 - v) * 120 ; $100 -> 100, $97 -> 460 -->
+  <g class="t2" font-size="12" text-anchor="end">
+    <line class="grid" x1="110" y1="100" x2="900" y2="100"/><text x="100" y="104">$100.00</text>
+    <line class="grid" x1="110" y1="220" x2="900" y2="220"/><text x="100" y="224">$99.00</text>
+    <line class="grid" x1="110" y1="340" x2="900" y2="340"/><text x="100" y="344">$98.00</text>
+    <line class="axis" x1="110" y1="460" x2="900" y2="460"/><text x="100" y="464">$97.00</text>
+  </g>
+
+  <!-- Bar 1: cardholder pays 100 (from 97 baseline with break) -->
+  <rect class="total" x="140" y="100" width="120" height="360" rx="4"/>
+  <!-- Bar 2: interchange 1.90: 100 -> 98.10 (y 100 -> 328) -->
+  <rect class="s1" x="290" y="100" width="120" height="228" rx="4"/>
+  <!-- Bar 3: network 0.16: 98.10 -> 97.94 (y 328 -> 347.2) -->
+  <rect class="s2" x="440" y="328" width="120" height="19.2" rx="4"/>
+  <!-- Bar 4: acquirer 0.44: 97.94 -> 97.50 (y 347.2 -> 400) -->
+  <rect class="s3" x="590" y="347.2" width="120" height="52.8" rx="4"/>
+  <!-- Bar 5: merchant 97.50 -->
+  <rect class="total" x="740" y="400" width="120" height="60" rx="4"/>
+
+  <!-- connectors -->
+  <line class="conn" x1="260" y1="100" x2="290" y2="100"/>
+  <line class="conn" x1="410" y1="328" x2="440" y2="328"/>
+  <line class="conn" x1="560" y1="347.2" x2="590" y2="347.2"/>
+  <line class="conn" x1="710" y1="400" x2="740" y2="400"/>
+
+  <!-- axis break marks -->
+  <path class="brk" d="M132,432 l136,-10 l0,10 l-136,10 z"/>
+  <path class="brk" d="M732,444 l136,-10 l0,8 l-136,10 z"/>
+
+  <!-- value labels -->
+  <g font-size="16" font-weight="700" text-anchor="middle" class="t1">
+    <text x="200" y="88">$100.00</text>
+    <text x="350" y="88">−$1.90</text>
+    <text x="500" y="318">−$0.16</text>
+    <text x="650" y="337">−$0.44</text>
+    <text x="800" y="390">$97.50</text>
+  </g>
+
+  <!-- category labels -->
+  <g text-anchor="middle">
+    <text class="t1" x="200" y="488" font-size="14" font-weight="600">Cardholder pays</text>
+    <text class="t2" x="200" y="506" font-size="12">billed by issuer</text>
+    <text class="t1" x="350" y="488" font-size="14" font-weight="600">Interchange</text>
+    <text class="t2" x="350" y="506" font-size="12">to issuer · 1.80% + $0.10</text>
+    <text class="t1" x="500" y="488" font-size="14" font-weight="600">Network fees</text>
+    <text class="t2" x="500" y="506" font-size="12">assessment + per-item</text>
+    <text class="t1" x="650" y="488" font-size="14" font-weight="600">Acquirer margin</text>
+    <text class="t2" x="650" y="506" font-size="12">acquirer / processor</text>
+    <text class="t1" x="800" y="488" font-size="14" font-weight="600">Merchant receives</text>
+    <text class="t2" x="800" y="506" font-size="12">funded T+1 to T+2</text>
+  </g>
+
+  <text class="t2" x="40" y="550" font-size="12">Axis starts at $97 (break marks on full bars) so the small slices are visible. Of the $2.50 discount: 76% issuer · 6% network · 18% acquirer.</text>
+  <text class="t2" x="40" y="570" font-size="12">The issuer also pays its own network fees, and funds cardholder rewards out of interchange.</text>
+</svg>

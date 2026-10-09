@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 560" width="1100" height="560" role="img" aria-labelledby="title desc">
+  <title id="title">Lifecycle of a card transaction over time</title>
+  <desc id="desc">Authorization at T+0 in under two seconds, capture and clearing at end of day T+0, settlement between banks on T+1, merchant funding T+1 to T+2, then a dispute window of about 120 days.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .bg { fill: #fcfcfb; }
+    .t1 { fill: #0b0b0b; }
+    .t2 { fill: #52514e; }
+    .axis { stroke: #8a8880; stroke-width: 1.5; }
+    .tick { stroke: #c9c7c0; stroke-width: 1; stroke-dasharray: 3 4; }
+    .lane { fill: #f3f2ef; }
+    .p1 { fill: #2a78d6; } .p2 { fill: #eb6834; } .p3 { fill: #1baf7a; } .p4 { fill: #4a3aa7; } .p5 { fill: #8a8880; }
+    .hold { fill: none; stroke: #2a78d6; stroke-width: 2; stroke-dasharray: 6 4; }
+    .wt { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a19; }
+      .t1 { fill: #ffffff; }
+      .t2 { fill: #c3c2b7; }
+      .lane { fill: #242422; }
+      .tick { stroke: #4a4945; }
+      .p1 { fill: #3987e5; } .p2 { fill: #d95926; } .p3 { fill: #199e70; } .p4 { fill: #9085e9; } .p5 { fill: #75746e; }
+      .hold { stroke: #3987e5; }
+    }
+  </style>
+  <rect class="bg" width="1100" height="560"/>
+  <text class="t1" x="40" y="42" font-size="22" font-weight="700">One purchase, four stages</text>
+  <text class="t2" x="40" y="66" font-size="14">Dual-message credit transaction · typical timings (vary by network, region, and acquirer)</text>
+
+  <!-- lanes -->
+  <g font-size="13" font-weight="600">
+    <rect class="lane" x="170" y="100" width="900" height="56" rx="6"/><text class="t1" x="40" y="133">Authorization</text>
+    <rect class="lane" x="170" y="166" width="900" height="56" rx="6"/><text class="t1" x="40" y="199">Clearing</text>
+    <rect class="lane" x="170" y="232" width="900" height="56" rx="6"/><text class="t1" x="40" y="265">Settlement</text>
+    <rect class="lane" x="170" y="298" width="900" height="56" rx="6"/><text class="t1" x="40" y="331">Funding</text>
+    <rect class="lane" x="170" y="364" width="900" height="56" rx="6"/><text class="t1" x="40" y="397">After settlement</text>
+  </g>
+
+  <!-- time columns: T+0 day 180-420, T+1 420-640, T+2 640-800, later 820-1060 -->
+  <g class="t2" font-size="13" text-anchor="middle" font-weight="600">
+    <line class="tick" x1="420" y1="92" x2="420" y2="430"/>
+    <line class="tick" x1="640" y1="92" x2="640" y2="430"/>
+    <line class="tick" x1="810" y1="92" x2="810" y2="430"/>
+    <line class="axis" x1="170" y1="440" x2="1070" y2="440"/>
+    <text x="295" y="462">T+0 (purchase day)</text>
+    <text x="530" y="462">T+1</text>
+    <text x="725" y="462">T+2</text>
+    <text x="940" y="462">days → months</text>
+  </g>
+
+  <!-- Auth: short marker at 14:00 on T+0 -->
+  <rect class="p1" x="260" y="110" width="12" height="36" rx="3"/>
+  <text class="t1" x="282" y="124" font-size="13" font-weight="700">0100/0110 in &lt;2 s</text>
+  <text class="t2" x="282" y="141" font-size="12">issuer places a hold</text>
+  <!-- hold line -->
+  <path class="hold" d="M272,152 L640,152"/>
+  <text class="t2" x="430" y="138" font-size="11">hold = "pending" until cleared · expires in ~7 days if never cleared</text>
+
+  <!-- Clearing: end of T+0 -->
+  <rect class="p2" x="340" y="176" width="78" height="36" rx="4"/>
+  <text class="wt" x="379" y="199" font-size="12" font-weight="700" text-anchor="middle">cutoff</text>
+  <text class="t1" x="432" y="190" font-size="13" font-weight="700">batch: capture → presentment → match</text>
+  <text class="t2" x="432" y="207" font-size="12">final amount set (tip added) · interchange calculated · hold → posted</text>
+
+  <!-- Settlement: T+1 -->
+  <rect class="p3" x="450" y="242" width="150" height="36" rx="4"/>
+  <text class="wt" x="525" y="265" font-size="12" font-weight="700" text-anchor="middle">net settlement</text>
+  <text class="t1" x="612" y="258" font-size="13" font-weight="700">issuers pay in, acquirers paid out</text>
+  <text class="t2" x="612" y="275" font-size="12">one net amount per member per currency</text>
+
+  <!-- Funding: T+1..T+2 -->
+  <rect class="p4" x="560" y="308" width="230" height="36" rx="4"/>
+  <text class="wt" x="675" y="331" font-size="12" font-weight="700" text-anchor="middle">merchant paid (minus MDR)</text>
+  <text class="t2" x="800" y="331" font-size="12">acquirer → merchant</text>
+
+  <!-- After settlement: statement, refund, dispute window -->
+  <rect class="p5" x="660" y="374" width="400" height="36" rx="4"/>
+  <text class="wt" x="860" y="397" font-size="12" font-weight="700" text-anchor="middle">dispute window ≈ 120 days · refunds · statement</text>
+
+  <!-- legend of what moves money -->
+  <g font-size="13">
+    <text class="t1" x="40" y="505" font-weight="700">Moves money?</text>
+    <text class="t2" x="160" y="505">Authorization: no (hold only) · Clearing: no (sets obligations) · Settlement: yes (bank to bank) · Funding: yes (to merchant) · Chargeback: yes (reverses)</text>
+    <text class="t2" x="40" y="532">Every stage references the same network transaction ID / ARN, which is how a dispute 90 days later finds the original authorization.</text>
+  </g>
+</svg>

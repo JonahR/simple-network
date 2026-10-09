@@ -1,0 +1,841 @@
+<title>Anatomy of an 0100</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a spec-sheet explorer. The encoded message is the centerpiece; every
+   segment, bit and party is a button that opens an anchored definition popover. */
+:root {
+  --paper: #f3f5f3;
+  --surface: #ffffff;
+  --ink: #15191d;
+  --muted: #59616a;
+  --rule: #d6dbd7;
+  --accent: #1d57b8;
+  --g-card: #6a4fc8;
+  --g-purchase: #0d8273;
+  --g-who: #a86300;
+  --g-trace: #46607a;
+  --g-resp: #23812b;
+  --g-struct: #15191d;
+  --shadow: 0 18px 50px -12px rgba(20, 30, 40, .28), 0 2px 6px rgba(20, 30, 40, .08);
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #101315; --surface: #181c1f; --ink: #e6ebe8; --muted: #9ba4aa; --rule: #2b3236;
+    --accent: #79a6f2; --g-card: #a693f2; --g-purchase: #3cc2ae; --g-who: #e2a443;
+    --g-trace: #93aac2; --g-resp: #62c96a; --g-struct: #e6ebe8;
+    --shadow: 0 18px 50px -12px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #101315; --surface: #181c1f; --ink: #e6ebe8; --muted: #9ba4aa; --rule: #2b3236;
+  --accent: #79a6f2; --g-card: #a693f2; --g-purchase: #3cc2ae; --g-who: #e2a443;
+  --g-trace: #93aac2; --g-resp: #62c96a; --g-struct: #e6ebe8;
+  --shadow: 0 18px 50px -12px rgba(0, 0, 0, .7), 0 2px 6px rgba(0, 0, 0, .4);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.55 var(--f-body); }
+table { font: inherit; color: inherit; }
+button { font: inherit; color: inherit; }
+a { color: var(--accent); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; display: grid; gap: 28px; }
+.wrap > *, .two > *, #pop > * { min-width: 0; }
+
+/* group color hooks */
+.g-card { --g: var(--g-card); }
+.g-purchase { --g: var(--g-purchase); }
+.g-who { --g: var(--g-who); }
+.g-trace { --g: var(--g-trace); }
+.g-resp { --g: var(--g-resp); }
+.g-struct { --g: var(--g-struct); }
+
+/* header */
+header { display: grid; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 700 clamp(34px, 6vw, 58px)/1 var(--f-display); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+h1 .mti-big { font-family: var(--f-mono); font-weight: 600; color: var(--accent); }
+.lede { max-width: 68ch; margin: 0; color: var(--muted); font-size: 16px; }
+.lede strong { color: var(--ink); font-weight: 600; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.toggle { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 3px; background: var(--surface); }
+.toggle button { border: 0; background: none; padding: 7px 14px; border-radius: 999px; cursor: pointer; font: 500 13px/1 var(--f-mono); color: var(--muted); }
+.toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.btn { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); border-radius: 999px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 13px; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+.hint { font-size: 13px; color: var(--muted); }
+
+section h2 { font: 600 22px/1.2 var(--f-display); margin: 0 0 4px; letter-spacing: .005em; }
+section > p.sub { margin: 0 0 14px; color: var(--muted); font-size: 14px; max-width: 72ch; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; }
+
+/* journey */
+.journey { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 4px; }
+.party { flex: 1 0 120px; min-width: 120px; border: 1px solid var(--rule); background: var(--surface); border-radius: 8px; padding: 10px 12px; text-align: left; cursor: pointer; display: grid; gap: 2px; }
+.party b { font: 600 15px/1.2 var(--f-display); }
+.party span { font-size: 12px; color: var(--muted); line-height: 1.3; }
+.party.net { border: 2px solid var(--accent); }
+.hop { flex: 0 0 74px; display: grid; place-items: center; border: 0; background: none; cursor: pointer; padding: 0 2px; color: var(--muted); }
+.hop svg { width: 64px; height: 34px; overflow: visible; }
+.hop svg path, .hop svg line { stroke: currentColor; fill: none; stroke-width: 1.6; }
+.hop svg .head { fill: currentColor; stroke: none; }
+.hop small { font: 500 11px/1 var(--f-mono); }
+.hop:hover, .hop:focus-visible { color: var(--accent); }
+
+/* wire view */
+.wire { display: flex; flex-wrap: wrap; gap: 10px 4px; font-family: var(--f-mono); }
+.seg { display: grid; gap: 4px; min-width: 0; }
+.seg .lbl { justify-self: start; border: 0; background: none; padding: 0 2px; cursor: pointer; font: 600 10.5px/1 var(--f-mono); letter-spacing: .04em; color: var(--g); text-transform: uppercase; }
+.seg .raw { border: 1px solid color-mix(in srgb, var(--g) 35%, transparent); background: color-mix(in srgb, var(--g) 9%, var(--surface)); border-radius: 5px; padding: 6px 7px; cursor: pointer; font: 500 15px/1.2 var(--f-mono); text-align: left; word-break: break-all; max-width: 100%; display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0; }
+.seg .raw .pre { color: var(--muted); font-weight: 400; border-bottom: 1px dotted var(--muted); margin-right: 3px; }
+.seg.tlvs .row { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg .tlv { border: 1px dashed color-mix(in srgb, var(--g) 55%, transparent); background: color-mix(in srgb, var(--g) 5%, var(--surface)); border-radius: 5px; padding: 6px 7px; cursor: pointer; font: 500 15px/1.2 var(--f-mono); word-break: break-all; text-align: left; }
+.seg .tlv i { font-style: normal; color: var(--g); font-weight: 600; }
+.seg .tlv u { text-decoration: none; color: var(--muted); }
+.mti-digits { display: inline-flex; gap: 2px; }
+.mti-digits button { border: 1px solid color-mix(in srgb, var(--g) 35%, transparent); background: color-mix(in srgb, var(--g) 7%, var(--surface)); border-radius: 5px; padding: 6px 8px; cursor: pointer; font: 600 15px/1.2 var(--f-mono); display: grid; justify-items: center; gap: 3px; }
+.mti-digits button small { font: 500 9.5px/1 var(--f-body); color: var(--muted); letter-spacing: .02em; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--g); display: inline-block; }
+.raw-meta { margin-top: 14px; font: 12.5px/1.5 var(--f-mono); color: var(--muted); }
+
+/* bitmap */
+.bitmap { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; }
+.nib { display: grid; gap: 4px; min-width: 0; }
+.nib .hex { border: 0; background: none; cursor: pointer; font: 600 18px/1 var(--f-mono); padding: 2px 0; color: var(--ink); }
+.nib .bits { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
+.bit { aspect-ratio: 1; max-width: 100%; border: 1px solid var(--rule); background: var(--surface); border-radius: 4px; cursor: pointer; display: grid; place-items: center; font: 500 10px/1 var(--f-mono); color: var(--muted); padding: 0; }
+.bit.on { background: var(--g); border-color: var(--g); color: var(--surface); font-weight: 600; }
+.bit-legend { margin-top: 12px; font-size: 13px; color: var(--muted); }
+
+/* two-up */
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.qgroup { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.qgroup:first-of-type { border-top: 0; padding-top: 0; }
+.qgroup h3 { margin: 0; font: 600 15px/1.2 var(--f-display); display: flex; align-items: center; gap: 8px; }
+.qgroup h3 i { width: 10px; height: 10px; border-radius: 3px; background: var(--g); display: inline-block; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid color-mix(in srgb, var(--g) 40%, transparent); background: color-mix(in srgb, var(--g) 8%, var(--surface)); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-size: 13px; display: inline-flex; gap: 6px; align-items: baseline; }
+.chip code { font: 600 11.5px/1 var(--f-mono); color: var(--g); }
+pre.json { margin: 0; overflow-x: auto; font: 13.5px/1.75 var(--f-mono); }
+pre.json button.k { border: 0; background: none; padding: 0 3px; margin: 0 -3px; cursor: pointer; font: inherit; color: var(--g); border-radius: 3px; }
+pre.json .v { color: var(--ink); }
+pre.json .c { color: var(--muted); font-style: italic; }
+.note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+
+/* shared highlight + focus */
+[data-ref] { transition: box-shadow .12s, outline-color .12s; }
+[data-ref]:focus-visible, .hop:focus-visible, .toggle button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hl { box-shadow: 0 0 0 2px color-mix(in srgb, var(--g, var(--accent)) 55%, transparent); }
+.active { box-shadow: 0 0 0 3px var(--accent) !important; }
+
+/* popover */
+#pop { position: absolute; z-index: 50; width: min(420px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); padding: 0; display: grid; max-height: min(78vh, 680px); grid-template-rows: auto 1fr auto; }
+#pop[hidden] { display: none; }
+#pop .ph { padding: 16px 18px 10px; border-bottom: 1px solid var(--rule); display: grid; gap: 6px; position: relative; }
+#pop .tagline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font: 600 11px/1 var(--f-mono); letter-spacing: .04em; }
+#pop .tag { background: var(--g); color: var(--surface); padding: 4px 7px; border-radius: 4px; }
+#pop .fmt { color: var(--muted); border: 1px solid var(--rule); padding: 3px 6px; border-radius: 4px; }
+#pop h3 { margin: 0; font: 600 21px/1.15 var(--f-display); padding-right: 30px; text-wrap: balance; }
+#pop .val { font: 500 13px/1.4 var(--f-mono); color: var(--muted); word-break: break-all; }
+#pop .val b { color: var(--ink); font-weight: 600; }
+#pop .close { position: absolute; top: 10px; right: 10px; border: 0; background: none; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; font-size: 20px; line-height: 1; color: var(--muted); }
+#pop .close:hover { background: var(--paper); color: var(--ink); }
+#pop .pb { padding: 12px 18px 14px; overflow-y: auto; display: grid; gap: 12px; font-size: 14px; }
+#pop .pb p { margin: 0; }
+#pop .pb h4 { margin: 0 0 4px; font: 600 11px/1 var(--f-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+#pop table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#pop td { padding: 4px 6px 4px 0; border-top: 1px solid var(--rule); vertical-align: top; }
+#pop td:first-child { font-family: var(--f-mono); white-space: nowrap; font-weight: 600; }
+#pop td:nth-child(2) { font-family: var(--f-mono); color: var(--muted); white-space: nowrap; }
+#pop ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+#pop .sn { font: 12.5px/1.6 var(--f-mono); background: var(--paper); border-radius: 6px; padding: 8px 10px; word-break: break-word; }
+#pop .links { display: grid; gap: 4px; }
+#pop .links a { display: flex; gap: 8px; align-items: baseline; text-decoration: none; font-size: 13.5px; }
+#pop .links a:hover span { text-decoration: underline; }
+#pop .links a em { font: normal 600 10px/1 var(--f-mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--rule); border-radius: 3px; padding: 3px 4px; flex: none; min-width: 52px; text-align: center; }
+#pop .related { display: flex; flex-wrap: wrap; gap: 6px; }
+#pop .related button { border: 1px solid var(--rule); background: var(--paper); border-radius: 999px; padding: 3px 9px; cursor: pointer; font: 500 12px/1.3 var(--f-mono); }
+#pop .pf { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--rule); font: 12px/1 var(--f-mono); color: var(--muted); }
+#pop .pf button { border: 1px solid var(--rule); background: var(--paper); border-radius: 6px; padding: 7px 11px; cursor: pointer; font: 600 12px/1 var(--f-body); }
+#pop .pf button:disabled { opacity: .4; cursor: default; }
+
+@media (max-width: 760px) {
+  .two { grid-template-columns: minmax(0, 1fr); }
+  .bitmap { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #pop td, #pop td:first-child, #pop td:nth-child(2) { white-space: normal; word-break: break-word; }
+  .wrap { padding-inline: 16px; }
+  #pop { position: fixed; left: 0 !important; right: 0; bottom: 0; top: auto !important; width: 100%; max-height: 72vh; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">simple-network · Network KT · interactive</div>
+    <h1>Anatomy of an <span class="mti-big" id="h-mti">0100</span></h1>
+    <p class="lede">An <strong>authorization request</strong> asks the card's issuing bank: <em>will you pay for this purchase?</em> Below is one real-shaped ISO 8583 message for a <strong>$54.20 contactless tap at a restaurant</strong>. <strong>Click any part</strong> (a digit, a bit, a field, a bank) to see what it means, who sets it, and where to read more.</p>
+    <div class="controls">
+      <div class="toggle" role="group" aria-label="Message">
+        <button type="button" id="t-req" aria-pressed="true">0100 request</button>
+        <button type="button" id="t-resp" aria-pressed="false">0110 response</button>
+      </div>
+      <button type="button" class="btn" id="walk">Walk through it field by field</button>
+      <span class="hint">Tip: use ← → in a popover to step through, Esc to close.</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="s-journey">
+    <h2 id="s-journey">The path it travels</h2>
+    <p class="sub">Every hop adds or checks something. The whole round trip usually finishes in under two seconds.</p>
+    <div class="journey" id="journey"></div>
+  </section>
+
+  <section aria-labelledby="s-wire">
+    <h2 id="s-wire">The message, as it goes over the wire</h2>
+    <p class="sub">ASCII-encoded ISO 8583 (1987). Read left to right: the message type, a bitmap saying which fields follow, then each field in number order. Grey dotted digits are length prefixes for variable-length fields.</p>
+    <div class="panel">
+      <div class="wire" id="wire"></div>
+      <div class="legend" id="legend"></div>
+      <div class="raw-meta" id="raw-meta"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-bitmap">
+    <h2 id="s-bitmap">Inside the bitmap</h2>
+    <p class="sub">16 hex characters = 64 bits. Bit <em>n</em> is on when data element <em>n</em> is present. Click a hex digit or any bit, including the empty ones.</p>
+    <div class="panel">
+      <div class="bitmap" id="bitmap"></div>
+      <div class="bit-legend" id="bit-legend"></div>
+    </div>
+  </section>
+
+  <div class="two">
+    <section aria-labelledby="s-groups">
+      <h2 id="s-groups">The same fields, by the question they answer</h2>
+      <p class="sub">The issuer needs four answers before it can decide.</p>
+      <div class="panel" id="groups"></div>
+    </section>
+    <section aria-labelledby="s-json">
+      <h2 id="s-json">In simple-network's code</h2>
+      <p class="sub" id="json-sub">This is <code>iso8583.AuthRequest</code> from <a href="https://github.com/JonahR/simple-network/blob/main/internal/iso8583/message.go" target="_blank" rel="noopener">internal/iso8583/message.go</a>, serialized as JSON. The keys keep the ISO numbering.</p>
+      <div class="panel"><pre class="json" id="json"></pre></div>
+      <p class="note" id="json-note"></p>
+    </section>
+  </div>
+</div>
+
+<div id="pop" role="dialog" aria-modal="false" aria-labelledby="pop-title" hidden>
+  <div class="ph g-struct" id="pop-head">
+    <div class="tagline" id="pop-tags"></div>
+    <h3 id="pop-title"></h3>
+    <div class="val" id="pop-val"></div>
+    <button type="button" class="close" id="pop-close" aria-label="Close">×</button>
+  </div>
+  <div class="pb" id="pop-body"></div>
+  <div class="pf">
+    <button type="button" id="pop-prev">← Prev</button>
+    <span id="pop-count"></span>
+    <button type="button" id="pop-next">Next →</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- links ---------- */
+  const GH = "https://github.com/JonahR/simple-network/blob/main/";
+  const KT = GH + "Network%20KT/";
+  const O = (t, u) => ({ k: "Official", t, u });
+  const W = (t, u) => ({ k: "Reference", t, u });
+  const R = (t, u) => ({ k: "Repo doc", t, u: KT + u });
+  const C = (t, u) => ({ k: "Code", t, u: GH + u });
+  const L = {
+    iso: O("ISO 8583:2023, the current edition (iso.org)", "https://www.iso.org/standard/79451.html"),
+    iso2003: O("ISO 8583-1:2003, the previous edition (iso.org)", "https://www.iso.org/standard/31628.html"),
+    wiki: W("ISO 8583 overview and field list (Wikipedia)", "https://en.wikipedia.org/wiki/ISO_8583"),
+    visa: O("Visa Core Rules (public PDF)", "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"),
+    mc: O("Mastercard Rules", "https://www.mastercard.us/en-us/business/overview/support/rules.html"),
+    visaDev: O("Visa Developer Center", "https://developer.visa.com/"),
+    mcDev: O("Mastercard Developers", "https://developer.mastercard.com/"),
+    iso4217: O("ISO 4217 currency codes (iso.org)", "https://www.iso.org/iso-4217-currency-codes.html"),
+    iso4217w: W("ISO 4217 with the full code table (Wikipedia)", "https://en.wikipedia.org/wiki/ISO_4217"),
+    iso18245: O("ISO 18245 merchant category codes (iso.org)", "https://www.iso.org/standard/79450.html"),
+    mccw: W("Merchant category code (Wikipedia)", "https://en.wikipedia.org/wiki/Merchant_category_code"),
+    iso7812: W("ISO/IEC 7812 card numbering (Wikipedia)", "https://en.wikipedia.org/wiki/ISO/IEC_7812"),
+    pan: W("Payment card number (Wikipedia)", "https://en.wikipedia.org/wiki/Payment_card_number"),
+    luhn: W("Luhn algorithm (Wikipedia)", "https://en.wikipedia.org/wiki/Luhn_algorithm"),
+    stripe: W("Magnetic stripe tracks (Wikipedia)", "https://en.wikipedia.org/wiki/Magnetic_stripe_card"),
+    emvco: O("EMVCo specifications", "https://www.emvco.com/"),
+    emvw: W("EMV chip overview (Wikipedia)", "https://en.wikipedia.org/wiki/EMV"),
+    pci: O("PCI Security Standards Council", "https://www.pcisecuritystandards.org/"),
+    cvvw: W("Card security code (Wikipedia)", "https://en.wikipedia.org/wiki/Card_security_code"),
+    tok: O("EMVCo payment tokenisation", "https://www.emvco.com/emv-technologies/payment-tokenisation/"),
+    msgGo: C("internal/iso8583/message.go", "internal/iso8583/message.go"),
+    cardGo: C("internal/card/card.go", "internal/card/card.go"),
+    posGo: C("cmd/pos/main.go (builds this request)", "cmd/pos/main.go"),
+    k01: R("KT 01 · What is a card network", "01-what-is-a-card-network.md"),
+    k02roles: R("KT 02 · Core members", "02-participants-and-roles.md#core-members"),
+    k02ids: R("KT 02 · Identifiers each party carries", "02-participants-and-roles.md#identifiers-each-party-carries"),
+    k03auth: R("KT 03 · Stage 1: Authorization", "03-transaction-lifecycle.md#stage-1-authorization"),
+    k03cp: R("KT 03 · Card-present vs card-not-present", "03-transaction-lifecycle.md#card-present-vs-card-not-present"),
+    k04iso: R("KT 04 · ISO 8583 in five minutes", "04-authorization-deep-dive.md#iso-8583-in-five-minutes"),
+    k04mti: R("KT 04 · MTI: Message Type Indicator", "04-authorization-deep-dive.md#mti-message-type-indicator"),
+    k04de: R("KT 04 · Data elements you will use most", "04-authorization-deep-dive.md#data-elements-you-will-use-most"),
+    k04rc: R("KT 04 · Response codes (DE39)", "04-authorization-deep-dive.md#response-codes-de39"),
+    k04pipe: R("KT 04 · The pipeline inside the switch", "04-authorization-deep-dive.md#the-authorization-pipeline-inside-the-switch"),
+    k04stip: R("KT 04 · Stand-in processing (STIP)", "04-authorization-deep-dive.md#stand-in-processing-stip"),
+    k04to: R("KT 04 · Timeouts and late responses", "04-authorization-deep-dive.md#timeouts-and-late-responses"),
+    k04var: R("KT 04 · Authorization variants", "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"),
+    k05match: R("KT 05 · Matching clearing to authorizations", "05-clearing-and-settlement.md#matching-clearing-records-to-authorizations"),
+    k05fx: R("KT 05 · Cross-border and currency", "05-clearing-and-settlement.md#cross-border-and-currency"),
+    k05ledger: R("KT 05 · Accounting model: double-entry", "05-clearing-and-settlement.md#accounting-model-use-double-entry"),
+    k06ic: R("KT 06 · Interchange drivers", "06-economics-and-fees.md#interchange-acquirer--issuer"),
+    k07pan: R("KT 07 · Anatomy of a card number", "07-cards-bins-and-tokens.md#anatomy-of-a-card-number-pan"),
+    k07bin: R("KT 07 · The BIN table", "07-cards-bins-and-tokens.md#the-bin-table-the-routing-core"),
+    k07sec: R("KT 07 · Card security values", "07-cards-bins-and-tokens.md#card-security-values"),
+    k07emv: R("KT 07 · EMV chip", "07-cards-bins-and-tokens.md#emv-chip-why-counterfeit-fraud-collapsed"),
+    k07tok: R("KT 07 · Network tokenization", "07-cards-bins-and-tokens.md#network-tokenization"),
+    k08rev: R("KT 08 · Reversal mechanics", "08-exceptions-and-disputes.md#reversal-mechanics"),
+    k08liab: R("KT 08 · Fraud disputes and liability shift", "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"),
+    k09pci: R("KT 09 · PCI DSS", "09-risk-fraud-and-security.md#pci-dss-payment-card-industry-data-security-standard"),
+    k09keys: R("KT 09 · Cryptography and keys", "09-risk-fraud-and-security.md#cryptography-and-keys"),
+    k12id: R("KT 12 · D3: Transaction identity and idempotency", "12-design-decisions.md#d3-transaction-identity-and-idempotency"),
+    k12money: R("KT 12 · D5 and D6: Money and ledger", "12-design-decisions.md#d5-and-d6-money-and-ledger"),
+    k12bin: R("KT 12 · D7: BIN routing", "12-design-decisions.md#d7-bin-routing"),
+    k12data: R("KT 12 · D14 and D15: Trust and card data", "12-design-decisions.md#d14-and-d15-trust-and-card-data"),
+    k13mcc: R("KT 13 · Common MCCs", "13-glossary.md#common-mccs-for-test-data"),
+  };
+
+  /* ---------- the sample messages ---------- */
+  const DE43 = "JOE'S DINER".padEnd(23) + "AUSTIN".padEnd(13) + "TX" + "US";
+  const REQ = {
+    mti: "0100",
+    de: {
+      2: "4000001234567899", 3: "000000", 4: "000000005420", 7: "1009154301", 11: "004211",
+      12: "104301", 13: "1009", 14: "2812", 18: "5812", 22: "071", 25: "00", 32: "123456",
+      35: "4000001234567899=2812201000001234", 37: "628215004211", 41: "TERM0001",
+      42: "MERCH0000000042", 43: DE43, 49: "840",
+      55: [["9F26", "1A2B3C4D5E6F7081"], ["9F36", "0042"], ["9F27", "80"]],
+    },
+  };
+  const RESP = {
+    mti: "0110",
+    de: {
+      2: "4000001234567899", 3: "000000", 4: "000000005420", 7: "1009154302", 11: "004211",
+      32: "123456", 37: "628215004211", 38: "7Q3K9A", 39: "00", 41: "TERM0001",
+      42: "MERCH0000000042", 49: "840",
+      55: [["91", "8899AABBCCDDEEFF3030"]],
+    },
+  };
+  // ASCII ISO 8583:1987 encoding rules for the fields used here
+  const SPEC = {
+    2: ["LL", "n..19"], 3: ["F", "n6"], 4: ["F", "n12"], 7: ["F", "n10"], 11: ["F", "n6"],
+    12: ["F", "n6"], 13: ["F", "n4"], 14: ["F", "n4"], 18: ["F", "n4"], 22: ["F", "n3"],
+    25: ["F", "n2"], 32: ["LL", "n..11"], 35: ["LL", "z..37"], 37: ["F", "an12"], 38: ["F", "an6"],
+    39: ["F", "an2"], 41: ["F", "ans8"], 42: ["F", "ans15"], 43: ["F", "ans40"], 49: ["F", "n3"],
+    55: ["LLL", "b..255"],
+  };
+
+  const DE_NAMES = ["", "Secondary bitmap", "Primary account number (PAN)", "Processing code", "Amount, transaction",
+    "Amount, settlement", "Amount, cardholder billing", "Transmission date & time", "Amount, cardholder billing fee",
+    "Conversion rate, settlement", "Conversion rate, cardholder billing", "System trace audit number (STAN)",
+    "Local transaction time", "Local transaction date", "Expiration date", "Settlement date", "Currency conversion date",
+    "Capture date", "Merchant type (MCC)", "Acquiring institution country code", "PAN extended, country code",
+    "Forwarding institution country code", "POS entry mode", "Card sequence number", "Network international identifier (NII)",
+    "POS condition code", "POS capture code", "Authorizing ID response length", "Amount, transaction fee",
+    "Amount, settlement fee", "Amount, transaction processing fee", "Amount, settlement processing fee",
+    "Acquiring institution ID code", "Forwarding institution ID code", "PAN, extended", "Track 2 data", "Track 3 data",
+    "Retrieval reference number (RRN)", "Authorization ID response", "Response code", "Service restriction code",
+    "Card acceptor terminal ID", "Card acceptor ID code", "Card acceptor name/location", "Additional response data",
+    "Track 1 data", "Additional data (ISO)", "Additional data (national)", "Additional data (private)",
+    "Currency code, transaction", "Currency code, settlement", "Currency code, cardholder billing", "PIN data",
+    "Security related control information", "Additional amounts", "ICC data (EMV chip)", "Reserved (ISO)",
+    "Reserved (national)", "Reserved (national)", "Reserved (national)", "Reserved (private)", "Reserved (private)",
+    "Reserved (private)", "Reserved (private)", "Message authentication code (MAC)"];
+
+  /* ---------- definitions ---------- */
+  const tbl = rows => "<table>" + rows.map(r => "<tr>" + r.map(c => "<td>" + c + "</td>").join("") + "</tr>").join("") + "</table>";
+
+  const D = {
+    mti: { g: "struct", tag: "MTI", fmt: "n4", name: "Message Type Indicator",
+      plain: "The first four characters of every ISO 8583 message. The receiver reads them first to know what kind of message follows and how to handle it. Each digit has its own meaning; click the digits to see them.",
+      parts: () => { const m = cur().mti; return [[m[0], "version", "ISO 8583:1987"], [m[1], "class", "authorization"], [m[2], "function", m[2] === "0" ? "request" : "response"], [m[3], "origin", "acquirer"]]; },
+      who: "The sender. The network checks it is a type the sender is allowed to send.",
+      sn: "iso8583.MTIAuthRequest = \"0100\"\niso8583.MTIAuthResponse = \"0110\"",
+      watch: ["Related messages you will meet: 0120 advice (stand-in approval), 0400/0420 reversal, 0800 network management (sign-on, echo, key exchange)."],
+      links: ["k04mti", "k04iso", "iso", "wiki", "msgGo"], rel: ["mti-v", "mti-c", "mti-f", "mti-o"] },
+    "mti-v": { g: "struct", tag: "MTI · digit 1", fmt: "version", name: "Version: 0 = ISO 8583:1987",
+      plain: "Which edition of ISO 8583 the message follows. Most networks still run on the 1987 layout (version 0), extended with their own private fields. A later edition doesn't automatically replace the earlier one in production; networks move on their own schedule.",
+      parts: [["0", "1987", "Still the most widely used"], ["1", "1993", "Used by some networks and regions"], ["2", "2003", "Restructured data elements"]],
+      watch: ["ISO 8583:2023 (edition 3) replaced the 2003 parts. Field and value definitions are now published by an ISO maintenance agency instead of inside the standard text."],
+      links: ["k04mti", "iso", "iso2003", "wiki"], rel: ["mti", "mti-c"] },
+    "mti-c": { g: "struct", tag: "MTI · digit 2", fmt: "class", name: "Class: 1 = authorization",
+      plain: "What the message is for. An authorization asks for approval and a hold on the cardholder's available credit. It does not move money; clearing and settlement do that later.",
+      parts: [["1", "Authorization", "Approval + hold (credit, signature debit)"], ["2", "Financial", "Approve and post at once (PIN debit, ATM)"], ["3", "File action", "Update files such as card blocks"], ["4", "Reversal", "Undo an earlier auth"], ["5", "Reconciliation", "Totals between parties"], ["6", "Administrative", "Free-form admin"], ["8", "Network mgmt", "Sign-on, echo, key exchange"]],
+      links: ["k04mti", "k03auth", "wiki"], rel: ["mti", "mti-f"] },
+    "mti-f": { g: "struct", tag: "MTI · digit 3", fmt: "function", name: () => cur().mti[2] === "0" ? "Function: 0 = request" : "Function: 1 = response",
+      plain: "Whether this asks for something, answers it, or reports something already done. The response flips this digit, which is why 0100 is answered by 0110.",
+      parts: [["0", "Request", "Expects a response"], ["1", "Response", "Answers a request"], ["2", "Advice", "Reports something already decided (e.g. stand-in approval, 0120)"], ["3", "Advice response", "Acknowledges an advice"]],
+      links: ["k04mti", "k04stip", "wiki"], rel: ["mti", "mti-o"] },
+    "mti-o": { g: "struct", tag: "MTI · digit 4", fmt: "origin", name: "Origin: 0 = acquirer",
+      plain: "Who started the message. A \"repeat\" (e.g. 0101) is sent when the sender didn't get an answer and tries again. The receiver must treat a repeat as a possible duplicate and must not place a second hold.",
+      parts: [["0", "Acquirer", ""], ["1", "Acquirer repeat", "Retry of an unanswered request"], ["2", "Issuer", ""], ["3", "Issuer repeat", ""]],
+      watch: ["Idempotency matters here: same acquirer + STAN + transmission time means the same transaction."],
+      links: ["k04mti", "k12id", "wiki"], rel: ["mti", "de11", "de7"] },
+    bitmap: { g: "struct", tag: "Bitmap", fmt: "b64 → 16 hex", name: "Primary bitmap",
+      plain: "A 64-bit map of which data elements are in the message. Bit n set means DE n follows. This lets a message carry only the fields it needs, in a fixed order, without field names. In this ASCII encoding the 64 bits are written as 16 hex characters.",
+      val: () => bitmapHex(cur()) + "  =  " + bitmapBits(cur()).map(b => b ? 1 : 0).join("").replace(/(.{8})/g, "$1 ").trim(),
+      who: "The sender computes it from the fields it includes. The receiver uses it to parse.",
+      watch: ["Bit 1 set means a secondary bitmap follows, describing DE65–128. It is off here because no field above 64 is used.", "Parsing bugs here cause misaligned fields. A real decoder must know each field's exact format."],
+      links: ["k04iso", "wiki", "iso"], rel: ["bit1"] },
+    bit1: { g: "struct", tag: "Bit 1", fmt: "flag", name: "Secondary bitmap present?",
+      plain: "The first bit doesn't point at a normal field. When set, a second 64-bit bitmap follows the first one and describes fields 65–128 (for example DE90 original data elements in reversals, DE95 replacement amounts). It is off in this message.",
+      links: ["wiki", "k08rev"], rel: ["bitmap"] },
+    len: { g: "struct", tag: "Length prefix", fmt: "LL / LLL", name: "Length prefix for variable fields",
+      plain: "Fixed-length fields (like DE3, always 6 digits) are sent as-is. Variable-length fields start with their length: LL = 2 digits (up to 99), LLL = 3 digits (up to 999). DE2 \"16…\" means the PAN that follows is 16 digits long.",
+      watch: ["For binary fields such as DE55 the length counts bytes, not hex characters."],
+      links: ["wiki", "k04de"], rel: ["de2", "de32", "de35", "de55"] },
+
+    de2: { g: "card", tag: "DE2", fmt: "LLVAR n..19", name: "Primary account number (PAN)",
+      plain: "The card number. Its first 6–8 digits (the BIN) tell the network which issuer to route to. The last digit is a Luhn check digit that catches typing mistakes.",
+      parts: [["400000", "BIN", "Routes to the issuer (6-digit view; the industry now uses 8)"], ["123456789", "account", "Chosen by the issuer"], ["9", "check", "Luhn digit"]],
+      who: "Read from the card (or typed) at the terminal. With network tokens this field holds the token, and the network swaps in the real PAN before the issuer sees it.",
+      sn: "json: de2_pan\nGo:   AuthRequest.PAN\nhelpers: card.ValidatePAN, card.Luhn, card.BIN, card.Mask",
+      watch: ["Never log it in full. Mask it to first 6 and last 4 (card.Mask does this).", "Passing Luhn doesn't mean the card exists. Only the issuer knows that.", "This sample uses 400000, a well-known Visa test range."],
+      links: ["k07pan", "k07bin", "k12bin", "iso7812", "pan", "luhn", "pci", "cardGo"], rel: ["len", "de14", "de35", "network"] },
+    de3: { g: "purchase", tag: "DE3", fmt: "n6", name: "Processing code",
+      plain: "What kind of transaction this is, and which accounts it moves money from and to. It is three 2-digit parts.",
+      parts: [["00", "type", "Purchase (goods and services)"], ["00", "from", "Default account"], ["00", "to", "Default account"]],
+      who: "Set by the terminal or acquirer from what the merchant is doing.",
+      more: tbl([["00", "Purchase", ""], ["01", "Cash withdrawal", "ATM, cash advance"], ["09", "Purchase with cashback", ""], ["20", "Refund / return", ""], ["26", "Original credit (push payment)", ""], ["30", "Balance inquiry", ""]]),
+      sn: "json: de3_processing_code\nGo:   AuthRequest.ProcessingCode\nconsts: iso8583.ProcPurchase \"000000\", iso8583.ProcRefund \"200000\"",
+      links: ["k04var", "k04de", "wiki", "msgGo"], rel: ["de4", "de22"] },
+    de4: { g: "purchase", tag: "DE4", fmt: "n12", name: "Amount, transaction",
+      plain: "The amount the merchant is asking for, in the currency's smallest unit, zero-padded to 12 digits. 000000005420 is 5420 cents, which is $54.20.",
+      parts: [["000000005420", "minor units", "5,420 cents = $54.20"]],
+      who: "The merchant's terminal. The issuer checks it against available credit and places a hold for this amount.",
+      sn: "json: de4_amount\nGo:   AuthRequest.Amount int64  // minor units",
+      watch: ["Never use floating point for money.", "The number of decimals comes from the currency in DE49 (ISO 4217): USD has 2, JPY has 0.", "The final amount can differ at clearing (tips, hotels, fuel). The auth amount is a hold, not the charge."],
+      links: ["k12money", "k05ledger", "k05match", "iso4217w", "wiki"], rel: ["de49", "de3"] },
+    de7: { g: "trace", tag: "DE7", fmt: "n10 MMDDhhmmss", name: "Transmission date & time",
+      plain: "When this message was sent, in UTC. Each sender stamps its own transmission time. Note there is no year.",
+      parts: () => { const v = cur().de[7]; return [[v.slice(0, 2) + v.slice(2, 4), "MMDD", "October 9"], [v.slice(4), "hhmmss", v.slice(4, 6) + ":" + v.slice(6, 8) + ":" + v.slice(8) + " UTC"]]; },
+      who: "The sender of each message.",
+      sn: "json: de7_transmission_datetime\nGo:   AuthRequest.TransmissionTime",
+      watch: ["Together with the acquirer ID and STAN it identifies a request, so the switch can spot duplicates.", "A reversal points back at the original using this value (inside DE90)."],
+      links: ["k12id", "k08rev", "k04de", "wiki"], rel: ["de11", "de12", "de37"] },
+    de11: { g: "trace", tag: "DE11", fmt: "n6", name: "System trace audit number (STAN)",
+      plain: "A 6-digit number the sender assigns to each message, usually counting up. The response echoes it so the sender can pair answers with questions on a busy connection.",
+      who: "The sender. It's unique per sender for a period (often a day), not globally.",
+      sn: "json: de11_stan\nGo:   AuthRequest.STAN",
+      watch: ["STAN alone is not a global ID; it wraps at 999999. That's why simple-network should add its own network transaction ID."],
+      links: ["k02ids", "k12id", "wiki"], rel: ["de7", "de37"] },
+    de12: { g: "trace", tag: "DE12", fmt: "n6 hhmmss", name: "Local transaction time",
+      plain: "The time on the merchant's clock when the card was used: 10:43:01 in Austin (Central Daylight Time, UTC−5). Shows up on receipts and helps in disputes.",
+      sn: "json: de12_local_time\nGo:   AuthRequest.LocalTime",
+      links: ["k04de", "wiki"], rel: ["de13", "de7"] },
+    de13: { g: "trace", tag: "DE13", fmt: "n4 MMDD", name: "Local transaction date",
+      plain: "The merchant's local date. Like DE7 it has no year, so systems infer it, which gets tricky around New Year.",
+      sn: "json: de13_local_date\nGo:   AuthRequest.LocalDate",
+      links: ["k04de", "wiki"], rel: ["de12", "de7"] },
+    de14: { g: "card", tag: "DE14", fmt: "n4 YYMM", name: "Expiration date",
+      plain: "When the card expires, written year-first: 2812 is December 2028. The card face prints it the other way round (12/28).",
+      who: "Read from the card or typed by the customer. The issuer compares it with its own records.",
+      sn: "json: de14_expiry\nGo:   AuthRequest.Expiry\nhelper: card.ParseExpiry(\"12/28\") → \"2812\"",
+      watch: ["A mismatch or past date gets response code 54 (expired card)."],
+      links: ["k07pan", "k04rc", "cardGo"], rel: ["de2", "de35"] },
+    de18: { g: "who", tag: "DE18", fmt: "n4", name: "Merchant type (MCC)",
+      plain: "A 4-digit merchant category code. 5812 means \"Eating places, restaurants\". The codes come from ISO 18245, and the networks publish their own lists.",
+      who: "The acquirer assigns it when it signs up the merchant, following network rules.",
+      sn: "json: de18_mcc\nGo:   AuthRequest.MCC",
+      watch: ["It drives interchange rates, issuer risk rules, blocked categories (e.g. gambling 7995) and clearing tolerances. Restaurants may clear about 20% over the auth amount because of tips.", "A wrong MCC hides risky merchants. Networks fine acquirers for it."],
+      links: ["k13mcc", "k06ic", "k05match", "iso18245", "mccw"], rel: ["de42", "de43", "de4"] },
+    de22: { g: "purchase", tag: "DE22", fmt: "n3", name: "POS entry mode",
+      plain: "How the card number was captured, and whether the terminal can take a PIN. It tells the issuer how much to trust the card data.",
+      parts: [["07", "PAN entry", "Contactless chip"], ["1", "PIN capability", "Terminal can accept a PIN"]],
+      more: tbl([["01", "Keyed by hand", "Highest fraud risk"], ["05", "Chip (dipped)", "Cryptogram in DE55"], ["07", "Contactless chip", "Cryptogram in DE55"], ["90/02", "Magnetic stripe", ""], ["10", "Credential on file", "Stored card"], ["81", "E-commerce", "Card not present"]]),
+      sn: "json: de22_pos_entry_mode\nGo:   AuthRequest.EntryMode\nconsts: EntryManual 010, EntryMagstripe 901, EntryChip 051,\n        EntryContactless 071, EntryEcommerce 812",
+      watch: ["Exact code lists differ between networks.", "This field drives fraud liability. Swipe a chip card on a chip terminal and the merchant usually eats the fraud."],
+      links: ["k03cp", "k08liab", "k06ic", "wiki", "msgGo"], rel: ["de55", "de35", "de25"] },
+    de25: { g: "purchase", tag: "DE25", fmt: "n2", name: "POS condition code",
+      plain: "The circumstances of the sale. 00 means a normal sale with the cardholder present at the terminal.",
+      more: tbl([["00", "Normal presentment", "Cardholder present"], ["01", "Cardholder not present", ""], ["08", "Mail or telephone order", ""], ["59", "E-commerce", "Common Visa usage"]]),
+      sn: "Not in AuthRequest yet. Add it when the switch needs to tell card-present from card-not-present beyond DE22.",
+      watch: ["Exact values vary by network."],
+      links: ["k03cp", "wiki"], rel: ["de22"] },
+    de32: { g: "who", tag: "DE32", fmt: "LLVAR n..11", name: "Acquiring institution ID",
+      plain: "Which acquirer sent the request. \"06\" is the length prefix, then the 6-digit ID 123456. The network uses it to send the 0110 back, and later to know who is owed money at settlement.",
+      who: "The acquirer, using an ID the network assigned when it joined.",
+      sn: "Not in AuthRequest yet. The acquirer service should add it, and the switch should check it matches the signed sender.",
+      watch: ["A sender should only be able to use its own acquirer ID. Check it against the request signature."],
+      links: ["k02ids", "k12data", "wiki"], rel: ["len", "acquirer", "de42"] },
+    de35: { g: "card", tag: "DE35", fmt: "LLVAR z..37", name: "Track 2 data",
+      plain: "The card data that a magnetic stripe stores on track 2. A contactless chip sends an equivalent. It repeats the PAN and expiry and adds a service code.",
+      parts: [["4000001234567899", "PAN", ""], ["=", "separator", ""], ["2812", "expiry", "YYMM"], ["201", "service code", "2 = chip card, use chip; 0 = normal auth; 1 = no restrictions"], ["000001234", "discretionary", "Issuer data (incl. CVV/iCVV)"]],
+      who: "Read from the card by the terminal. Never typed.",
+      sn: "Not in AuthRequest. The POS today keys card data by hand (no track data).",
+      watch: ["PCI DSS forbids storing track data after authorization, even encrypted.", "Chip track-2 data carries an iCVV, so copying it onto a stripe fails verification."],
+      links: ["k07sec", "k09pci", "stripe", "pci"], rel: ["de2", "de14", "de22"] },
+    de37: { g: "trace", tag: "DE37", fmt: "an12", name: "Retrieval reference number (RRN)",
+      plain: "A 12-character reference the acquirer assigns. It stays with the transaction from authorization through clearing and disputes. A common layout is YDDDhh + STAN.",
+      parts: [["6", "year", "2026"], ["282", "day of year", "October 9"], ["15", "hour", "15:00 UTC"], ["004211", "STAN", "Same as DE11"]],
+      who: "The acquirer.",
+      sn: "json: de37_rrn\nGo:   AuthRequest.RRN",
+      watch: ["The YDDDhh+STAN layout is a convention, not a rule."],
+      links: ["k02ids", "k05match", "k12id", "wiki"], rel: ["de11", "de38"] },
+    de38: { g: "resp", tag: "DE38", fmt: "an6", name: "Authorization ID response (approval code)",
+      plain: "The 6-character approval code the issuer returns. It is printed on the receipt and carried into the clearing record as proof the purchase was approved.",
+      who: "The issuer, or the network when it approves in stand-in.",
+      sn: "Not modeled yet. Suggested: de38_auth_code on an AuthResponse type.",
+      links: ["k03auth", "k05match", "k04de", "wiki"], rel: ["de39", "de37"] },
+    de39: { g: "resp", tag: "DE39", fmt: "an2", name: "Response code",
+      plain: "The answer. 00 means approved. Anything else is a decline or an error, and the code tells the merchant whether retrying could ever work.",
+      more: tbl([["00", "Approved", ""], ["05", "Do not honor", "Generic decline"], ["14", "Invalid card number", ""], ["51", "Insufficient funds", "Maybe later"], ["54", "Expired card", ""], ["59", "Suspected fraud", ""], ["91", "Issuer unavailable", "Retry with backoff"], ["96", "System malfunction", "Retry with backoff"]]),
+      who: "The issuer, or the network for routing errors (15 no such issuer, 30 format error) and timeouts (91).",
+      sn: "Not modeled yet. Suggested: de39_response_code, plus a registry that says which codes may be retried.",
+      watch: ["Networks charge merchants for retrying codes that can never succeed (e.g. lost or stolen card)."],
+      links: ["k04rc", "k04stip", "wiki"], rel: ["de38", "issuer"] },
+    de41: { g: "who", tag: "DE41", fmt: "ans8", name: "Card acceptor terminal ID",
+      plain: "Which terminal or checkout the purchase came from. Exactly 8 characters.",
+      who: "The acquirer assigns it to each terminal.",
+      sn: "json: de41_terminal_id\nGo:   AuthRequest.TerminalID",
+      links: ["k02ids", "wiki"], rel: ["de42"] },
+    de42: { g: "who", tag: "DE42", fmt: "ans15", name: "Card acceptor ID (merchant ID)",
+      plain: "Which merchant is asking: the merchant ID, or MID. Exactly 15 characters.",
+      who: "The acquirer assigns it when it signs up the merchant.",
+      sn: "json: de42_merchant_id\nGo:   AuthRequest.MerchantID",
+      watch: ["Fraud and dispute monitoring programs track merchants by this ID."],
+      links: ["k02ids", "k02roles", "wiki"], rel: ["de41", "de43", "de18"] },
+    de43: { g: "who", tag: "DE43", fmt: "ans40", name: "Card acceptor name / location",
+      plain: "The merchant name and place, padded to exactly 40 characters. This is what the cardholder sees on the statement.",
+      parts: [["JOE'S DINER", "name", "padded to 23"], ["AUSTIN", "city", "padded to 13"], ["TX", "state", ""], ["US", "country", ""]],
+      who: "The acquirer, from merchant setup.",
+      sn: "json: de43_merchant_name_location\nGo:   AuthRequest.MerchantNameLoc",
+      watch: ["The sub-field layout varies by network.", "Unclear names cause \"I don't recognize this charge\" disputes."],
+      links: ["k02ids", "wiki"], rel: ["de42", "de18"] },
+    de49: { g: "purchase", tag: "DE49", fmt: "n3", name: "Currency code, transaction",
+      plain: "The currency of DE4, as an ISO 4217 numeric code. 840 is US dollars, with 2 decimal places.",
+      more: tbl([["840", "USD", "2 decimals"], ["978", "EUR", "2 decimals"], ["826", "GBP", "2 decimals"], ["124", "CAD", "2 decimals"], ["392", "JPY", "0 decimals"]]),
+      sn: "json: de49_currency\nGo:   AuthRequest.Currency, iso8583.Currencies map",
+      watch: ["Cross-border transactions add DE6 / DE51 (cardholder billing amount and currency) after conversion."],
+      links: ["k05fx", "iso4217", "iso4217w", "msgGo"], rel: ["de4"] },
+    de55: { g: "card", tag: "DE55", fmt: "LLLVAR b..255", name: "ICC data (EMV chip)",
+      plain: () => cur().mti === "0100"
+        ? "Data from the chip, as tag-length-value (TLV) records. The key part is the cryptogram the chip computed for this one transaction. It proves the card is genuine and the message isn't a replay. \"020\" says 20 bytes follow. Click each record."
+        : "In the response the issuer sends back its own cryptogram (tag 91), so the card can check the answer really came from its issuer.",
+      who: "The chip generates it. The terminal passes it through unchanged.",
+      sn: "Not in AuthRequest. The POS keys cards by hand, so it has no chip data.",
+      watch: ["Real messages carry 15–20 tags (amount, unpredictable number, terminal verification results, and more). This sample keeps the three that matter most.", "The issuer checks the cryptogram with card keys kept in an HSM."],
+      links: ["k07emv", "k09keys", "emvco", "emvw"], rel: ["tlv-9F26", "tlv-9F36", "tlv-9F27", "de22"] },
+    "tlv-9F26": { g: "card", tag: "EMV 9F26", fmt: "b8", name: "Application cryptogram (ARQC)",
+      plain: "An 8-byte code the chip computes from the amount, date, a random number from the terminal and its counter, using a secret key that never leaves the chip. The issuer recomputes it. If they match, the card is real and this exact transaction was approved by the chip.",
+      parts: [["9F26", "tag", ""], ["08", "length", "8 bytes"], ["1A2B3C4D5E6F7081", "value", "the cryptogram (sample)"]],
+      links: ["k07emv", "k07sec", "emvco", "emvw"], rel: ["tlv-9F36", "tlv-9F27", "de55"] },
+    "tlv-9F36": { g: "card", tag: "EMV 9F36", fmt: "b2", name: "Application transaction counter (ATC)",
+      plain: "A counter the chip increases with every transaction. The issuer checks that it keeps moving forward. A repeated or jumping counter suggests a replay or a cloned card.",
+      parts: [["9F36", "tag", ""], ["02", "length", "2 bytes"], ["0042", "value", "66th transaction"]],
+      links: ["k07emv", "emvco"], rel: ["tlv-9F26", "de55"] },
+    "tlv-9F27": { g: "card", tag: "EMV 9F27", fmt: "b1", name: "Cryptogram information data",
+      plain: "Says what kind of cryptogram the chip produced, which is the chip's own opinion on the transaction.",
+      parts: [["80", "ARQC", "Go online and ask the issuer (this message)"], ["40", "TC", "Approved offline by the chip"], ["00", "AAC", "Declined by the chip"]],
+      links: ["k07emv", "emvco"], rel: ["tlv-9F26", "de55"] },
+    "tlv-91": { g: "card", tag: "EMV 91", fmt: "b10", name: "Issuer authentication data (ARPC)",
+      plain: "The issuer's answer cryptogram plus a 2-byte response code. The terminal hands it to the chip, which checks it really came from its issuer.",
+      parts: [["91", "tag", ""], ["0A", "length", "10 bytes"], ["8899AABBCCDDEEFF", "ARPC", "issuer cryptogram (sample)"], ["3030", "ARC", "ASCII \"00\" = approved"]],
+      links: ["k07emv", "emvco"], rel: ["de55", "de39"] },
+    cvv2: { g: "card", tag: "CVV2", fmt: "n3–4", name: "Card security code (CVV2 / CVC2)",
+      plain: "The 3 or 4 digits printed on the card. They prove the person has the physical card when it isn't present (online, phone). It isn't a numbered ISO field; networks carry it in their own private fields.",
+      who: "Typed by the customer. Checked only by the issuer.",
+      sn: "json: cvv2 (omitempty)\nGo:   AuthRequest.CVV2\nRedacted() blanks it before logging. card.ValidateCVV checks the format.",
+      watch: ["PCI DSS forbids storing it after authorization, anywhere, even encrypted.", "A contactless tap like this one doesn't need it; the chip cryptogram does the job."],
+      links: ["k07sec", "k12data", "k09pci", "cvvw", "pci", "cardGo"], rel: ["tlv-9F26", "de2"] },
+    cardholder_name: { g: "card", tag: "Name", fmt: "text", name: "Cardholder name",
+      plain: "Not part of a standard 0100 for most networks. On a card it lives in track 1 (DE45), which this message doesn't carry. simple-network keeps it for display at the POS.",
+      sn: "json: cardholder_name (omitempty)\nGo:   AuthRequest.CardholderName",
+      links: ["msgGo", "stripe"], rel: ["de35"] },
+
+    /* parties and hops */
+    cardholder: { g: "card", tag: "Party", fmt: "not a network member", name: "Cardholder and card",
+      plain: "The person paying and the chip card or phone. The chip generates a one-time cryptogram for this tap. The cardholder is the issuer's customer; the network never deals with them directly.",
+      links: ["k01", "k02roles", "k07emv"], rel: ["hop1", "de55"] },
+    merchant: { g: "who", tag: "Party", fmt: "acquirer's customer", name: "Merchant terminal (POS)",
+      plain: "Joe's Diner's card reader. It reads the card, adds the amount, entry mode, terminal and merchant IDs, and sends the request to its acquirer. In this repo, cmd/pos plays this role.",
+      links: ["posGo", "k02roles", "k03auth"], rel: ["de4", "de22", "de41", "hop2"] },
+    acquirer: { g: "who", tag: "Party", fmt: "network member", name: "Acquirer (merchant's bank)",
+      plain: "Signs up merchants and takes responsibility for them. It adds its own ID (DE32), assigns the RRN, formats the ISO 8583 message, and sends it to the network. It gets paid at settlement and pays the merchant.",
+      links: ["k02roles", "k03auth"], rel: ["de32", "de37", "hop3"] },
+    network: { g: "struct", tag: "Party", fmt: "the switch", name: "Network (simple-network)",
+      plain: "Checks the sender's signature, rejects duplicates, validates format and Luhn, looks up the BIN to find the issuer, adds a risk score and a network transaction ID, then forwards with a timeout. If the issuer doesn't answer in time it declines with 91 or stands in under the issuer's rules.",
+      links: ["k04pipe", "k04stip", "k04to", "k12id", "k12bin"], rel: ["de2", "bitmap", "hop4"] },
+    issuer: { g: "resp", tag: "Party", fmt: "network member", name: "Issuer (cardholder's bank)",
+      plain: "Makes the decision. Is the card valid and unexpired? Is the cryptogram right? Is there enough available credit? Do fraud rules object? If yes, it places a hold for the amount and returns 00 with an approval code.",
+      links: ["k02roles", "k03auth", "k04rc"], rel: ["de39", "de38", "hop5"] },
+    hop1: { g: "card", tag: "Hop 1", fmt: "NFC, ~0.5 s", name: "Tap: card → terminal",
+      plain: "The terminal sends the chip the amount, date and a random number. The chip answers with the PAN, track 2 equivalent and the ARQC cryptogram. Then the card can leave the field.",
+      links: ["k07emv", "emvw"], rel: ["de35", "de55"] },
+    hop2: { g: "who", tag: "Hop 2", fmt: "terminal protocol", name: "Terminal → acquirer",
+      plain: "The terminal sends the sale to its acquirer (or the acquirer's processor or gateway), often in a terminal-specific format rather than ISO 8583.",
+      links: ["k02roles"], rel: ["merchant", "acquirer"] },
+    hop3: { g: "who", tag: "Hop 3", fmt: "0100", name: "Acquirer → network",
+      plain: "The acquirer sends the 0100 you see on this page over a dedicated, authenticated link. Every request must be signed or carried over mTLS so the network knows who sent it.",
+      links: ["k12data", "k04pipe"], rel: ["mti", "de32"] },
+    hop4: { g: "struct", tag: "Hop 4", fmt: "0100", name: "Network → issuer",
+      plain: "The network forwards the request to the issuer that owns the BIN and starts a timer, typically a few seconds. It may add data of its own, such as a risk score and the network transaction ID.",
+      links: ["k04pipe", "k04to", "k07bin"], rel: ["de2", "network"] },
+    hop5: { g: "resp", tag: "Hop 5", fmt: "0110", name: "Response: issuer → network → acquirer → terminal",
+      plain: "The 0110 travels back the same way. Switch the toggle at the top to see it. A response that arrives after the network's timeout is never forwarded; the network sends a reversal advice to release the issuer's hold.",
+      links: ["k04to", "k04rc", "k08rev"], rel: ["de39", "de38"] },
+  };
+
+  /* ---------- state + helpers ---------- */
+  let mode = "req";
+  const cur = () => (mode === "req" ? REQ : RESP);
+  const val = x => (typeof x === "function" ? x() : x);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const present = m => Object.keys(m.de).map(Number).sort((a, b) => a - b);
+  function bitmapBits(m) { const b = new Array(64).fill(false); present(m).forEach(n => { b[n - 1] = true; }); return b; }
+  function bitmapHex(m) { const b = bitmapBits(m); let h = ""; for (let i = 0; i < 64; i += 4) h += (b[i] * 8 + b[i + 1] * 4 + b[i + 2] * 2 + b[i + 3]).toString(16).toUpperCase(); return h; }
+  const tlvHex = t => t.map(([tag, v]) => tag + (v.length / 2).toString(16).toUpperCase().padStart(2, "0") + v).join("");
+  function encodeField(n, v) {
+    const [kind] = SPEC[n];
+    if (n === 55) { const hex = tlvHex(v); return { pre: String(hex.length / 2).padStart(3, "0"), body: hex }; }
+    if (kind === "LL") return { pre: String(v.length).padStart(2, "0"), body: v };
+    return { pre: "", body: v };
+  }
+  const groupOf = n => (D["de" + n] ? D["de" + n].g : "struct");
+  function fieldValue(id) {
+    const m = cur();
+    if (id.startsWith("de")) { const n = +id.slice(2); if (m.de[n] === undefined) return null; const e = encodeField(n, m.de[n]); return (e.pre ? e.pre + " " : "") + e.body; }
+    if (id.startsWith("tlv-")) { const t = id.slice(4); const rec = (m.de[55] || []).find(r => r[0] === t); return rec ? tlvHex([rec]) : null; }
+    if (id === "mti") return m.mti;
+    if (id.startsWith("mti-")) return m.mti["vcfo".indexOf(id[4])];
+    if (id === "cvv2") return "\"123\" (only when keyed online)";
+    return null;
+  }
+
+  /* ---------- rendering ---------- */
+  function renderJourney() {
+    const parties = [["cardholder", "Card", "chip + cardholder"], ["merchant", "Merchant POS", "Joe's Diner"], ["acquirer", "Acquirer", "merchant's bank"], ["network", "Network", "simple-network switch"], ["issuer", "Issuer", "cardholder's bank"]];
+    const hops = [["hop1", "tap"], ["hop2", "sale"], ["hop3", "0100"], ["hop4", "0100"]];
+    const arrow = '<svg viewBox="0 0 64 34" aria-hidden="true"><line x1="2" y1="11" x2="56" y2="11"/><path class="head" d="M62 11 L54 6 L54 16 Z"/><line x1="62" y1="25" x2="8" y2="25" stroke-dasharray="3 3"/><path class="head" d="M2 25 L10 20 L10 30 Z"/></svg>';
+    let h = "";
+    parties.forEach((p, i) => {
+      h += `<button type="button" class="party g-${D[p[0]].g}${p[0] === "network" ? " net" : ""}" data-ref="${p[0]}"><b>${p[1]}</b><span>${p[2]}</span></button>`;
+      if (i < hops.length) h += `<button type="button" class="hop" data-ref="${hops[i][0]}" aria-label="${esc(D[hops[i][0]].name)}">${arrow}<small>${hops[i][1]}</small></button>`;
+    });
+    h += `<button type="button" class="hop" data-ref="hop5" aria-label="${esc(D.hop5.name)}" style="flex-basis:64px"><svg viewBox="0 0 64 34" aria-hidden="true"><path d="M4 8 C 30 8, 30 26, 56 26" stroke-dasharray="3 3"/><path class="head" d="M62 26 L54 21 L54 31 Z"/></svg><small>0110 back</small></button>`;
+    document.getElementById("journey").innerHTML = h;
+  }
+
+  function renderWire() {
+    const m = cur();
+    let h = `<div class="seg g-struct"><button type="button" class="lbl" data-ref="mti">MTI</button><span class="mti-digits">` +
+      ["v", "c", "f", "o"].map((k, i) => `<button type="button" data-ref="mti-${k}" aria-label="MTI digit ${i + 1}">${m.mti[i]}<small>${["version", "class", "function", "origin"][i]}</small></button>`).join("") + `</span></div>`;
+    h += `<div class="seg g-struct"><button type="button" class="lbl" data-ref="bitmap">Bitmap</button><button type="button" class="raw" data-ref="bitmap">${bitmapHex(m)}</button></div>`;
+    present(m).forEach(n => {
+      const e = encodeField(n, m.de[n]); const g = groupOf(n);
+      if (n === 55) {
+        h += `<div class="seg tlvs g-${g}"><button type="button" class="lbl" data-ref="de55">DE55</button><div class="row"><button type="button" class="raw" data-ref="len" aria-label="Length prefix ${e.pre} bytes"><span class="pre">${e.pre}</span></button>` +
+          m.de[55].map(([tag, v]) => `<button type="button" class="tlv" data-ref="tlv-${tag}"><i>${tag}</i><u>${(v.length / 2).toString(16).toUpperCase().padStart(2, "0")}</u>${v}</button>`).join("") + `</div></div>`;
+      } else {
+        const body = esc(e.body).replace(/ /g, "&nbsp;");
+        h += `<div class="seg g-${g}"><button type="button" class="lbl" data-ref="de${n}">DE${n}</button><button type="button" class="raw" data-ref="de${n}">${e.pre ? `<span class="pre" data-ref="len">${e.pre}</span>` : ""}${body}</button></div>`;
+      }
+    });
+    document.getElementById("wire").innerHTML = h;
+    let total = 4 + 16; present(m).forEach(n => { const e = encodeField(n, m.de[n]); total += e.pre.length + (n === 55 ? e.body.length / 2 : e.body.length); });
+    document.getElementById("raw-meta").textContent = `${present(m).length} data elements · ${total} bytes on the wire (DE55 is binary, shown here as hex) · real links also add a length header and often a MAC (DE64/128).`;
+    const groups = [["card", "Which card"], ["purchase", "What purchase"], ["who", "Who's asking"], ["trace", "Tracing"], ["resp", "Issuer's answer"], ["struct", "Message structure"]];
+    document.getElementById("legend").innerHTML = groups.map(([g, t]) => `<span class="g-${g}"><i></i>${t}</span>`).join("");
+  }
+
+  function renderBitmap() {
+    const m = cur(); const bits = bitmapBits(m); const hex = bitmapHex(m);
+    let h = "";
+    for (let nib = 0; nib < 16; nib++) {
+      h += `<div class="nib"><button type="button" class="hex" data-ref="bitmap" aria-label="Hex digit ${nib + 1}: ${hex[nib]}, bits ${nib * 4 + 1} to ${nib * 4 + 4}">${hex[nib]}</button><div class="bits">`;
+      for (let k = 0; k < 4; k++) {
+        const n = nib * 4 + k + 1; const on = bits[n - 1];
+        const ref = n === 1 ? "bit1" : on ? "de" + n : "absent-" + n;
+        h += `<button type="button" class="bit${on ? " on" : ""} g-${on ? groupOf(n) : "struct"}" data-ref="${ref}" aria-label="Bit ${n}: DE${n} ${esc(DE_NAMES[n])}, ${on ? "present" : "not present"}">${n}</button>`;
+      }
+      h += `</div></div>`;
+    }
+    document.getElementById("bitmap").innerHTML = h;
+    document.getElementById("bit-legend").textContent = `Hex ${hex} → ${bits.filter(Boolean).length} bits on. Filled bits are fields in this ${m.mti}; empty ones are fields the standard defines but this message doesn't need.`;
+  }
+
+  function renderGroups() {
+    const m = cur(); const p = present(m);
+    const qs = [["card", "Which card?", [2, 14, 35, 55]], ["purchase", "What is being bought?", [3, 4, 49, 22, 25]], ["who", "Who is asking?", [18, 32, 41, 42, 43]], ["trace", "How do we find it again?", [7, 11, 12, 13, 37]], ["resp", "What did the issuer decide?", [38, 39]]];
+    document.getElementById("groups").innerHTML = qs.map(([g, q, list]) => {
+      const have = list.filter(n => p.includes(n));
+      if (!have.length) return "";
+      return `<div class="qgroup g-${g}"><h3><i></i>${q}</h3><div class="chips">` + have.map(n => `<button type="button" class="chip g-${g}" data-ref="de${n}"><code>DE${n}</code>${esc(D["de" + n].name.replace(/ \(.*\)$/, ""))}</button>`).join("") + `</div></div>`;
+    }).join("");
+  }
+
+  function renderJSON() {
+    const k = (id, key) => `<button type="button" class="k g-${D[id].g}" data-ref="${id}">"${key}"</button>`;
+    const s = v => `<span class="v">${esc(JSON.stringify(v))}</span>`;
+    let lines;
+    if (mode === "req") {
+      const d = REQ.de;
+      lines = [["mti", "mti", "0100"], ["de2", "de2_pan", d[2]], ["de3", "de3_processing_code", d[3]], ["de4", "de4_amount", 5420], ["de7", "de7_transmission_datetime", d[7]], ["de11", "de11_stan", d[11]], ["de12", "de12_local_time", d[12]], ["de13", "de13_local_date", d[13]], ["de14", "de14_expiry", d[14]], ["de18", "de18_mcc", d[18]], ["de22", "de22_pos_entry_mode", d[22]], ["de37", "de37_rrn", d[37]], ["de41", "de41_terminal_id", d[41]], ["de42", "de42_merchant_id", d[42]], ["de43", "de43_merchant_name_location", "JOE'S DINER AUSTIN TX US"], ["de49", "de49_currency", d[49]], ["cvv2", "cvv2", "123"], ["cardholder_name", "cardholder_name", "ALEX MORGAN"]];
+      document.getElementById("json-note").innerHTML = "Not in the struct yet, but on the wire: DE25, DE32, DE35, DE55. The POS keys cards by hand, so it has no track or chip data. <code>cvv2</code> and <code>cardholder_name</code> are simple-network extras with no standard field number.";
+      document.getElementById("json-sub").innerHTML = 'This is <code>iso8583.AuthRequest</code> from <a href="' + GH + 'internal/iso8583/message.go" target="_blank" rel="noopener">internal/iso8583/message.go</a>, serialized as JSON. The keys keep the ISO numbering.';
+    } else {
+      const d = RESP.de;
+      lines = [["mti", "mti", "0110"], ["de2", "de2_pan", "400000******7899"], ["de4", "de4_amount", 5420], ["de11", "de11_stan", d[11]], ["de37", "de37_rrn", d[37]], ["de38", "de38_auth_code", d[38]], ["de39", "de39_response_code", d[39]], ["de49", "de49_currency", d[49]]];
+      document.getElementById("json-note").textContent = "simple-network has no response type yet. This is a suggested AuthResponse shape that keeps the same naming. Return the PAN masked, and add a network_txn_id the switch assigns.";
+      document.getElementById("json-sub").innerHTML = "A suggested <code>AuthResponse</code> for when the switch is built (milestones 2–3).";
+    }
+    document.getElementById("json").innerHTML = "{\n" + lines.map((l, i) => `  ${k(l[0], l[1])}: ${s(l[2])}${i < lines.length - 1 ? "," : ""}`).join("\n") + "\n}";
+  }
+
+  function renderAll() {
+    document.getElementById("h-mti").textContent = cur().mti;
+    renderJourney(); renderWire(); renderBitmap(); renderGroups(); renderJSON();
+  }
+
+  /* ---------- popover ---------- */
+  const pop = document.getElementById("pop");
+  let openId = null, openerEl = null;
+
+  function walkOrder() {
+    const m = cur();
+    return ["mti", "mti-v", "mti-c", "mti-f", "mti-o", "bitmap"].concat(present(m).flatMap(n => n === 55 ? ["de55"].concat(m.de[55].map(r => "tlv-" + r[0])) : ["de" + n]));
+  }
+
+  function defFor(id) {
+    if (D[id]) return D[id];
+    if (id.startsWith("absent-")) {
+      const n = +id.slice(7);
+      return { g: "struct", tag: "DE" + n, fmt: "not in this message", name: DE_NAMES[n],
+        plain: `Data element ${n} is defined by ISO 8583 but this ${cur().mti} doesn't need it, so bit ${n} is 0 and the field is left out entirely.` + (n === 52 ? " DE52 carries an encrypted PIN block when the cardholder enters a PIN." : n === 6 || n === 51 ? " It's used on cross-border transactions after currency conversion." : n === 54 ? " It carries cashback or balance amounts, and the approved amount on a partial approval." : n === 64 ? " DE64 is a MAC that protects the message from tampering on some links." : ""),
+        links: ["wiki", "k04de"], rel: ["bitmap"] };
+    }
+    if (id.startsWith("de")) {
+      const n = +id.slice(2);
+      return { g: "struct", tag: "DE" + n, fmt: "", name: DE_NAMES[n], plain: "Defined by ISO 8583.", links: ["wiki"], rel: ["bitmap"] };
+    }
+    return null;
+  }
+
+  function render(id) {
+    const d = defFor(id); if (!d) return;
+    const head = document.getElementById("pop-head");
+    head.className = "ph g-" + d.g;
+    const m = cur();
+    document.getElementById("pop-tags").innerHTML = `<span class="tag">${esc(d.tag)}</span>` + (d.fmt ? `<span class="fmt">${esc(d.fmt)}</span>` : "");
+    document.getElementById("pop-title").textContent = val(d.name);
+    const v = d.val ? val(d.val) : fieldValue(id);
+    document.getElementById("pop-val").innerHTML = v ? `In this ${m.mti}: <b>${esc(v)}</b>` : "";
+    let b = `<p>${esc(val(d.plain))}</p>`;
+    const parts = val(d.parts);
+    if (parts) b += `<div><h4>Breakdown</h4>${tbl(parts.map(r => r.map(esc)))}</div>`;
+    if (d.more) b += `<div><h4>Common values</h4>${d.more}</div>`;
+    if (d.who) b += `<div><h4>Who sets it</h4><p>${esc(d.who)}</p></div>`;
+    if (d.sn) b += `<div><h4>In simple-network</h4><div class="sn">${esc(d.sn).replace(/\n/g, "<br>")}</div></div>`;
+    if (d.watch) b += `<div><h4>Watch out</h4><ul>${d.watch.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>`;
+    if (d.links) b += `<div><h4>Read more</h4><div class="links">${d.links.map(k => L[k]).filter(Boolean).map(l => `<a href="${l.u}" target="_blank" rel="noopener"><em>${l.k}</em><span>${esc(l.t)}</span></a>`).join("")}</div></div>`;
+    if (d.rel) b += `<div><h4>Related</h4><div class="related">${d.rel.filter(r => defFor(r)).map(r => `<button type="button" data-goto="${r}">${esc(defFor(r).tag === "Party" || defFor(r).tag.startsWith("Hop") ? val(defFor(r).name).split(" (")[0] : defFor(r).tag)}</button>`).join("")}</div></div>`;
+    const body = document.getElementById("pop-body"); body.innerHTML = b; body.scrollTop = 0;
+    const order = walkOrder(); const i = order.indexOf(id);
+    document.getElementById("pop-prev").disabled = i <= 0;
+    document.getElementById("pop-next").disabled = i < 0 || i >= order.length - 1;
+    document.getElementById("pop-count").textContent = i >= 0 ? `${i + 1} / ${order.length}` : "";
+  }
+
+  function anchorFor(id) {
+    return document.querySelector(`.wrap [data-ref="${CSS.escape(id)}"]`);
+  }
+
+  function place(el) {
+    if (window.matchMedia("(max-width: 760px)").matches) { pop.style.left = ""; pop.style.top = ""; return; }
+    const r = el.getBoundingClientRect(); const pw = pop.offsetWidth; const ph = pop.offsetHeight;
+    const sx = window.scrollX, sy = window.scrollY, vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    let left = r.left + sx; left = Math.max(sx + 16, Math.min(left, sx + vw - pw - 16));
+    let top = r.bottom + sy + 8;
+    if (r.bottom + 8 + ph > vh && r.top - 8 - ph > 0) top = r.top + sy - ph - 8;
+    pop.style.left = left + "px"; pop.style.top = top + "px";
+  }
+
+  function clearMarks() { document.querySelectorAll(".active, .hl").forEach(e => e.classList.remove("active", "hl")); }
+
+  function open(id, el) {
+    if (!defFor(id)) return;
+    openId = id; clearMarks();
+    const anchor = el || anchorFor(id);
+    document.querySelectorAll(`.wrap [data-ref="${CSS.escape(id)}"]`).forEach(e => e.classList.add("active"));
+    render(id); pop.hidden = false;
+    if (anchor) {
+      place(anchor);
+      const r = anchor.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > window.innerHeight) { anchor.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); setTimeout(() => place(anchor), 350); }
+    }
+    document.getElementById("pop-close").focus({ preventScroll: true });
+  }
+  function close() {
+    pop.hidden = true; clearMarks();
+    const back = openerEl; openId = null; openerEl = null;
+    if (back && document.contains(back)) back.focus({ preventScroll: true });
+  }
+  function step(dir) {
+    const o = walkOrder(); const i = o.indexOf(openId);
+    if (i < 0) return; const n = o[i + dir]; if (n) open(n);
+  }
+
+  document.addEventListener("click", e => {
+    const go = e.target.closest("[data-goto]");
+    if (go) { open(go.dataset.goto); return; }
+    const t = e.target.closest(".wrap [data-ref]");
+    if (t) { e.preventDefault(); openerEl = t.closest("button") || t; open(t.dataset.ref, t); return; }
+    if (!pop.hidden && !pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", e => {
+    if (pop.hidden) return;
+    if (e.key === "Escape") close();
+    else if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); step(e.key === "ArrowRight" ? 1 : -1); }
+  });
+  document.addEventListener("mouseover", e => {
+    const t = e.target.closest(".wrap [data-ref]"); if (!t) return;
+    document.querySelectorAll(`.wrap [data-ref="${CSS.escape(t.dataset.ref)}"]`).forEach(x => x.classList.add("hl"));
+  });
+  document.addEventListener("mouseout", e => {
+    const t = e.target.closest(".wrap [data-ref]"); if (!t) return;
+    document.querySelectorAll(`.wrap [data-ref="${CSS.escape(t.dataset.ref)}"]`).forEach(x => x.classList.remove("hl"));
+  });
+  document.getElementById("pop-close").addEventListener("click", close);
+  document.getElementById("pop-prev").addEventListener("click", () => step(-1));
+  document.getElementById("pop-next").addEventListener("click", () => step(1));
+  document.getElementById("walk").addEventListener("click", e => { e.stopPropagation(); openerEl = e.currentTarget; open("mti"); });
+  window.addEventListener("resize", () => { if (!pop.hidden && openId) { const a = anchorFor(openId); if (a) place(a); } });
+
+  function setMode(mo) {
+    mode = mo;
+    document.getElementById("t-req").setAttribute("aria-pressed", mo === "req");
+    document.getElementById("t-resp").setAttribute("aria-pressed", mo === "resp");
+    const was = openId; if (!pop.hidden) close();
+    renderAll();
+    if (was && walkOrder().includes(was)) open(was);
+    try { localStorage.setItem("anat0100-mode", mo); } catch (_) {}
+  }
+  document.getElementById("t-req").addEventListener("click", e => { e.stopPropagation(); setMode("req"); });
+  document.getElementById("t-resp").addEventListener("click", e => { e.stopPropagation(); setMode("resp"); });
+
+  try { if (localStorage.getItem("anat0100-mode") === "resp") mode = "resp"; } catch (_) {}
+  document.getElementById("t-req").setAttribute("aria-pressed", mode === "req");
+  document.getElementById("t-resp").setAttribute("aria-pressed", mode === "resp");
+  renderAll();
+})();
+</script>

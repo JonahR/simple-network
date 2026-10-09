@@ -2,7 +2,7 @@
 
 A proof-of-concept credit card network, similar to Visa or Mastercard, that runs on a local machine. It simulates issuers, acquirers, merchants, and the network switch that connects them: authorization, clearing, and settlement.
 
-See [PLAN.md](PLAN.md) for the architecture and roadmap.
+See [PLAN.md](PLAN.md) for the architecture and roadmap, and [Network KT](Network%20KT/README.md) for a full knowledge transfer on how card networks work.
 
 > ⚠️ Simulation only. Never use real card numbers.
 

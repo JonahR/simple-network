@@ -1,5 +1,7 @@
 # 04: Authorization Deep Dive
 
+> 🖱️ **Interactive version:** open [`interactive/authorization-request.html`](interactive/authorization-request.html) in a browser. You can click every digit, bit, and field of a real-shaped `0100`/`0110` to see what it means, who sets it, and links to official docs.
+
 Authorization is the real-time core of a network. It is the part that must never go down, and the part whose design decisions are hardest to change later.
 
 ## ISO 8583 in five minutes
@@ -21,7 +23,7 @@ The 4 digits mean **version · class · function · origin**.
 
 | Digit | Meaning | Common values |
 |---|---|---|
-| 1st: version | Version of ISO 8583 | `0` = 1987 (still the most common), `1` = 1993, `2` = 2003 |
+| 1st: version | Version of ISO 8583 | `0` = 1987 (still the most common), `1` = 1993, `2` = 2003. ISO 8583:2023 is the current edition; its field definitions are now published by an ISO maintenance agency. |
 | 2nd: class | What the message is for | `1` authorization, `2` financial, `4` reversal, `8` network management |
 | 3rd: function | Request, response, or advice | `0` request, `1` response, `2` advice, `3` advice response |
 | 4th: origin | Who sent it | `0` acquirer, `1` acquirer repeat, `2` issuer |
@@ -56,7 +58,7 @@ The 4 digits mean **version · class · function · origin**.
 | 25 | POS Condition Code | n2 | `00` | Normal, cardholder not present, etc. |
 | 32 | Acquiring Institution ID | LLVAR | | Routes the response back |
 | 35 | Track 2 Data | LLVAR | | Magnetic stripe equivalent. Never store it. |
-| 37 | Retrieval Reference Number | an12 | `528215004211` | Lifecycle matching |
+| 37 | Retrieval Reference Number | an12 | `628215004211` | Lifecycle matching |
 | 38 | Authorization ID Response | an6 | `7Q3K9A` | Set by the issuer on approval |
 | 39 | Response Code | an2 | `00` | See the table below |
 | 41 | Terminal ID | ans8 | | |
@@ -70,30 +72,31 @@ The 4 digits mean **version · class · function · origin**.
 | 95 | Replacement Amounts | | | Partial reversal amount |
 | 48, 60–63, 120–127 | Private / national use | | | Each network's own data: network txn ID, 3DS data, token data |
 
-### `simple-network` JSON model (as PLAN.md proposes)
+### `simple-network` JSON model
 
-Keep the field names traceable to ISO so a binary encoder can be added later without a redesign:
+`internal/iso8583/message.go` already defines `AuthRequest` with DE-numbered JSON names. That keeps every field traceable to ISO, so a binary encoder can be added later without a redesign:
 
 ```json
 {
   "mti": "0100",
   "de2_pan": "4000001234567899",
   "de3_processing_code": "000000",
-  "de4_amount_minor": 5420,
-  "de7_transmission_ts": "2026-10-09T15:43:01Z",
+  "de4_amount": 5420,
+  "de7_transmission_datetime": "1009154301",
   "de11_stan": "004211",
   "de14_expiry": "2812",
   "de18_mcc": "5812",
   "de22_pos_entry_mode": "071",
-  "de32_acquirer_id": "ACQ001",
-  "de37_rrn": "528215004211",
+  "de37_rrn": "628215004211",
   "de41_terminal_id": "TERM0001",
   "de42_merchant_id": "MERCH000000042",
-  "de43_merchant_name_loc": "JOE'S DINER AUSTIN TX US",
+  "de43_merchant_name_location": "JOE'S DINER AUSTIN TX US",
   "de49_currency": "840",
-  "ext": { "cvv2": "123", "network_txn_id": null }
+  "cvv2": "123"
 }
 ```
+
+Fields to add as the switch is built: `de32_acquirer_id` (to route the response back), `de38_auth_code` and `de39_response_code` on the `0110`, `de90_original_data` on reversals, and a network-assigned `network_txn_id` (see [12](12-design-decisions.md), D3).
 
 ## The authorization pipeline inside the switch
 

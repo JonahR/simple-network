@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 640" width="1100" height="640" role="img" aria-labelledby="title desc">
+  <title id="title">What a card network supports: capability map</title>
+  <desc id="desc">Five layers from core rails at the bottom to data and insights at the top, each listing the capabilities a modern card network provides, with simple-network milestone tags.</desc>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .bg { fill: #fcfcfb; }
+    .t1 { fill: #0b0b0b; }
+    .t2 { fill: #52514e; }
+    .chip { fill: #ffffff; stroke: #c9c7c0; stroke-width: 1.2; }
+    .band { fill: #f3f2ef; }
+    .l1 { fill: #2a78d6; } .l2 { fill: #1baf7a; } .l3 { fill: #eb6834; } .l4 { fill: #4a3aa7; } .l5 { fill: #8a8880; }
+    .tag { fill: #1c5cab; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a19; }
+      .t1 { fill: #ffffff; }
+      .t2 { fill: #c3c2b7; }
+      .band { fill: #242422; }
+      .chip { fill: #1a1a19; stroke: #55544f; }
+      .l1 { fill: #3987e5; } .l2 { fill: #199e70; } .l3 { fill: #d95926; } .l4 { fill: #9085e9; } .l5 { fill: #75746e; }
+      .tag { fill: #86b6ef; }
+    }
+  </style>
+  <rect class="bg" width="1100" height="640"/>
+  <text class="t1" x="40" y="42" font-size="22" font-weight="700">What a card network supports</text>
+  <text class="t2" x="40" y="66" font-size="14">Build from the bottom up · tags show the simple-network milestone (M#) or suggested next step</text>
+
+  <!-- Layer 5 -->
+  <rect class="band" x="40" y="88" width="1020" height="88" rx="10"/>
+  <rect class="l5" x="40" y="88" width="8" height="88" rx="3"/>
+  <text class="t1" x="62" y="114" font-size="15" font-weight="700">5 · Data &amp; new rails</text>
+  <text class="t2" x="62" y="134" font-size="12">grows the business</text>
+  <g font-size="13">
+    <rect class="chip" x="260" y="104" width="180" height="34" rx="6"/><text class="t1" x="350" y="126" text-anchor="middle">Analytics &amp; benchmarks</text>
+    <rect class="chip" x="452" y="104" width="130" height="34" rx="6"/><text class="t1" x="517" y="126" text-anchor="middle">Consulting</text>
+    <rect class="chip" x="594" y="104" width="200" height="34" rx="6"/><text class="t1" x="694" y="126" text-anchor="middle">Open banking / A2A</text>
+    <rect class="chip" x="806" y="104" width="240" height="34" rx="6"/><text class="t1" x="926" y="126" text-anchor="middle">Stablecoin settlement pilots</text>
+    <text class="tag" x="260" y="160" font-size="12" font-weight="600">M8 ops dashboard is the first step</text>
+  </g>
+
+  <!-- Layer 4 -->
+  <rect class="band" x="40" y="186" width="1020" height="110" rx="10"/>
+  <rect class="l4" x="40" y="186" width="8" height="110" rx="3"/>
+  <text class="t1" x="62" y="212" font-size="15" font-weight="700">4 · Value-added</text>
+  <text class="t1" x="62" y="230" font-size="15" font-weight="700">services</text>
+  <text class="t2" x="62" y="250" font-size="12">where networks compete</text>
+  <g font-size="13">
+    <rect class="chip" x="260" y="200" width="150" height="34" rx="6"/><text class="t1" x="335" y="222" text-anchor="middle">Tokenization</text>
+    <rect class="chip" x="422" y="200" width="150" height="34" rx="6"/><text class="t1" x="497" y="222" text-anchor="middle">Fraud scoring</text>
+    <rect class="chip" x="584" y="200" width="150" height="34" rx="6"/><text class="t1" x="659" y="222" text-anchor="middle">3DS directory</text>
+    <rect class="chip" x="746" y="200" width="150" height="34" rx="6"/><text class="t1" x="821" y="222" text-anchor="middle">Account updater</text>
+    <rect class="chip" x="908" y="200" width="138" height="34" rx="6"/><text class="t1" x="977" y="222" text-anchor="middle">Stand-in (STIP)</text>
+    <rect class="chip" x="260" y="244" width="150" height="34" rx="6"/><text class="t1" x="335" y="266" text-anchor="middle">Card controls</text>
+    <rect class="chip" x="422" y="244" width="150" height="34" rx="6"/><text class="t1" x="497" y="266" text-anchor="middle">Dispute prevention</text>
+    <rect class="chip" x="584" y="244" width="150" height="34" rx="6"/><text class="t1" x="659" y="266" text-anchor="middle">Click to Pay</text>
+    <rect class="chip" x="746" y="244" width="150" height="34" rx="6"/><text class="t1" x="821" y="266" text-anchor="middle">Installments</text>
+    <rect class="chip" x="908" y="244" width="138" height="34" rx="6"/><text class="t1" x="977" y="266" text-anchor="middle">Offers / loyalty</text>
+  </g>
+
+  <!-- Layer 3 -->
+  <rect class="band" x="40" y="306" width="1020" height="88" rx="10"/>
+  <rect class="l3" x="40" y="306" width="8" height="88" rx="3"/>
+  <text class="t1" x="62" y="332" font-size="15" font-weight="700">3 · Payment flows</text>
+  <text class="t2" x="62" y="352" font-size="12">processing codes</text>
+  <g font-size="13">
+    <rect class="chip" x="260" y="322" width="110" height="34" rx="6"/><text class="t1" x="315" y="344" text-anchor="middle">Purchase</text>
+    <rect class="chip" x="380" y="322" width="100" height="34" rx="6"/><text class="t1" x="430" y="344" text-anchor="middle">Refund</text>
+    <rect class="chip" x="490" y="322" width="120" height="34" rx="6"/><text class="t1" x="550" y="344" text-anchor="middle">Cash / ATM</text>
+    <rect class="chip" x="620" y="322" width="140" height="34" rx="6"/><text class="t1" x="690" y="344" text-anchor="middle">Push (OCT)</text>
+    <rect class="chip" x="770" y="322" width="130" height="34" rx="6"/><text class="t1" x="835" y="344" text-anchor="middle">Funding (AFT)</text>
+    <rect class="chip" x="910" y="322" width="136" height="34" rx="6"/><text class="t1" x="978" y="344" text-anchor="middle">Recurring / MIT</text>
+    <text class="tag" x="260" y="378" font-size="12" font-weight="600">M4 purchase · M7 refunds · later: OCT, cross-border FX</text>
+  </g>
+
+  <!-- Layer 2 -->
+  <rect class="band" x="40" y="404" width="1020" height="88" rx="10"/>
+  <rect class="l2" x="40" y="404" width="8" height="88" rx="3"/>
+  <text class="t1" x="62" y="430" font-size="15" font-weight="700">2 · Card products</text>
+  <text class="t2" x="62" y="450" font-size="12">attributes on the BIN</text>
+  <g font-size="13">
+    <rect class="chip" x="260" y="420" width="150" height="34" rx="6"/><text class="t1" x="335" y="442" text-anchor="middle">Consumer credit</text>
+    <rect class="chip" x="422" y="420" width="110" height="34" rx="6"/><text class="t1" x="477" y="442" text-anchor="middle">Debit</text>
+    <rect class="chip" x="544" y="420" width="110" height="34" rx="6"/><text class="t1" x="599" y="442" text-anchor="middle">Prepaid</text>
+    <rect class="chip" x="666" y="420" width="180" height="34" rx="6"/><text class="t1" x="756" y="442" text-anchor="middle">Commercial / fleet</text>
+    <rect class="chip" x="858" y="420" width="188" height="34" rx="6"/><text class="t1" x="952" y="442" text-anchor="middle">Virtual / single-use</text>
+    <text class="tag" x="260" y="476" font-size="12" font-weight="600">Start with credit · model funding source from day one · prepaid next</text>
+  </g>
+
+  <!-- Layer 1 -->
+  <rect class="band" x="40" y="502" width="1020" height="110" rx="10"/>
+  <rect class="l1" x="40" y="502" width="8" height="110" rx="3"/>
+  <text class="t1" x="62" y="528" font-size="15" font-weight="700">1 · Core rails</text>
+  <text class="t2" x="62" y="548" font-size="12">must exist to be a network</text>
+  <g font-size="13">
+    <rect class="chip" x="260" y="518" width="150" height="34" rx="6"/><text class="t1" x="335" y="540" text-anchor="middle">Auth switch · M3</text>
+    <rect class="chip" x="422" y="518" width="130" height="34" rx="6"/><text class="t1" x="487" y="540" text-anchor="middle">Clearing · M5</text>
+    <rect class="chip" x="564" y="518" width="150" height="34" rx="6"/><text class="t1" x="639" y="540" text-anchor="middle">Settlement · M6</text>
+    <rect class="chip" x="726" y="518" width="150" height="34" rx="6"/><text class="t1" x="801" y="540" text-anchor="middle">Fee engine · M6</text>
+    <rect class="chip" x="888" y="518" width="158" height="34" rx="6"/><text class="t1" x="967" y="540" text-anchor="middle">Disputes · M7</text>
+    <rect class="chip" x="260" y="562" width="230" height="34" rx="6"/><text class="t1" x="375" y="584" text-anchor="middle">Participant &amp; BIN registry · M1–3</text>
+    <rect class="chip" x="502" y="562" width="200" height="34" rx="6"/><text class="t1" x="602" y="584" text-anchor="middle">Rules &amp; compliance</text>
+    <rect class="chip" x="714" y="562" width="160" height="34" rx="6"/><text class="t1" x="794" y="584" text-anchor="middle">Security · M9</text>
+    <rect class="chip" x="886" y="562" width="160" height="34" rx="6"/><text class="t1" x="966" y="584" text-anchor="middle">Certification</text>
+  </g>
+</svg>

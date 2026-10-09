@@ -43,6 +43,10 @@ The documents embed Mermaid diagrams, which render on GitHub and in most Markdow
 
 ![Four-party model](visuals/four-party-model.svg)
 
+## Interactive
+
+[`interactive/authorization-request.html`](interactive/authorization-request.html) is a clickable anatomy of an authorization request (`0100`) and response (`0110`). Every MTI digit, bitmap bit, data element, EMV tag, and party opens a popover with a definition, the simple-network field, and links to official docs and these KT docs. Open it in a browser.
+
 ## Five ideas to remember
 
 1. **The network moves messages and rules, not money it owns.** It routes authorizations, computes who owes whom, and tells settlement banks to move funds. Issuers carry the credit risk. Acquirers carry the merchant risk.
