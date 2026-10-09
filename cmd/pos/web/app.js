@@ -3,6 +3,7 @@ const resultEl = document.getElementById("result");
 const historyEl = document.getElementById("history");
 
 // Terminal configuration, loaded from /api/terminal.
+let terminal = {};
 let mtis = {};
 let mccs = {};
 let currencies = {};
@@ -610,12 +611,13 @@ function renderResult(tx) {
     .join("");
 
   shownSTAN = r.de11_stan;
+  rememberTx(tx);
   resultEl.className = "";
   resultEl.innerHTML = `
     <div class="result-head">
       ${statusBadge(tx)}
       <p>${escapeHTML(tx.message)}</p>
-      ${voidButton(tx)}
+      <span class="result-actions">${receiptButton(tx)}${voidButton(tx)}</span>
     </div>
     ${reversalRows(tx)}
     ${responseRows(tx)}
@@ -631,6 +633,7 @@ let reversalPoll = 0;
 async function loadHistory() {
   const txs = await (await fetch("/api/transactions")).json();
   if (!txs.length) return;
+  window.lastTransactions = txs;
   // Keep the result panel and history current while a reversal is retrying.
   const shown = txs.find((tx) => tx.request.de11_stan === shownSTAN);
   if (shown && shown.reversal) renderResult(shown);
@@ -649,13 +652,25 @@ async function loadHistory() {
         <td class="mono">${escapeHTML(r.de2_pan)}</td>
         <td>${escapeHTML(mode.join(" · "))}</td>
         <td class="num">${money(r.de4_amount, r.de49_currency)}</td>
-        <td>${statusBadge(tx)} ${voidButton(tx, "small")}</td>
+        <td>${statusBadge(tx)} ${receiptButton(tx, "small")}${voidButton(tx, "small")}</td>
       </tr>`;
     })
     .join("");
 }
 
-// Void an approved sale: the terminal sends an 0400 naming it in DE90.
+// Void an approved sale: the terminal sends an 0420 naming it in DE90.
+
+// rememberTx keeps the newest copy of a transaction for receipts.
+function rememberTx(tx) {
+  const list = window.lastTransactions || [];
+  const i = list.findIndex((t) => t.request.de11_stan === tx.request.de11_stan);
+  if (i >= 0) list[i] = tx;
+  else list.unshift(tx);
+  window.lastTransactions = list;
+}
+
+const receiptButton = (tx, cls = "") =>
+  `<button type="button" class="receipt-btn secondary ${cls}" data-receipt="${escapeHTML(tx.request.de11_stan)}" data-term="receipt">Receipt</button>`;
 document.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-void]");
   if (!btn) return;
@@ -730,6 +745,7 @@ function escapeHTML(s) {
 async function init() {
   const data = await (await fetch("/api/terminal")).json();
   const t = data.terminal;
+  terminal = t;
   mtis = data.mtis;
   mccs = data.mccs;
   currencies = data.currencies;

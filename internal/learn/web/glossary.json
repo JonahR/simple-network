@@ -871,7 +871,8 @@
       ],
       "aliases": [
         "Card-present",
-        "presents card"
+        "presents card",
+        "Card not present"
       ]
     },
     "iso8583": {
@@ -2268,7 +2269,8 @@
       "aliases": [
         "Face ID…",
         "Fingerprint…",
-        "Unlock phone…"
+        "Unlock phone…",
+        "Verified on device"
       ]
     },
     "bin": {
@@ -3776,6 +3778,91 @@
         "Fallback",
         "Chip won't read",
         "Chip read failed"
+      ]
+    },
+    "receipt": {
+      "name": "Receipt",
+      "def": "The record of a card sale given to the customer, with a second copy kept by the merchant. Network rules set what it must show: merchant name and location, date and time, the card's last four digits only, the amount, the approval code or decline, and for chip cards the application ID. The merchant copy is evidence if the cardholder later disputes the charge.",
+      "kt": [
+        [
+          "Dispute stages and time limits",
+          "08-exceptions-and-disputes.md#dispute-stages-and-typical-time-limits"
+        ],
+        [
+          "PCI DSS",
+          "09-risk-fraud-and-security.md#pci-dss-payment-card-industry-data-security-standard"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ],
+        [
+          "Receipt (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Receipt"
+        ]
+      ],
+      "aliases": [
+        "Receipt",
+        "Customer copy",
+        "Merchant copy",
+        "CUSTOMER COPY",
+        "MERCHANT COPY"
+      ]
+    },
+    "aid": {
+      "name": "AID (application identifier)",
+      "def": "The ID of the payment application on a chip, which tells the terminal which brand's rules to follow: for example A0000000031010 for Visa credit and debit, A0000000041010 for Mastercard. Chip receipts print it, so a dispute team can see exactly which application was used.",
+      "kt": [
+        [
+          "EMV chip",
+          "07-cards-bins-and-tokens.md#emv-chip-why-counterfeit-fraud-collapsed"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo contact chip",
+          "https://www.emvco.com/emv-technologies/emv-contact-chip/"
+        ],
+        [
+          "EMV (Wikipedia)",
+          "https://en.wikipedia.org/wiki/EMV"
+        ]
+      ],
+      "aliases": [
+        "AID",
+        "Application ID"
+      ]
+    },
+    "cvm": {
+      "name": "Cardholder verification method (CVM)",
+      "def": "How the terminal confirmed the person paying is the cardholder: a PIN, verification on the phone (Face ID, fingerprint), a signature, or none at all. Contactless sales under a limit (often $100 in the US) need no verification. The receipt states which was used, and a signature line appears only when a signature is the method.",
+      "kt": [
+        [
+          "Card-present vs card-not-present",
+          "03-transaction-lifecycle.md#card-present-vs-card-not-present"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo contact chip",
+          "https://www.emvco.com/emv-technologies/emv-contact-chip/"
+        ],
+        [
+          "EMV (Wikipedia)",
+          "https://en.wikipedia.org/wiki/EMV"
+        ]
+      ],
+      "aliases": [
+        "CVM",
+        "No signature required",
+        "Signature on merchant copy",
+        "Verified by PIN"
       ]
     }
   }

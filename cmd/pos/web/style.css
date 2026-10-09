@@ -333,3 +333,30 @@ pre {
 .prompts legend { padding: 0 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 @media (max-width: 420px) { .row3 { grid-template-columns: 1fr; } }
+
+/* Receipts */
+.result-actions { margin-left: auto; display: flex; gap: 8px; }
+.result-head .result-actions button.void { margin-left: 0; }
+button.receipt-btn { padding: 6px 14px; }
+button.receipt-btn.small { padding: 2px 8px; font-size: 12px; margin-left: 6px; }
+.receipt-dialog { border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--panel); color: var(--text); width: min(360px, calc(100vw - 32px)); }
+.receipt-dialog::backdrop { background: rgb(0 0 0 / .35); }
+.receipt-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.receipt-tabs button { flex: 1; padding: 6px; font-size: 12px; background: transparent; color: var(--accent); border: 1px solid var(--border); }
+.receipt-tabs button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.receipt { background: #fffef8; color: #1c1c1a; font: 12.5px/1.45 ui-monospace, "SF Mono", Menlo, monospace; padding: 16px 14px; border-radius: 4px; box-shadow: 0 1px 4px rgb(0 0 0 / .15); }
+.receipt .r-center { text-align: center; }
+.receipt .r-title { font-weight: 700; font-size: 15px; letter-spacing: .1em; margin: 2px 0; }
+.receipt .r-line { display: flex; justify-content: space-between; gap: 12px; }
+.receipt .r-line span:last-child { text-align: right; }
+.receipt .r-total { font-weight: 700; font-size: 14px; }
+.receipt .r-rule { border-top: 1px dashed #8a8984; margin: 8px 0; }
+.receipt .r-sign { margin-top: 18px; }
+.receipt .r-copy { font-weight: 700; margin-top: 4px; }
+.receipt-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+@media print {
+  body > *:not(.receipt-dialog) { display: none !important; }
+  .receipt-dialog { position: static; border: 0; padding: 0; box-shadow: none; }
+  .receipt-tabs, .receipt-actions { display: none; }
+  .receipt { box-shadow: none; }
+}
