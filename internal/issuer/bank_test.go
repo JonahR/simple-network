@@ -2,7 +2,9 @@ package issuer
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/JonahR/simple-network/internal/demokeys"
@@ -135,5 +137,99 @@ func TestPartialApprovals(t *testing.T) {
 	r.AdditionalAmounts = []iso8583.AdditionalAmount{{Type: "4S", Amount: 3000}}
 	if resp := fsb.Authorize(r); resp.ResponseCode != "00" || resp.Amount != 3000 {
 		t.Errorf("HSA full: %+v", resp)
+	}
+}
+
+func checkNames(d Decision) string {
+	var parts []string
+	for _, c := range d.Checks {
+		parts = append(parts, c.Name+":"+c.Result)
+	}
+	return strings.Join(parts, " ")
+}
+
+func TestDecisionLog(t *testing.T) {
+	fsb, _, key := testBanks(t)
+
+	// An approval with a PIN runs every check and records the hold.
+	r := req("4000056655665556", "2905", 2000)
+	r.PINData, _ = pin.Encrypt("1234", r.PAN, key)
+	r.AdditionalAmounts = []iso8583.AdditionalAmount{{Type: "40", Amount: 500}}
+	r.MerchantNameLoc = "Simple Coffee Co         San Francisco US"
+	fsb.Authorize(r)
+
+	// A decline stops at the failing check.
+	bad := req("4242424242424242", "2912", 100)
+	bad.CVV2 = "000"
+	fsb.Authorize(bad)
+
+	st := fsb.State()
+	if len(st.Decisions) != 2 {
+		t.Fatalf("decisions = %d", len(st.Decisions))
+	}
+	declined, approved := st.Decisions[0], st.Decisions[1] // Newest first
+	if got := checkNames(approved); got != "Account:pass Card status:pass Expiry:pass CVV2:skip PIN:pass Product rules:pass Funds:pass" {
+		t.Errorf("approved checks: %s", got)
+	}
+	if approved.AvailableBefore != 250_000 || approved.AvailableAfter != 248_000 || approved.Hold != "active" ||
+		approved.Merchant != "Simple Coffee Co" || approved.PAN != "400005******5556" || approved.AccountID != "fsb-002" {
+		t.Errorf("approved decision: %+v", approved)
+	}
+	if got := checkNames(declined); got != "Account:pass Card status:pass Expiry:pass CVV2:fail" {
+		t.Errorf("declined checks: %s", got)
+	}
+	if declined.Hold != "none" || declined.AvailableAfter != declined.AvailableBefore {
+		t.Errorf("declined decision: %+v", declined)
+	}
+
+	// The account view shows the hold, and a reversal releases it.
+	acct := st.Accounts[1]
+	if acct.Held != 2000 || acct.Holds != 1 || acct.Available != 248_000 || !acct.HasPIN || acct.PAN != "400005******5556" {
+		t.Errorf("account view: %+v", acct)
+	}
+	fsb.Reverse(iso8583.ReversalAdvice{NetworkTxnID: r.NetworkTxnID, Reason: "issuer timeout"})
+	st = fsb.State()
+	if st.Decisions[1].Hold != "released" || st.Accounts[1].Held != 0 || len(st.Reversals) != 1 || st.Reversals[0].Released != 2000 {
+		t.Errorf("after reversal: decision hold %q, held %d, reversals %+v", st.Decisions[1].Hold, st.Accounts[1].Held, st.Reversals)
+	}
+}
+
+func TestFrozenCardDeclines(t *testing.T) {
+	fsb, _, _ := testBanks(t)
+	if !fsb.SetBlocked("fsb-001", true) {
+		t.Fatal("account fsb-001 not found")
+	}
+	if resp := fsb.Authorize(req("4242424242424242", "2912", 100)); resp.ResponseCode != "62" {
+		t.Errorf("frozen card: %s", resp.ResponseCode)
+	}
+	fsb.SetBlocked("fsb-001", false)
+	if resp := fsb.Authorize(req("4242424242424242", "2912", 100)); resp.ResponseCode != "00" {
+		t.Errorf("unfrozen card: %s", resp.ResponseCode)
+	}
+}
+
+func TestAutoEnrolledAccountsAppearInState(t *testing.T) {
+	_, ucb, _ := testBanks(t)
+	ucb.Authorize(req("4859321234567890", "2710", 100))
+	st := ucb.State()
+	last := st.Accounts[len(st.Accounts)-1]
+	if last.Holder != "Pay Later customer" || last.ID != "ucb-004" || last.Expiry != "10/27" {
+		t.Errorf("%+v", last)
+	}
+	if !strings.Contains(st.Decisions[0].Checks[0].Detail, "opened on first use") {
+		t.Errorf("account check: %+v", st.Decisions[0].Checks[0])
+	}
+}
+
+func TestEmptyStateEncodesArrays(t *testing.T) {
+	fsb, _, _ := testBanks(t)
+	body, err := json.Marshal(fsb.State())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{`"decisions":[]`, `"reversals":[]`} {
+		if !strings.Contains(string(body), field) {
+			t.Errorf("empty state should encode %s, got %s", field, body)
+		}
 	}
 }

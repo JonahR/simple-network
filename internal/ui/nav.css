@@ -31,9 +31,11 @@
 }
 .sn-nav-arrow { color: var(--muted, #6b6b66); font-weight: 400; opacity: .7; }
 
-/* On narrow screens every header wraps differently, so the nav takes the
-   header's first row instead, full width, in the same place on every page. */
-@media (max-width: 760px) {
+/* Below 1200px some headers no longer fit on one row and each wraps
+   differently, so the nav takes the header's first row instead, full width,
+   in the same place on every page. 1200px clears the widest header (the
+   issuer's, which starts wrapping at about 1170px). */
+@media (max-width: 1200px) {
   .sn-nav { order: -1; flex: 1 0 100%; margin-left: 0; }
   .sn-nav a { flex: 1; text-align: center; padding-inline: 6px; }
 }

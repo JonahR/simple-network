@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>simple-network Issuer</title>
+<link rel="stylesheet" href="/ui/nav.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/learn/learn.css">
+</head>
+<body>
+<header>
+  <div class="brand"><b data-term="network">simple-network</b> <span data-term="issuer">Issuer</span></div>
+  <nav class="banks" id="banks" aria-label="Bank"></nav>
+  <div class="bank-info" id="bank-info">Loading…</div>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/learn/">Learn the network</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" aria-keyshortcuts="h">Help <kbd>H</kbd></button>
+  </nav>
+  <nav class="sn-nav" data-page="issuer"></nav>
+</header>
+
+<main>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="split">
+    <section class="panel">
+      <div class="panel-head">
+        <h2><span data-term="authorization">Decision</span></h2>
+        <span class="muted" id="decision-title"></span>
+      </div>
+      <div id="decision" class="empty">No authorizations yet. Charge a sale on the POS with one of this bank's cards and its decision appears here.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2><span data-term="authorization">Authorizations</span></h2>
+        <span class="muted">Select a row to see its decision</span>
+      </div>
+      <div class="table-wrap">
+        <table class="list">
+          <thead><tr><th data-term="de7">Time</th><th data-term="de2">Card</th><th class="num" data-term="de4">Amount</th><th data-term="de39">Response</th><th data-term="auth-hold">Hold</th></tr></thead>
+          <tbody id="decisions"><tr><td colspan="5" class="empty">No authorizations yet.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span data-term="cardholder">Accounts</span></h2>
+      <span class="muted">Holds lower <span data-term="available-credit">available credit</span> until clearing posts them or a <span data-term="reversal">reversal</span> releases them</span>
+    </div>
+    <div class="table-wrap">
+      <table class="list">
+        <thead><tr><th data-term="account-id">Account</th><th data-term="de2">Card</th><th data-term="cardholder">Cardholder</th><th data-term="card-products">Product</th><th class="num" data-term="available-credit">Limit / balance</th><th class="meter-col" data-term="available-credit">Available</th><th class="num" data-term="auth-hold">Holds</th><th data-term="card-controls">Status</th></tr></thead>
+        <tbody id="accounts"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="split even">
+    <section class="panel">
+      <h2 class="spaced"><span data-term="reversal">Reversals (0420)</span></h2>
+      <div class="table-wrap">
+        <table class="list wrap-last">
+          <thead><tr><th data-term="de7">Time</th><th data-term="network-txn-id">Network txn</th><th data-term="reversal">Reason</th><th data-term="reversal">Result</th></tr></thead>
+          <tbody id="reversals"><tr><td colspan="4" class="empty">No reversals. They arrive when the network times out waiting for this bank.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="spaced"><span data-term="issuer-health">Simulate an outage</span></h2>
+      <div id="mode"></div>
+      <p class="hint"><b>Slow</b> answers after the network's 5s timeout: the network declines with 91, then sends this bank an 0420, which shows up under Reversals. <b>Down</b> refuses every request. Three failures in a row open the network's circuit breaker for this bank. Watch it on the <a id="network-link" href="http://localhost:8090">network dashboard</a>.</p>
+    </section>
+  </div>
+</main>
+
+<script src="/ui/nav.js"></script>
+<script src="app.js"></script>
+<script src="/learn/learn.js"></script>
+</body>
+</html>

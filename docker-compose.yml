@@ -20,6 +20,7 @@ services:
       POS_PUBLIC_URL: "http://localhost:8080"
       ACQUIRER_PUBLIC_URL: "http://localhost:8081"
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
+      ISSUER_PUBLIC_URL: "http://localhost:8091"
     depends_on:
       - acquirer
 
@@ -46,6 +47,7 @@ services:
       POS_PUBLIC_URL: "http://localhost:8080"
       ACQUIRER_PUBLIC_URL: "http://localhost:8081"
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
+      ISSUER_PUBLIC_URL: "http://localhost:8091"
     depends_on:
       - network
 
@@ -64,6 +66,7 @@ services:
       POS_PUBLIC_URL: "http://localhost:8080"
       ACQUIRER_PUBLIC_URL: "http://localhost:8081"
       NETWORK_DASHBOARD_URL: "http://localhost:8090"
+      ISSUER_PUBLIC_URL: "http://localhost:8091"
     depends_on:
       - issuer
 
@@ -78,3 +81,10 @@ services:
     environment:
       ISSUER_FSB_ADDR: ":8091"
       ISSUER_UCB_ADDR: ":8092"
+      # Opened by your browser, not other containers
+      ISSUER_FSB_PUBLIC_URL: "http://localhost:8091"
+      ISSUER_UCB_PUBLIC_URL: "http://localhost:8092"
+      POS_PUBLIC_URL: "http://localhost:8080"
+      ACQUIRER_PUBLIC_URL: "http://localhost:8081"
+      NETWORK_DASHBOARD_URL: "http://localhost:8090"
+      ISSUER_PUBLIC_URL: "http://localhost:8091"

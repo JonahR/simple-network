@@ -1,6 +1,6 @@
 // Package ui holds what every service's web page shares: the navigation bar
 // that links the participants' pages in the order a payment flows through
-// them (POS → Acquirer → Network).
+// them (POS → Acquirer → Network → Issuer).
 //
 // A page opts in with:
 //
@@ -35,6 +35,7 @@ func PagesFromEnv() []Page {
 		{"pos", "POS", "Merchant terminal", "pos-terminal", env("POS_PUBLIC_URL", "http://localhost:8080")},
 		{"acquirer", "Acquirer", "Merchant's bank", "acquirer", env("ACQUIRER_PUBLIC_URL", "http://localhost:8081")},
 		{"network", "Network", "Card network switch", "network", env("NETWORK_DASHBOARD_URL", "http://localhost:8090")},
+		{"issuer", "Issuer", "Cardholder's bank", "issuer", env("ISSUER_PUBLIC_URL", "http://localhost:8091")},
 	}
 }
 

@@ -430,6 +430,29 @@
         "Incremented"
       ]
     },
+    "available-credit": {
+      "name": "Available credit (open-to-buy)",
+      "def": "How much the issuer will still approve on a card: the credit limit (or the account balance, for debit, prepaid and HSA/FSA cards) minus posted charges and authorization holds. Every approval places a hold that lowers it; a reversal or an expired hold gives it back. An authorization for more than this amount is declined with 51, or partially approved on prepaid and HSA/FSA cards.",
+      "kt": [
+        [
+          "Stage 1: Authorization",
+          "03-transaction-lifecycle.md#stage-1-authorization"
+        ]
+      ],
+      "ext": [
+        [
+          "Credit limit (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Credit_limit"
+        ]
+      ],
+      "aliases": [
+        "Available",
+        "Available credit",
+        "Open-to-buy",
+        "Credit limit",
+        "Limit / balance"
+      ]
+    },
     "capture": {
       "name": "Capture",
       "def": "The merchant's decision to ask for the money, after the final amount is known: when the tip is added, the hotel guest checks out, or the order ships. Captured sales go into the acquirer's end-of-day clearing file.",
