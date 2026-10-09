@@ -148,6 +148,8 @@ func (s *server) handleTerminal(w http.ResponseWriter, _ *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"terminal":       s.terminal,
+		"mtis":           iso8583.MTINames,
+		"mccs":           iso8583.MCCs,
 		"entry_modes":    iso8583.EntryModes,
 		"currencies":     iso8583.Currencies,
 		"wallets":        iso8583.Wallets,

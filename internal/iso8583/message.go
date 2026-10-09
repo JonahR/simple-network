@@ -10,6 +10,12 @@ const (
 	MTIAuthResponse = "0110"
 )
 
+// MTINames maps message type indicators to display names.
+var MTINames = map[string]string{
+	MTIAuthRequest:  "Authorization request",
+	MTIAuthResponse: "Authorization response",
+}
+
 // Processing code (DE3) parts: two digits each for the transaction type,
 // the account debited, and the account credited.
 const (
@@ -66,6 +72,23 @@ const (
 	AmountCashback   = "40"
 	AmountHealthcare = "4S" // Total amount eligible for HSA/FSA
 )
+
+// MCCs maps common merchant category codes (DE18) to display names.
+var MCCs = map[string]string{
+	"4111": "Commuter transport",
+	"4121": "Taxis and rideshares",
+	"5310": "Discount stores",
+	"5411": "Grocery stores, supermarkets",
+	"5541": "Service stations",
+	"5542": "Automated fuel dispensers",
+	"5812": "Restaurants",
+	"5814": "Fast food restaurants",
+	"5912": "Drug stores, pharmacies",
+	"5999": "Miscellaneous retail",
+	"7011": "Hotels, motels, resorts",
+	"8011": "Doctors",
+	"8062": "Hospitals",
+}
 
 // Currency codes (DE49), ISO 4217 numeric.
 var Currencies = map[string]string{

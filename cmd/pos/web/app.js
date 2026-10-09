@@ -3,6 +3,8 @@ const resultEl = document.getElementById("result");
 const historyEl = document.getElementById("history");
 
 // Terminal configuration, loaded from /api/terminal.
+let mtis = {};
+let mccs = {};
 let currencies = {};
 let entryModes = {};
 let wallets = {};
@@ -412,25 +414,64 @@ function money(minor, currencyCode) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: iso }).format(minor / 100);
 }
 
+// brand names the card scheme from the leading digits of a PAN.
+function brand(pan) {
+  if (/^4/.test(pan)) return "Visa";
+  if (/^(5[1-5]|2[2-7])/.test(pan)) return "Mastercard";
+  if (/^3[47]/.test(pan)) return "American Express";
+  if (/^(6011|65)/.test(pan)) return "Discover";
+  return "Unknown scheme";
+}
+
+// monthDay formats an ISO 8583 MMDD date, e.g. "1009" -> "Oct 9".
+function monthDay(mmdd) {
+  const d = new Date(Date.UTC(2000, Number(mmdd.slice(0, 2)) - 1, Number(mmdd.slice(2, 4))));
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+// clock formats an ISO 8583 hhmmss time, e.g. "140322" -> "14:03:22".
+const clock = (hhmmss) => hhmmss.match(/../g).join(":");
+
+// describe renders a field's value, followed by a human-readable explanation
+// in parentheses for coded values.
 function describe(key, r) {
   const v = r[key];
+  const explain = (text) => (text ? `${v}  (${text})` : String(v));
   switch (key) {
+    case "mti":
+      return explain(mtis[v]);
+    case "de2_pan":
+      return explain(
+        r.wallet_provider ? `${brand(v)} · device token` : `${brand(v)} · ${productNames[productFor(v)] || "Credit"}`
+      );
     case "de3_processing_code":
-      return `${v}  (${TXN_TYPES[v.slice(0, 2)] || "?"} · ${ACCOUNT_TYPES[v.slice(2, 4)] || "?"})`;
+      return explain(`${TXN_TYPES[v.slice(0, 2)] || "?"} · ${ACCOUNT_TYPES[v.slice(2, 4)] || "?"}`);
     case "de4_amount":
-      return `${v}  (${money(v, r.de49_currency)})`;
+      return explain(money(v, r.de49_currency));
+    case "de7_transmission_datetime":
+      return explain(`${monthDay(v.slice(0, 4))}, ${clock(v.slice(4))} UTC`);
+    case "de12_local_time":
+      return explain(clock(v));
+    case "de13_local_date":
+      return explain(monthDay(v));
+    case "de14_expiry":
+      return explain(`Expires ${v.slice(2, 4)}/20${v.slice(0, 2)}`);
+    case "de18_mcc":
+      return explain(mccs[v]);
     case "de22_pos_entry_mode":
-      return `${v}  (${entryModes[v]})`;
+      return explain(entryModes[v]);
     case "de48_fleet":
       return `Odometer ${v.odometer} · Vehicle ${v.vehicle_id} · Driver ${v.driver_id}`;
     case "de48_cof_indicator":
-      return cofIndicators[v] || v;
+      return explain(cofIndicators[v]);
     case "de49_currency":
-      return `${v}  (${currencies[v]})`;
+      return explain(currencies[v]);
     case "de54_additional_amounts":
-      return v.map((a) => `${a.type} ${AMOUNT_TYPES[a.type] || ""}: ${money(a.amount, r.de49_currency)}`).join("\n");
+      return v
+        .map((a) => `${a.type}  (${AMOUNT_TYPES[a.type] || "?"}): ${money(a.amount, r.de49_currency)}`)
+        .join("\n");
     case "wallet_provider":
-      return wallets[v] || v;
+      return explain(wallets[v]);
     default:
       return String(v);
   }
@@ -524,6 +565,8 @@ function escapeHTML(s) {
 async function init() {
   const data = await (await fetch("/api/terminal")).json();
   const t = data.terminal;
+  mtis = data.mtis;
+  mccs = data.mccs;
   currencies = data.currencies;
   entryModes = data.entry_modes;
   wallets = data.wallets;
