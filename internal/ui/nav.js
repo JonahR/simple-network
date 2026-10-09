@@ -12,6 +12,8 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
   for (const nav of navs) {
     nav.setAttribute("aria-label", "Participants");
+    // In Help mode, the bar as a whole (its arrows) explains the payment flow.
+    nav.dataset.termScope = "payment-flows";
     nav.innerHTML = pages
       .map((p, i) => {
         const current = p.id === nav.dataset.page ? ' aria-current="page"' : "";

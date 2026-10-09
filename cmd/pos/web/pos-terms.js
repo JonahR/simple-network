@@ -54,21 +54,47 @@
     }));
   }
 
+  // The second line of a wallet row: a product name, or a hint like "PIN 1234".
+  const metaTerm = (text) =>
+    /^PIN\b/.test(text) ? "pin" : /^Driver\b/.test(text) ? "de48-fleet" : /^Virtual\b/.test(text) ? "virtual-card" : Learn.lookup(text);
+
+  // Every part of the wallet explains something in Help mode: the card face
+  // and each row as a whole stand for the card's product, and their parts
+  // (chip, number, name, expiry, hint) for themselves.
   function tagWallets() {
     const face = document.getElementById("card-face");
     if (face) {
+      const product = Learn.lookup(face.querySelector(".card-top span")?.textContent || "");
+      tag(face.querySelector(".card"), product);
+      tag(face.querySelector(".card-top span"), product);
+      tag(face.querySelector(".card-top span + span"), "network");
       face.querySelectorAll(".card-bottom small").forEach((s) => tag(s, Learn.lookup(s.textContent)));
-      tag(face.querySelector(".card-top span"), Learn.lookup(face.querySelector(".card-top span")?.textContent || ""));
+      const [name, expiry] = face.querySelectorAll(".card-bottom > span");
+      tag(name, "cardholder-name");
+      tag(expiry, "de14");
       tag(face.querySelector(".virtual-note"), "virtual-card");
       tag(face.querySelector(".chip"), "chip-emv");
       tag(face.querySelector(".card-number"), "de2");
     }
     document.querySelectorAll("#card-list .card-row").forEach((row) => {
       const label = row.querySelector(".card-row-label");
-      if (label) tag(label, Learn.lookup(label.textContent));
+      const id = label && Learn.lookup(label.textContent);
+      tag(row, id);
+      tag(label, id);
+      const meta = row.querySelector(".card-row-meta");
+      if (meta) tag(meta, metaTerm(meta.textContent.trim()));
     });
     document.querySelectorAll("#mw-tabs [role=tab]").forEach((b) => tag(b, Learn.lookup(b.getAttribute("aria-label") || b.textContent)));
     document.querySelectorAll("#mw-cards small").forEach((s) => tag(s, "device-token"));
+    // A phone card row stands for its card's product, like the wallet rows.
+    document.querySelectorAll("#mw-cards .mw-card").forEach((row) => {
+      const label = row.querySelector(".mw-card-text")?.firstChild?.textContent || "";
+      tag(row, Learn.lookup(label.trim()));
+    });
+    tag(document.getElementById("mw-phone"), "mobile-wallet");
+    tag(document.querySelector("#mw-phone .phone-label"), "mobile-wallet");
+    tag(document.getElementById("mw-status"), "cdcvm");
+    tag(document.getElementById("mw-pay"), "mobile-wallet");
 
     // Badges change text as cards are read, so re-point them every time.
     const retag = (el, id) => { if (el && id) el.dataset.term = id; };
@@ -78,7 +104,24 @@
     if (product && !product.hidden) retag(product, Learn.lookup(product.textContent));
   }
 
+  // Sale form fields, by name. The labels above them already carry terms;
+  // the fields need their own so clicking the box itself explains it.
+  const FIELD_TERMS = {
+    amount: "de4", currency: "de49", entry_mode: "de22", card_number: "de2", expiry: "de14", cvv: "cvv2",
+    cardholder_name: "cardholder-name", card_on_file: "credential-on-file", cof_indicator: "de48-cof", pin: "pin",
+    cashback: "cashback", odometer: "de48-fleet", vehicle_id: "de48-fleet", driver_id: "de48-fleet",
+    healthcare_amount: "healthcare-amount",
+  };
+  function tagForm() {
+    const form = document.getElementById("sale");
+    if (!form) return;
+    for (const [name, id] of Object.entries(FIELD_TERMS)) tag(form.elements[name], id);
+    // The rest of each label (hints like "(optional)") explains the same thing as its heading.
+    form.querySelectorAll("label").forEach((l) => tag(l, l.querySelector(":scope > span[data-term]")?.dataset.term));
+  }
+
   function tagAll() {
+    tagForm();
     const result = document.getElementById("result");
     if (result) tagResult(result);
     const history = document.getElementById("history");

@@ -15,8 +15,15 @@
 
 /* Nothing looks different until Help is on (the Help button or the H key).
    Then labels you can learn from get a dotted underline, like a glossary
-   link, and controls with a definition get a dashed outline. */
-.learn-help [data-term] { cursor: help; }
+   link, and controls with a definition get a dashed outline. The rest of the
+   page is paused, so it shows a plain arrow; marked things show the help
+   cursor and a highlight under the pointer. */
+.learn-help, .learn-help * { cursor: default !important; }
+.learn-help [data-term], .learn-help [data-term] * { cursor: help !important; }
+.learn-help .learn-pop a, .learn-help .learn-pop button, .learn-help [data-learn-toggle], .learn-help [data-learn-toggle] * { cursor: pointer !important; }
+/* Room below the page so the hint bar never covers the last row. */
+.learn-help body { padding-bottom: 72px; }
+.learn-help :not(svg *)[data-term]:hover { background-color: color-mix(in srgb, var(--learn-accent) 12%, transparent); border-radius: 3px; }
 .learn-help :where(span, td, th, h2, h3, small, em, strong, label, legend, div, p, b, i, code)[data-term] {
   text-decoration: underline dotted color-mix(in srgb, var(--learn-accent) 60%, transparent);
   text-decoration-thickness: 1.5px;

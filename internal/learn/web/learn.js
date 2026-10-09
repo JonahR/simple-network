@@ -3,11 +3,13 @@
 // Mark any element with data-term="<id>" (an id from glossary.json).
 // Definitions stay out of the way until Help is on: toggle it with any
 // [data-learn-toggle] button or the "h" key ("?" works too); Esc turns it off.
-// While Help is on:
-//   - hovering a marked element with a mouse previews its definition;
-//   - clicking, Enter or Space on a plain label pins the definition;
-//   - buttons and inputs keep working, so you can learn while you use the app;
-//     on touch screens, which can't hover, tapping them explains them instead.
+// While Help is on the page is paused, like a guided tour:
+//   - clicking (or tapping) a marked element opens its definition, whether it
+//     is a label, a button, a field or a disabled control;
+//   - nothing else acts: other clicks, focusing fields, opening dropdowns,
+//     selecting text and typing are all blocked until Help is off;
+//   - Tab moves between marked elements, Enter or Space explains one, and
+//     scrolling still works.
 // Learn.show() opens a definition regardless, for pages that ask explicitly.
 // Learn.autoTag(root) tags elements whose text matches a term's aliases; the
 // doc viewer uses it on Mermaid diagrams.
@@ -45,7 +47,7 @@
   function norm(s) { return String(s).replace(/\s+/g, " ").replace(/[·:…]+$/g, "").trim().toLowerCase(); }
 
   // An element "acts" if clicking it already does something (a button, a link,
-  // a form control). Those explain themselves on hover, not on click.
+  // a form control). Those are focusable already; plain labels need a tab stop.
   function acts(el) { return el.matches(INTERACTIVE) || !!el.closest("button, a[href]"); }
 
   /* ---------- popover ---------- */
@@ -62,7 +64,7 @@
   const popTitle = pop.querySelector(".learn-pop-title");
   const popBody = pop.querySelector(".learn-pop-body");
 
-  let anchor = null, pinned = false, showTimer = 0, hideTimer = 0, opener = null;
+  let anchor = null, pinned = false, opener = null;
 
   function ktHref(ref) {
     // "07-...md#anchor" → doc viewer; other files (e.g. interactive pages) → served as-is.
@@ -103,7 +105,6 @@
   }
 
   function show(el, id, pin) {
-    clearTimeout(showTimer); clearTimeout(hideTimer);
     if (!render(id)) return;
     if (anchor && anchor !== el) anchor.classList.remove("learn-active");
     anchor = el; pinned = pin;
@@ -116,7 +117,6 @@
   }
 
   function hide() {
-    clearTimeout(showTimer); clearTimeout(hideTimer);
     pop.hidden = true; pinned = false;
     if (anchor) anchor.classList.remove("learn-active");
     anchor = null;
@@ -130,67 +130,102 @@
   const hint = document.createElement("div");
   hint.className = "learn-hint";
   hint.setAttribute("role", "status");
-  hint.innerHTML = `Help is on. Hover anything to see what it means. <kbd>H</kbd> or <kbd>Esc</kbd> to turn it off.`;
+  hint.innerHTML = `Help is on: click anything outlined or underlined to see what it means. Everything else is paused. <kbd>H</kbd> or <kbd>Esc</kbd> to exit.`;
 
   function setHelp(on) {
     help = on;
     document.documentElement.classList.toggle("learn-help", on);
     document.querySelectorAll("[data-learn-toggle]").forEach((b) => b.setAttribute("aria-pressed", String(on)));
-    if (on) document.body.append(hint);
-    else { hint.remove(); hide(); }
+    if (on) {
+      // A field that had focus would otherwise keep taking keystrokes.
+      const a = document.activeElement;
+      if (a && a.matches("input, select, textarea, [contenteditable]")) a.blur();
+      document.body.append(hint);
+    } else { hint.remove(); hide(); }
     tagFocusable(document);
   }
 
   /* ---------- events (delegated, so re-rendered content just works) ---------- */
-  document.addEventListener("pointerover", (e) => {
-    if (e.pointerType !== "mouse") return;
-    if (pop.contains(e.target)) { clearTimeout(hideTimer); return; }
-    if (!help) return;
-    const el = e.target.closest("[data-term]");
-    if (!el || pinned) return;
-    clearTimeout(hideTimer); clearTimeout(showTimer);
-    // Live pages redraw; skip a label that was replaced before the delay ran out.
-    showTimer = setTimeout(() => ready.then(() => { if (el.isConnected) show(el, el.dataset.term, false); }), anchor ? 60 : 280);
-  });
-  document.addEventListener("pointerout", (e) => {
-    if (e.pointerType !== "mouse" || pinned) return;
-    const to = e.relatedTarget;
-    if (to && (pop.contains(to) || (anchor && anchor.contains(to)))) return;
-    clearTimeout(showTimer);
-    hideTimer = setTimeout(() => { if (!pinned) hide(); }, 220);
-  });
+  // Help's own controls keep working while the rest of the page is paused.
+  const ownUI = (t) => pop.contains(t) || !!t.closest("[data-learn-toggle]");
 
-  // Capture phase so a tap on a touch screen can explain a button instead of pressing it.
+  // Explaining happens on pointerup, not click: browsers send no click (or
+  // mousedown) for a disabled button, but they do send pointer events, and a
+  // disabled button is worth explaining too.
+  document.addEventListener("pointerdown", (e) => {
+    if (!help || ownUI(e.target)) return;
+    // Stops focus, text selection and dropdowns from opening.
+    e.preventDefault();
+  }, true);
+  // explainable is what a click in Help mode explains, as [element, term id]:
+  // the nearest marked element; else the area it sits in, either one that
+  // names its subject with data-term-scope or a panel through the term on its
+  // heading. So any widget answers when clicked.
+  function explainable(t) {
+    const el = t.closest("[data-term]");
+    if (el && terms[el.dataset.term]) return [el, el.dataset.term];
+    for (let area = t.closest("section, .panel, [data-term-scope]"); area; area = area.parentElement?.closest("section, .panel, [data-term-scope]")) {
+      if (terms[area.dataset.termScope]) return [area, area.dataset.termScope];
+      const heading = area.querySelector(":scope > h2 [data-term], :scope > h2[data-term], :scope > .panel-head h2 [data-term], :scope > .panel-head h2[data-term]");
+      if (heading && terms[heading.dataset.term]) return [heading, heading.dataset.term];
+    }
+    return null;
+  }
+
+  document.addEventListener("pointerup", (e) => {
+    if (!help || e.button !== 0 || ownUI(e.target)) return;
+    const found = explainable(e.target);
+    if (found) {
+      const [el, id] = found;
+      opener = el;
+      ready.then(() => show(el, id, true));
+    } else if (!pop.hidden) hide();
+  }, true);
+  // Mouse events and clicks that would act on the page are swallowed.
+  for (const type of ["mousedown", "mouseup", "dblclick", "auxclick", "contextmenu", "dragstart", "submit"]) {
+    document.addEventListener(type, (e) => {
+      if (!help || ownUI(e.target)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+    }, true);
+  }
+
   document.addEventListener("click", (e) => {
     if (e.target.closest(".learn-pop-close")) { hide(); return; }
     const toggle = e.target.closest("[data-learn-toggle]");
-    if (toggle) { setHelp(!help); return; }
+    if (toggle) { e.preventDefault(); setHelp(!help); return; }
     if (pop.contains(e.target)) return;
-
-    const el = help && e.target.closest("[data-term]");
-    const touch = e.pointerType === "touch" || e.pointerType === "pen";
-    if (el && (touch || !acts(el))) {
-      e.preventDefault(); e.stopPropagation();
-      opener = el;
-      ready.then(() => show(el, el.dataset.term, true));
+    if (help) {
+      // pointerup already explained it; the click itself must not act.
+      e.preventDefault(); e.stopImmediatePropagation();
       return;
     }
     if (!pop.hidden && pinned) hide();
   }, true);
 
+  // Keys that only move around the page, which stay allowed in Help mode.
+  const NAV_KEYS = new Set(["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End", "Shift"]);
   document.addEventListener("keydown", (e) => {
-    const tag = (document.activeElement && document.activeElement.tagName) || "";
-    const typing = /INPUT|TEXTAREA|SELECT/.test(tag);
-    if (e.key === "Escape" && !pop.hidden) { hide(); return; }
-    if (e.key === "Escape" && help) { setHelp(false); return; }
-    const plain = !typing && !e.ctrlKey && !e.metaKey && !e.altKey;
-    if (plain && (e.key === "h" || e.key === "H" || e.key === "?")) { e.preventDefault(); setHelp(!help); return; }
-    const el = help && e.target.closest && e.target.closest("[data-term]");
-    if (el && !acts(el) && (e.key === "Enter" || e.key === " ")) {
-      e.preventDefault(); opener = el;
-      ready.then(() => show(el, el.dataset.term, true));
+    const a = document.activeElement;
+    const typing = !!a && a.matches("input, select, textarea, [contenteditable]");
+    if (e.key === "Escape" && !pop.hidden) { e.preventDefault(); hide(); return; }
+    if (e.key === "Escape" && help) { e.preventDefault(); setHelp(false); return; }
+    // In Help mode nothing can be typed, so H works even with a field focused.
+    const plain = (!typing || help) && !e.ctrlKey && !e.metaKey && !e.altKey;
+    if (plain && (e.key === "h" || e.key === "H" || e.key === "?")) { e.preventDefault(); e.stopImmediatePropagation(); setHelp(!help); return; }
+    if (!help || pop.contains(e.target)) return;
+
+    const found = e.target.closest && explainable(e.target);
+    if (found && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      const [el, id] = found;
+      opener = el;
+      ready.then(() => show(el, id, true));
+      return;
     }
-  });
+    // Arrow keys would change a focused dropdown or radio group; elsewhere they scroll.
+    if (NAV_KEYS.has(e.key) && (e.key === "Tab" || e.key === "Shift" || !typing && !a?.matches("[role=radio], [role=tab]"))) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+  }, true);
   addEventListener("resize", () => { if (anchor && !pop.hidden) place(anchor); });
 
   /* ---------- making labels reachable ---------- */

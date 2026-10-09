@@ -14,6 +14,8 @@
 
   function tagAll() {
     document.querySelectorAll("#kpis .k-label").forEach(byText);
+    // A whole tile (its number and sub-line too) explains what its label measures.
+    document.querySelectorAll("#kpis .kpi").forEach((k) => tag(k, k.querySelector(".k-label")?.dataset.term));
     document.querySelectorAll("#codes .b-label").forEach((el) => tag(el, "de39"));
 
     // Topology: node titles, issuer health, and the switch's stage boxes.
