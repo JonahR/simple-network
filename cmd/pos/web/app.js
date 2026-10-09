@@ -25,7 +25,51 @@ const FIELDS = [
   ["cardholder_name", "", "Cardholder name"],
 ];
 
+// The cardholder's wallet. These are well-known test numbers that pass Luhn.
+const WALLET = [
+  { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/29", cvv: "123", name: "Jane Doe" },
+  { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/28", cvv: "456", name: "John Smith" },
+];
+
+function renderWallet() {
+  const container = document.getElementById("cards");
+  for (const c of WALLET) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `card ${c.style}`;
+    btn.setAttribute("aria-label", `Use ${c.label} ending in ${c.number.slice(-4)}`);
+    btn.innerHTML = `
+      <div class="card-top"><span>${escapeHTML(c.label)}</span><span>simple-network</span></div>
+      <div class="chip"></div>
+      <div class="card-number">•••• •••• •••• ${c.number.slice(-4)}</div>
+      <div class="card-bottom">
+        <span><small>Cardholder</small>${escapeHTML(c.name)}</span>
+        <span><small>Expires</small>${c.expiry}</span>
+      </div>`;
+    btn.addEventListener("click", () => {
+      presentCard(c);
+      container.querySelectorAll(".card").forEach((el) => el.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    container.append(btn);
+  }
+}
+
+function presentCard(c) {
+  clearErrors();
+  form.card_number.value = c.number.replace(/(\d{4})(?=\d)/g, "$1 ");
+  form.expiry.value = c.expiry;
+  form.cvv.value = c.cvv;
+  form.cardholder_name.value = c.name;
+  form.amount.focus();
+}
+
+function clearWalletSelection() {
+  document.querySelectorAll("#cards .card").forEach((el) => el.classList.remove("selected"));
+}
+
 async function init() {
+  renderWallet();
   const res = await fetch("/api/terminal");
   const data = await res.json();
   const t = data.terminal;
@@ -66,6 +110,7 @@ document.getElementById("testcard").addEventListener("click", async () => {
   form.expiry.value = card.expiry;
   form.cvv.value = card.cvv;
   if (!form.amount.value) form.amount.value = "12.50";
+  clearWalletSelection();
 });
 
 form.addEventListener("submit", async (e) => {
@@ -88,6 +133,7 @@ form.addEventListener("submit", async (e) => {
     renderResult(data);
     form.card_number.value = form.expiry.value = form.cvv.value = form.cardholder_name.value = "";
     form.amount.value = "";
+    clearWalletSelection();
     loadHistory();
   } catch (err) {
     showErrors({ form: "Could not reach the terminal server." });

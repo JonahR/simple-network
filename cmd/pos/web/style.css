@@ -52,15 +52,53 @@ header {
 
 main {
   display: grid;
-  grid-template-columns: minmax(300px, 380px) 1fr;
+  grid-template-columns: minmax(250px, 290px) minmax(300px, 380px) 1fr;
+  align-items: start;
   gap: 20px;
   padding: 20px 24px;
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
+}
+@media (max-width: 1180px) {
+  main { grid-template-columns: minmax(250px, 290px) 1fr; }
+  .result { grid-column: 1 / -1; }
 }
 @media (max-width: 760px) {
   main { grid-template-columns: 1fr; padding: 16px; }
 }
+
+/* Wallet */
+.hint { margin: -6px 0 14px; color: var(--muted); font-size: 12px; }
+.cards { display: flex; flex-direction: column; gap: 14px; }
+@media (max-width: 760px) { .cards .card { max-width: 340px; } }
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: none;
+  aspect-ratio: 1.586;
+  width: 100%;
+  max-width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  text-align: left;
+  font-weight: 400;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, .22); }
+.card.selected { outline: 3px solid var(--accent); outline-offset: 3px; }
+.card.blue { background: linear-gradient(135deg, #1a3a8f, #3f6fe0); }
+.card.dark { background: linear-gradient(135deg, #1b1b1b, #4a4a48); }
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; white-space: nowrap; font-size: 11px; font-weight: 600; letter-spacing: .04em; opacity: .9; }
+.chip { width: 32px; height: 24px; border-radius: 5px; background: linear-gradient(135deg, #e8c766, #b8913a); }
+.card-number { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; letter-spacing: .04em; white-space: nowrap; }
+.card-bottom { display: flex; justify-content: space-between; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.card-bottom small { display: block; font-size: 8px; opacity: .7; }
 
 .panel {
   background: var(--panel);
