@@ -90,6 +90,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /authorize", s.handleAuthorize)
 	mux.HandleFunc("POST /reverse", s.handleReverse)
+	mux.HandleFunc("POST /3ds/authenticate", s.handleAuthenticate3DS)
+	mux.HandleFunc("POST /3ds/challenge", s.handleChallenge3DS)
 	mux.Handle("GET /", http.FileServerFS(static))
 	// Definitions for every dashboard label, the learning hub, and the Network KT docs.
 	mux.Handle("GET /learn/", learn.Handler(learn.Links{POS: env("POS_PUBLIC_URL", "http://localhost:8080"), Dashboard: "/"}))

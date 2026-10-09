@@ -59,6 +59,17 @@ Start with explainable rules, and add ML later:
 
 Send the score in a private field to the issuer. **The issuer still decides.** The network only declines on its own for hard rules (e.g., a blocked merchant).
 
+## Card-not-present checks: AVS and CVV2
+
+When the card isn't at a terminal (keyed, phone, or online), nothing proves the shopper holds it. Two simple checks ride in the 0100, and the issuer answers both in **DE44** (additional response data):
+
+| Check | Merchant sends | Issuer answers | Declines? |
+|---|---|---|---|
+| **CVV2** | The 3–4 digit code from the card | M match · N no match · P not processed · U no code on file | A mismatch is usually declined (N7) |
+| **AVS** | Billing ZIP and street address | Y both match · Z ZIP only · A street only · N neither · U unavailable | No: the merchant decides whether to ship |
+
+AVS compares only the ZIP code and the house number, since streets are written many ways ("123 Market St" vs "123 Market Street"). Neither check shifts fraud liability; only 3-D Secure does. In `simple-network`, key a sale with a billing address on the POS to see both results in the 0110.
+
 ## 3-D Secure (EMV 3DS 2.x)
 
 3DS lets the **issuer authenticate the cardholder** during an online checkout, and moves fraud liability to the issuer.

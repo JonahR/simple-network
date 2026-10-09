@@ -38,6 +38,19 @@ func (c *acquirerClient) reverse(ctx context.Context, adv iso8583.ReversalAdvice
 	return resp, c.post(ctx, "/reverse", adv, &resp)
 }
 
+// authenticate3DS asks the acquirer's 3-D Secure server to authenticate an
+// online shopper with the card's issuer.
+func (c *acquirerClient) authenticate3DS(ctx context.Context, r iso8583.ThreeDSRequest) (iso8583.ThreeDSResult, error) {
+	var res iso8583.ThreeDSResult
+	return res, c.post(ctx, "/3ds/authenticate", r, &res)
+}
+
+// challenge3DS sends the shopper's one-time code.
+func (c *acquirerClient) challenge3DS(ctx context.Context, ch iso8583.ThreeDSChallenge) (iso8583.ThreeDSResult, error) {
+	var res iso8583.ThreeDSResult
+	return res, c.post(ctx, "/3ds/challenge", ch, &res)
+}
+
 // httpError is a non-200 answer from the acquirer.
 type httpError struct {
 	code int

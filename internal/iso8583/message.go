@@ -165,6 +165,12 @@ type AuthRequest struct {
 	CardholderName    string             `json:"cardholder_name,omitempty"`
 	WalletProvider    string             `json:"wallet_provider,omitempty"` // Set when DE2 is a device token, e.g. "apple_pay"
 
+	// Card-not-present checks. AVS is the billing address the shopper gave;
+	// ECI and CAVV carry a 3-D Secure authentication.
+	AVS  *AVSData `json:"de123_avs,omitempty"`
+	ECI  string   `json:"eci,omitempty"`  // 05 authenticated, 06 attempted, 07 not authenticated
+	CAVV string   `json:"cavv,omitempty"` // Proof of authentication from the issuer's ACS
+
 	// Set by the network on the request it forwards to the issuer.
 	NetworkTxnID string `json:"network_txn_id,omitempty"`
 	Token        string `json:"token,omitempty"` // The device token, when the network replaced it with the card number in DE2
@@ -206,6 +212,70 @@ type AuthResponse struct {
 	ResponseText     string `json:"response_text"`
 	// DE54 from the issuer: for a balance inquiry, the available balance (type 02).
 	AdditionalAmounts []AdditionalAmount `json:"de54_additional_amounts,omitempty"`
+	// DE44 additional response data: the issuer's AVS and CVV2 results.
+	AVSResult  string `json:"de44_avs_result,omitempty"`  // Y, Z, A, N, or U (see AVSResults)
+	CVV2Result string `json:"de44_cvv2_result,omitempty"` // M, N, P, or U (see CVV2Results)
+}
+
+// AVSData is the billing address a card-not-present shopper entered.
+type AVSData struct {
+	Zip    string `json:"zip,omitempty"`
+	Street string `json:"street,omitempty"`
+}
+
+// AVSResults explains AVS result codes (DE44).
+var AVSResults = map[string]string{
+	"Y": "Street address and ZIP match",
+	"Z": "ZIP matches, street address doesn't",
+	"A": "Street address matches, ZIP doesn't",
+	"N": "Neither matches",
+	"U": "Address information unavailable",
+}
+
+// CVV2Results explains CVV2 result codes (DE44).
+var CVV2Results = map[string]string{
+	"M": "Match",
+	"N": "No match",
+	"P": "Not processed",
+	"U": "Issuer has no CVV2 for this card",
+}
+
+// ECIs explains e-commerce indicators (Visa values).
+var ECIs = map[string]string{
+	"05": "Fully authenticated with 3-D Secure",
+	"06": "Authentication attempted",
+	"07": "Not authenticated",
+}
+
+// ThreeDSRequest asks the card's issuer, through the network's directory
+// server, to authenticate an online shopper (EMV 3-D Secure, simplified).
+type ThreeDSRequest struct {
+	ID           string `json:"threeds_id,omitempty"` // Set by the directory server
+	PAN          string `json:"pan"`
+	Expiry       string `json:"expiry"` // YYMM
+	Amount       int64  `json:"amount"`
+	Currency     string `json:"currency"`
+	MerchantID   string `json:"merchant_id"`
+	MerchantName string `json:"merchant_name"`
+}
+
+// ThreeDSResult is the issuer's answer. Status Y means authenticated
+// (frictionless, or after a challenge), C means a challenge is needed, N
+// means authentication failed, U means it couldn't be performed.
+type ThreeDSResult struct {
+	ID         string `json:"threeds_id"`
+	Status     string `json:"trans_status"`
+	ECI        string `json:"eci,omitempty"`
+	CAVV       string `json:"cavv,omitempty"`
+	Challenge  string `json:"challenge,omitempty"` // What the cardholder is asked to do
+	IssuerName string `json:"issuer_name,omitempty"`
+	Reason     string `json:"reason,omitempty"`
+}
+
+// ThreeDSChallenge is the cardholder's answer to a challenge.
+type ThreeDSChallenge struct {
+	ID  string `json:"threeds_id"`
+	OTP string `json:"otp"`
 }
 
 // IsBalanceInquiry reports whether DE3 asks for a balance rather than a payment.

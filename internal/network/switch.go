@@ -55,6 +55,7 @@ type Switch struct {
 	mu       sync.Mutex
 	seen     map[string]*attempt // Idempotency: acquirer ID + STAN + DE7 (D3)
 	seenFIFO []string
+	threeDS  map[string]*Issuer // 3-D Secure authentications in progress, by ID
 	bgCtx    context.Context // Cancelled by Close
 	bgCancel context.CancelFunc
 	closed   bool

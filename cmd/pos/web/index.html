@@ -113,6 +113,28 @@
           <span><span data-term="cardholder-name">Cardholder name</span> <em>(optional)</em></span>
           <input name="cardholder_name" placeholder="Jane Doe" autocomplete="off">
         </label>
+
+        <!-- Keyed and online sales: nothing proves the shopper holds the card, so ask the issuer. -->
+        <fieldset id="cnp" class="prompts" hidden>
+          <legend data-term="card-present">Card not present</legend>
+          <div class="row">
+            <label>
+              <span><span data-term="avs">Billing ZIP</span> <em>(optional)</em></span>
+              <input name="billing_zip" inputmode="numeric" placeholder="94105" maxlength="10" autocomplete="off">
+              <small class="err" data-for="billing_zip"></small>
+            </label>
+            <label>
+              <span><span data-term="avs">Billing street</span> <em>(optional)</em></span>
+              <input name="billing_street" placeholder="123 Market St" maxlength="40" autocomplete="off">
+              <small class="err" data-for="billing_street"></small>
+            </label>
+          </div>
+          <label class="simulate" data-prompt="three_ds">
+            <input type="checkbox" name="three_ds" id="three_ds">
+            <span><span data-term="three-ds">Authenticate with 3-D Secure</span> <em>(the issuer checks the shopper first: up to $100 is frictionless, more asks for a one-time code)</em></span>
+          </label>
+          <small class="err" data-for="three_ds"></small>
+        </fieldset>
       </div>
 
       <!-- Shown only when the card calls for them, as a real terminal would prompt. -->

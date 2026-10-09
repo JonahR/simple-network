@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"errors"
@@ -77,6 +78,13 @@ type SaleInput struct {
 	// BalanceInquiry asks the issuer for the card's available balance
 	// (processing code 30) instead of charging it.
 	BalanceInquiry bool `json:"balance_inquiry"`
+
+	// Card-not-present checks for keyed and online sales. The billing
+	// address goes to the issuer for AVS; ThreeDS authenticates the shopper
+	// with the issuer before the 0100 is sent.
+	BillingZip    string `json:"billing_zip"`
+	BillingStreet string `json:"billing_street"`
+	ThreeDS       bool   `json:"three_ds"`
 }
 
 // StoredCard is a card the merchant keeps on file for a returning customer.
@@ -117,6 +125,7 @@ type Transaction struct {
 	Response *iso8583.AuthResponse `json:"response,omitempty"` // Redacted; nil if the acquirer never answered
 	Created  time.Time             `json:"created"`
 	Reversal *Reversal             `json:"reversal,omitempty"` // Set once the terminal starts undoing the sale
+	ThreeDS  *iso8583.ThreeDSResult `json:"three_ds,omitempty"` // The 3-D Secure outcome, for online sales that used it
 
 	// Split tender. A partial approval leaves a balance due on the first
 	// tender; each further tender (card or cash) names it in SplitOf and
@@ -145,6 +154,7 @@ type server struct {
 	reversalRetry time.Duration // Wait between attempts to deliver an 0420
 
 	chipFailures map[string]time.Time // PAN -> last failed chip read, for fallback swipes
+	challenges   map[string]*pending3DS // 3-D Secure ID -> sale waiting for the shopper's code
 }
 
 func main() {
@@ -191,6 +201,7 @@ func main() {
 	mux.HandleFunc("GET /api/terminal", s.handleTerminal)
 	mux.HandleFunc("GET /api/test-card", s.handleTestCard)
 	mux.HandleFunc("POST /api/sale", s.handleSale)
+	mux.HandleFunc("POST /api/3ds/challenge", s.handleChallenge)
 	mux.HandleFunc("POST /api/void", s.handleVoid)
 	mux.HandleFunc("POST /api/chip-failure", s.handleChipFailure)
 	mux.HandleFunc("POST /api/cash", s.handleCash)
@@ -250,8 +261,18 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx := &Transaction{Request: req.Redacted(card.Mask), Created: time.Now(), sent: forReversal(req), Tender: "card", SplitOf: in.SplitOf}
-	resp, err := s.acquirer.authorize(r.Context(), req)
+	if in.ThreeDS {
+		s.startThreeDS(w, r, in, req)
+		return
+	}
+	writeJSON(w, http.StatusOK, s.completeSale(r.Context(), in, req, nil))
+}
+
+// completeSale sends the 0100, records the outcome, and reverses the sale if
+// no answer came back.
+func (s *server) completeSale(ctx context.Context, in SaleInput, req iso8583.AuthRequest, threeDS *iso8583.ThreeDSResult) Transaction {
+	tx := &Transaction{Request: req.Redacted(card.Mask), Created: time.Now(), sent: forReversal(req), Tender: "card", SplitOf: in.SplitOf, ThreeDS: threeDS}
+	resp, err := s.acquirer.authorize(ctx, req)
 	if err == nil && in.LoseResponse {
 		err = errors.New("the 0110 was lost on the way back (simulated)")
 	}
@@ -270,13 +291,13 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 	// D9: a terminal that never hears back can't know whether the issuer
 	// approved and placed a hold, so it reverses the sale.
 	if tx.Status == "NO_RESPONSE" {
-		s.startReversal(r.Context(), tx, iso8583.RCLateResponse)
+		s.startReversal(ctx, tx, iso8583.RCLateResponse)
 	}
 
-	log.Printf("sale stan=%s rrn=%s pan=%s proc=%s amount=%d currency=%s entry=%s wallet=%s status=%s",
+	log.Printf("sale stan=%s rrn=%s pan=%s proc=%s amount=%d currency=%s entry=%s wallet=%s eci=%s status=%s",
 		tx.Request.STAN, tx.Request.RRN, tx.Request.PAN, tx.Request.ProcessingCode, tx.Request.Amount,
-		tx.Request.Currency, tx.Request.EntryMode, tx.Request.WalletProvider, tx.Status)
-	writeJSON(w, http.StatusOK, s.snapshot(tx))
+		tx.Request.Currency, tx.Request.EntryMode, tx.Request.WalletProvider, tx.Request.ECI, tx.Status)
+	return s.snapshot(tx)
 }
 
 func (s *server) handleTransactions(w http.ResponseWriter, _ *http.Request) {

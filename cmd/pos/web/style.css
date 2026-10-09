@@ -368,3 +368,9 @@ button.receipt-btn.small { padding: 2px 8px; font-size: 12px; margin-left: 6px; 
   .receipt-tabs, .receipt-actions { display: none; }
   .receipt { box-shadow: none; }
 }
+
+/* 3-D Secure challenge: the shopper enters the issuer's one-time code. */
+.challenge { flex-direction: row; gap: 8px; align-items: flex-start; margin: 12px 0; }
+.challenge button { margin-top: 22px; flex: none; width: auto; padding-inline: 24px; }
+.challenge label { flex: 1; max-width: 220px; }
+.challenge input { letter-spacing: 0.3em; font-variant-numeric: tabular-nums; }

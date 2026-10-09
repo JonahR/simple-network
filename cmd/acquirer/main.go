@@ -42,6 +42,7 @@ const maxListed = 200
 type server struct {
 	acq *acquirer
 	clr *clearer
+	net *httpNetwork // The network's 3-D Secure directory server
 }
 
 func main() {
@@ -64,6 +65,7 @@ func main() {
 	network := newHTTPNetwork(env("NETWORK_URL", "http://localhost:8090"))
 	s := &server{acq: newAcquirer(env("ACQUIRER_ID", "100001"), env("ACQUIRER_NAME", "Simple Merchant Bank"), merchants, network)}
 	s.clr = newClearer(s.acq, network.url)
+	s.net = network
 
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
@@ -72,6 +74,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /authorize", s.handleAuthorize)
 	mux.HandleFunc("POST /reverse", s.handleReverse)
+	mux.HandleFunc("POST /3ds/authenticate", s.handleAuthenticate3DS)
+	mux.HandleFunc("POST /3ds/challenge", s.handleChallenge3DS)
 	mux.Handle("GET /", http.FileServerFS(static))
 	mux.HandleFunc("GET /api/overview", s.handleOverview)
 	mux.HandleFunc("POST /clearing/submit", s.handleSubmitClearing)

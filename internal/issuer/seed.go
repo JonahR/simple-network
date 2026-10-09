@@ -9,7 +9,8 @@ import "github.com/JonahR/simple-network/internal/card"
 // FirstSimpleBankAccounts returns First Simple Bank's accounts.
 func FirstSimpleBankAccounts() ([]Account, []AutoEnroll) {
 	return []Account{
-			{PAN: "4242424242424242", Holder: "Jane Doe", Product: card.Credit, Expiry: "3312", CVV: "123", Limit: 500_000},
+			{PAN: "4242424242424242", Holder: "Jane Doe", Product: card.Credit, Expiry: "3312", CVV: "123", Limit: 500_000,
+				BillingZip: "94105", BillingStreet: "123 Market St"},
 			{PAN: "4000056655665556", Holder: "Jane Doe", Product: card.Debit, Expiry: "3305", CVV: "789",
 				PINHash: HashPIN("4000056655665556", "1234"), Limit: 250_000},
 			{PAN: "4716006861111015", Holder: "Jane Doe", Product: card.Healthcare, Expiry: "3211", CVV: "852", Limit: 50_000},
@@ -21,7 +22,8 @@ func FirstSimpleBankAccounts() ([]Account, []AutoEnroll) {
 // UnionCardBankAccounts returns Union Card Bank's accounts.
 func UnionCardBankAccounts() ([]Account, []AutoEnroll) {
 	return []Account{
-			{PAN: "5555555555554444", Holder: "John Smith", Product: card.Credit, Expiry: "3208", CVV: "456", Limit: 30_000},
+			{PAN: "5555555555554444", Holder: "John Smith", Product: card.Credit, Expiry: "3208", CVV: "456", Limit: 30_000,
+				BillingZip: "10001", BillingStreet: "456 Oak Ave"},
 			{PAN: "4358805984634941", Holder: "Gift card", Product: card.Prepaid, Expiry: "3207", CVV: "321", Limit: 10_000},
 			{PAN: "5568007143162129", Holder: "Acme Logistics", Product: card.Fleet, Expiry: "3302", CVV: "654", Limit: 100_000},
 		}, []AutoEnroll{

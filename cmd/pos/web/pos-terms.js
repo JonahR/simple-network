@@ -110,7 +110,7 @@
     amount: "de4", currency: "de49", entry_mode: "de22", card_number: "de2", expiry: "de14", cvv: "cvv2",
     cardholder_name: "cardholder-name", card_on_file: "credential-on-file", cof_indicator: "de48-cof", pin: "pin",
     cashback: "cashback", odometer: "de48-fleet", vehicle_id: "de48-fleet", driver_id: "de48-fleet",
-    healthcare_amount: "healthcare-amount",
+    healthcare_amount: "healthcare-amount", billing_zip: "avs", billing_street: "avs", three_ds: "three-ds",
   };
   function tagForm() {
     const form = document.getElementById("sale");

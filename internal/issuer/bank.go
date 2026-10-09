@@ -31,6 +31,11 @@ type Account struct {
 	PINHash string // sha256(PAN|PIN); empty when the card has no PIN
 	Blocked bool   // Frozen by the cardholder or the bank
 
+	// Billing address, for AVS on card-not-present sales. Empty means the
+	// bank has no address on file, so AVS answers U.
+	BillingZip    string
+	BillingStreet string
+
 	// Limit is the credit limit, or the starting balance for debit, prepaid,
 	// and HSA/FSA accounts. Available is what can still be authorized: the
 	// limit minus holds and posted charges. Posted is what clearing has
@@ -87,7 +92,10 @@ type Decision struct {
 	Limit           int64     `json:"limit"`
 	AvailableBefore int64     `json:"available_before"`
 	AvailableAfter  int64     `json:"available_after"`
-	Hold            string    `json:"hold"` // "active", "released", "posted", or "none"
+	Hold            string    `json:"hold"`                  // "active", "released", "posted", or "none"
+	AVSResult       string    `json:"avs_result,omitempty"`  // DE44 AVS code, if AVS was asked
+	CVV2Result      string    `json:"cvv2_result,omitempty"` // DE44 CVV2 code, if a CVV2 was sent
+	ECI             string    `json:"eci,omitempty"`         // 3-D Secure e-commerce indicator, if any
 }
 
 // Reversal is the bank's record of an 0420.
@@ -119,6 +127,11 @@ type Bank struct {
 	decisions   []Decision
 	reversals   []Reversal
 	postedFiles map[string]clearing.IssuerAck // Clearing files already posted, by file ID
+
+	// 3-D Secure (the bank's ACS): challenges waiting for a code, and the
+	// authentication values (CAVVs) it issued, checked at authorization.
+	challenges map[string]*challenge
+	cavvs      map[string]*cavvRecord
 }
 
 type hold struct {
@@ -137,6 +150,9 @@ func NewBank(id, name string, pinKey []byte, accounts []Account, enroll []AutoEn
 		enroll:   enroll,
 		holds:    map[string]hold{},
 		reversed: map[string]struct{}{},
+
+		challenges: map[string]*challenge{},
+		cavvs:      map[string]*cavvRecord{},
 	}
 	for _, a := range accounts {
 		a.Available = a.Limit
@@ -220,6 +236,7 @@ func (b *Bank) Authorize(req iso8583.AuthRequest) iso8583.AuthResponse {
 		d.Approved = approved // A decline's DE4 echoes the request, but nothing was approved
 	}
 	d.ResponseCode, d.ResponseText, d.AuthCode = code, resp.ResponseText, resp.AuthCode
+	resp.AVSResult, resp.CVV2Result = d.AVSResult, d.CVV2Result
 	b.decisions = append(b.decisions, d)
 	if len(b.decisions) > maxLog {
 		b.decisions = b.decisions[1:]
@@ -272,12 +289,35 @@ func (b *Bank) decide(req iso8583.AuthRequest, d *Decision) (*Account, string, i
 	case req.CVV2 == "":
 		check("CVV2", Skip, "Not sent: the card or phone was read, or the card is on file")
 	case acct.CVV == "":
+		d.CVV2Result = "U"
 		check("CVV2", Skip, "No CVV on record for this card")
 	case req.CVV2 != acct.CVV:
+		d.CVV2Result = "N"
 		code, amt := fail("CVV2", "Does not match the card", iso8583.RCCVVMismatch)
 		return acct, code, amt
 	default:
+		d.CVV2Result = "M"
 		check("CVV2", Pass, "Matches the card")
+	}
+
+	// AVS never declines on its own: the issuer reports the result and the
+	// merchant decides whether to ship.
+	if req.AVS != nil {
+		d.AVSResult = avsResult(acct, *req.AVS)
+		result := Pass
+		if d.AVSResult != "Y" {
+			result = Skip
+		}
+		check("AVS", result, d.AVSResult+": "+iso8583.AVSResults[d.AVSResult])
+	}
+
+	if req.CAVV != "" {
+		d.ECI = req.ECI
+		if err := b.useCAVV(req); err != nil {
+			code, amt := fail("3-D Secure", err.Error(), iso8583.RCDoNotHonor)
+			return acct, code, amt
+		}
+		check("3-D Secure", Pass, "CAVV issued by this bank's ACS for this card and amount; fraud liability shifts to the issuer")
 	}
 
 	if req.PINData == "" {

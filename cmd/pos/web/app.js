@@ -42,6 +42,9 @@ const FIELDS = [
   ["de52_pin_data", "DE52", "PIN block"],
   ["de54_additional_amounts", "DE54", "Additional amounts"],
   ["de55_arqc", "DE55", "Application cryptogram (ARQC)"],
+  ["de123_avs", "DE123", "Billing address"],
+  ["eci", "", "E-commerce indicator"],
+  ["cavv", "", "Authentication value"],
   ["cardholder_name", "", "Cardholder name"],
   ["wallet_provider", "", "Wallet provider"],
 ];
@@ -49,6 +52,10 @@ const FIELDS = [
 const TXN_TYPES = { "00": "Purchase", "09": "Purchase with cash back", "20": "Refund", "30": "Balance inquiry" };
 const ACCOUNT_TYPES = { "00": "default account", "20": "checking", "30": "credit" };
 const AMOUNT_TYPES = { "40": "Cash back", "4S": "HSA/FSA eligible" };
+const ECIS = { "05": "Fully authenticated with 3-D Secure", "06": "Authentication attempted", "07": "Not authenticated" };
+const AVS_RESULTS = { Y: "Street address and ZIP match", Z: "ZIP matches, street doesn't", A: "Street matches, ZIP doesn't", N: "Neither matches", U: "Address unavailable" };
+const CVV2_RESULTS = { M: "Match", N: "No match", P: "Not processed", U: "Issuer has no CVV2 for this card" };
+const THREEDS_STATUS = { Y: "Authenticated", C: "Challenge required", N: "Not authenticated", U: "Couldn't authenticate" };
 
 // --- Cardholder wallet -------------------------------------------------------
 
@@ -61,6 +68,7 @@ const ALL_METHODS = ["tap", "insert", "swipe", "key"];
 // and the token vault (internal/network/vault.go); cmd/pos/expiry_test.go checks.
 const WALLET = [
   { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/33", cvv: "123", name: "Jane Doe",
+    zip: "94105", street: "123 Market St",
     methods: ALL_METHODS,
     tokens: {
       apple_pay:   { number: "4895372051310681", expiry: "09/34" },
@@ -68,6 +76,7 @@ const WALLET = [
       samsung_pay: { number: "4895377555006883", expiry: "06/34" },
     } },
   { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/32", cvv: "456", name: "John Smith",
+    zip: "10001", street: "456 Oak Ave",
     methods: ALL_METHODS,
     tokens: {
       apple_pay:   { number: "5220930238452479", expiry: "03/35" },
@@ -173,6 +182,9 @@ function presentCard(c, method) {
   form.expiry.value = c.expiry;
   form.cvv.value = method === "key" ? c.cvv : "";
   form.cardholder_name.value = method === "tap" ? "" : c.name; // Contactless reads don't include the name
+  // Reading out a card for a keyed or online sale includes the billing address, for AVS.
+  form.billing_zip.value = method === "key" ? c.zip || "" : "";
+  form.billing_street.value = method === "key" ? c.street || "" : "";
 
   if (method === "tap" || method === "insert") form.cryptogram.value = newCryptogram();
   if (method === "swipe") form.track2.value = track2(c.number, c.expiry, c.methods.includes("insert"));
@@ -346,13 +358,20 @@ function updateForm() {
     show(form.querySelector(`[data-prompt="${name}"]`), visible);
   }
   show(document.getElementById("prompts"), Object.values(prompts).some(Boolean));
+
+  // Card-not-present checks: AVS for keyed and online sales, 3-D Secure online.
+  const cnp = !cof && !wallet && (entry === ENTRY.manual || entry === ENTRY.ecommerce);
+  show(document.getElementById("cnp"), cnp);
+  const threeDS = form.querySelector('[data-prompt="three_ds"]');
+  threeDS.hidden = !cnp || entry !== ENTRY.ecommerce;
+  if (threeDS.hidden) form.three_ds.checked = false;
 }
 
 // show toggles a section and clears any inputs it hides, so stale values are
 // never sent.
 function show(el, visible) {
   el.hidden = !visible;
-  if (!visible) el.querySelectorAll("input:not([type=hidden])").forEach((i) => (i.value = ""));
+  if (!visible) el.querySelectorAll("input:not([type=hidden]):not([type=checkbox])").forEach((i) => (i.value = ""));
 }
 
 // fillRandomAmount enters a random sale amount between $1.00 and $150.00 when
@@ -412,6 +431,7 @@ form.addEventListener("submit", async (e) => {
     const body = Object.fromEntries(new FormData(form));
     body.lose_response = form.lose_response.checked;
     body.balance_inquiry = e.submitter && e.submitter.id === "balance";
+    body.three_ds = form.three_ds.checked;
     const res = await fetch("/api/sale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -513,6 +533,10 @@ function describe(key, r) {
         .join("\n");
     case "wallet_provider":
       return explain(wallets[v]);
+    case "de123_avs":
+      return [v.zip && `ZIP ${v.zip}`, v.street].filter(Boolean).join(" · ");
+    case "eci":
+      return explain(ECIS[v]);
     default:
       return String(v);
   }
@@ -526,6 +550,8 @@ const STATUS = {
   VOIDED: ["", "↩", "Voided"],
   CASH: ["good", "$", "Cash"],
   BALANCE: ["good", "$", "Balance"],
+  CHALLENGE: ["warning", "?", "Verify shopper"],
+  NOT_AUTHENTICATED: ["critical", "✕", "Not authenticated"],
 };
 const REVERSAL_STATUS = {
   PENDING: ["warning", "…", "Reversal pending"],
@@ -650,6 +676,8 @@ function responseRows(tx) {
     ["MTI", "Message type", resp.mti],
     ["DE39", "Response code", `${resp.de39_response_code}  (${resp.response_text})`],
     ["DE38", "Auth code", resp.de38_auth_code],
+    ["DE44", "AVS result", resp.de44_avs_result ? `${resp.de44_avs_result}  (${AVS_RESULTS[resp.de44_avs_result] || "?"})` : ""],
+    ["DE44", "CVV2 result", resp.de44_cvv2_result ? `${resp.de44_cvv2_result}  (${CVV2_RESULTS[resp.de44_cvv2_result] || "?"})` : ""],
     ["DE54", "Available balance", (resp.de54_additional_amounts || []).filter((a) => a.type === "02").map((a) => `${a.amount}  (${money(a.amount, r.de49_currency)})`)[0] || ""],
     ["DE37", "Retrieval reference number", resp.de37_rrn !== r.de37_rrn ? resp.de37_rrn : ""],
     ["DE4", "Approved amount", resp.de4_amount ? `${resp.de4_amount}  (${money(resp.de4_amount, r.de49_currency)})` : ""],
@@ -662,7 +690,71 @@ function responseRows(tx) {
     <p class="trace-link">${link}</p>`;
 }
 
+// threeDSRows shows the issuer ACS's answer to a 3-D Secure authentication.
+function threeDSRows(tx) {
+  const t = tx.three_ds;
+  if (!t) return "";
+  const rows = [
+    ["", "ACS", `${t.trans_status}  (${THREEDS_STATUS[t.trans_status] || "?"}${t.issuer_name ? " · " + t.issuer_name : ""})`],
+    ["", "E-commerce indicator", t.eci ? `${t.eci}  (${ECIS[t.eci] || "?"})` : ""],
+    ["", "Authentication value", t.cavv || ""],
+  ].filter(([, , v]) => v);
+  return `<h3>3-D Secure (3DS)</h3>
+    ${t.reason ? `<p class="reversal-note">${escapeHTML(t.reason)}</p>` : ""}
+    <div class="table-wrap"><table class="fields"><tbody>${rows
+      .map(([de, name, v]) => `<tr><td class="mono">${de}</td><td>${name}</td><td class="mono">${escapeHTML(v)}</td></tr>`)
+      .join("")}</tbody></table></div>`;
+}
+
+// renderChallenge asks the shopper for the one-time code the issuer sent.
+// The terminal holds the sale until the code checks out.
+function renderChallenge(tx) {
+  resultEl.className = "";
+  resultEl.innerHTML = `
+    <div class="result-head">
+      ${statusBadge(tx)}
+      <p>${escapeHTML(tx.message)}</p>
+    </div>
+    <form id="challenge" class="challenge" data-id="${escapeHTML(tx.three_ds.threeds_id)}">
+      <label>
+        <span data-term="three-ds-challenge">One-time code</span>
+        <input name="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required>
+        <small class="err" data-for="otp"></small>
+      </label>
+      <button type="submit" data-term="three-ds-challenge">Verify</button>
+    </form>
+    ${threeDSRows(tx)}`;
+  resultEl.querySelector("input[name=otp]").focus();
+}
+
+document.addEventListener("submit", async (e) => {
+  const ch = e.target.closest("form#challenge");
+  if (!ch) return;
+  e.preventDefault();
+  const btn = ch.querySelector("button");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/3ds/challenge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ threeds_id: ch.dataset.id, otp: ch.otp.value }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      ch.querySelector(".err").textContent = (data.errors && Object.values(data.errors)[0]) || "Verification failed.";
+      return;
+    }
+    renderResult(data);
+    loadHistory();
+  } catch {
+    ch.querySelector(".err").textContent = "Could not reach the terminal server.";
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 function renderResult(tx) {
+  if (tx.status === "CHALLENGE") return renderChallenge(tx);
   const r = tx.request;
   const rows = FIELDS.filter(([key]) => r[key] !== undefined && r[key] !== "")
     .map(([key, de, name]) => {
@@ -682,6 +774,7 @@ function renderResult(tx) {
     </div>
     ${balanceSection(tx)}
     ${reversalRows(tx)}
+    ${threeDSRows(tx)}
     ${responseRows(tx)}
     <h3>Request sent (0100)</h3>
     <div class="table-wrap"><table class="fields"><tbody>${rows}</tbody></table></div>
@@ -732,7 +825,7 @@ function rememberTx(tx) {
   window.lastTransactions = list;
 }
 
-const receiptButton = (tx, cls = "") => tx.tender === "cash" ? "" :
+const receiptButton = (tx, cls = "") => tx.tender === "cash" || tx.status === "NOT_AUTHENTICATED" ? "" :
   `<button type="button" class="receipt-btn secondary ${cls}" data-receipt="${escapeHTML(tx.request.de11_stan)}" data-term="receipt">Receipt</button>`;
 document.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-void]");

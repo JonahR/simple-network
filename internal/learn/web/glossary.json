@@ -2808,7 +2808,9 @@
       "aliases": [
         "3DS directory",
         "3DS Directory Server",
-        "3-D Secure"
+        "3-D Secure",
+        "3-D Secure (3DS)",
+        "Authenticate with 3-D Secure"
       ]
     },
     "account-updater": {
@@ -4096,6 +4098,157 @@
         "Balance",
         "BALANCE INQUIRY",
         "Available balance"
+      ]
+    },
+    "avs": {
+      "name": "AVS (address verification service)",
+      "def": "For keyed and online sales, the merchant sends the billing ZIP code and street address the shopper typed, and the issuer compares them with the address on file. The issuer answers with a one-letter result in DE44: Y both match, Z only the ZIP, A only the street, N neither, U unavailable. AVS never declines on its own; the merchant decides whether to ship.",
+      "kt": [
+        [
+          "Card-not-present checks",
+          "09-risk-fraud-and-security.md#card-not-present-checks-avs-and-cvv2"
+        ],
+        [
+          "Layered fraud defense",
+          "09-risk-fraud-and-security.md#layered-fraud-defense"
+        ]
+      ],
+      "ext": [
+        [
+          "Address verification service (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Address_verification_service"
+        ],
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "aliases": [
+        "AVS",
+        "Billing ZIP",
+        "Billing street",
+        "Billing address",
+        "AVS result",
+        "DE44 AVS"
+      ]
+    },
+    "cvv2-result": {
+      "name": "CVV2 result",
+      "def": "The issuer's answer about the card security code, returned in DE44: M matched, N didn't match (usually declined with response code N7), P not processed, U the issuer has no code for the card. Merchants see only the result, never the stored code.",
+      "kt": [
+        [
+          "Card-not-present checks",
+          "09-risk-fraud-and-security.md#card-not-present-checks-avs-and-cvv2"
+        ],
+        [
+          "Card security values",
+          "07-cards-bins-and-tokens.md#card-security-values"
+        ]
+      ],
+      "ext": [
+        [
+          "Card security code (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Card_security_code"
+        ]
+      ],
+      "aliases": [
+        "CVV2 result",
+        "DE44 CVV2"
+      ]
+    },
+    "eci": {
+      "name": "ECI (e-commerce indicator)",
+      "def": "A two-digit flag on an online authorization that says how well the shopper was authenticated. Visa uses 05 fully authenticated with 3-D Secure, 06 authentication attempted, 07 not authenticated; Mastercard uses 02, 01 and 00. With 05 or 06, fraud liability shifts from the merchant to the issuer.",
+      "kt": [
+        [
+          "3-D Secure",
+          "09-risk-fraud-and-security.md#3-d-secure-emv-3ds-2x"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo 3-D Secure",
+          "https://www.emvco.com/emv-technologies/3-d-secure/"
+        ],
+        [
+          "Visa Secure",
+          "https://www.visa.com/en-us/products/visa-secure"
+        ]
+      ],
+      "aliases": [
+        "ECI",
+        "E-commerce indicator"
+      ]
+    },
+    "cavv": {
+      "name": "CAVV (cardholder authentication verification value)",
+      "def": "The cryptographic proof the issuer's ACS returns when 3-D Secure succeeds. The merchant puts it in the authorization, and the issuer checks it was its own, for this card and amount, and not used before. Mastercard calls it the AAV (in the UCAF field).",
+      "kt": [
+        [
+          "3-D Secure",
+          "09-risk-fraud-and-security.md#3-d-secure-emv-3ds-2x"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo 3-D Secure",
+          "https://www.emvco.com/emv-technologies/3-d-secure/"
+        ],
+        [
+          "3-D Secure (Wikipedia)",
+          "https://en.wikipedia.org/wiki/3-D_Secure"
+        ]
+      ],
+      "aliases": [
+        "CAVV",
+        "AAV",
+        "Authentication value"
+      ]
+    },
+    "acs": {
+      "name": "ACS (access control server)",
+      "def": "The issuer's 3-D Secure server. It decides whether an online shopper is the cardholder: frictionlessly from risk data for most payments, or with a challenge such as a one-time code or bank-app approval. Its answer is Y authenticated, C challenge needed, N failed, or U unable. In this simulation, sales up to $100 are frictionless and larger ones get a code.",
+      "kt": [
+        [
+          "3-D Secure",
+          "09-risk-fraud-and-security.md#3-d-secure-emv-3ds-2x"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo 3-D Secure",
+          "https://www.emvco.com/emv-technologies/3-d-secure/"
+        ]
+      ],
+      "aliases": [
+        "ACS",
+        "Access control server"
+      ]
+    },
+    "three-ds-challenge": {
+      "name": "3-D Secure challenge",
+      "def": "When the issuer's ACS isn't confident from risk data alone, it asks the shopper to prove they are the cardholder, often with a one-time code sent to their phone. The merchant holds the sale until the answer comes back; a failed challenge means the sale is never sent for authorization.",
+      "kt": [
+        [
+          "3-D Secure",
+          "09-risk-fraud-and-security.md#3-d-secure-emv-3ds-2x"
+        ]
+      ],
+      "ext": [
+        [
+          "EMVCo 3-D Secure",
+          "https://www.emvco.com/emv-technologies/3-d-secure/"
+        ]
+      ],
+      "aliases": [
+        "Challenge",
+        "One-time code",
+        "Verify shopper",
+        "Not authenticated"
       ]
     }
   }

@@ -92,6 +92,8 @@ func main() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("POST /authorize", s.handleAuthorize)
 		mux.HandleFunc("POST /reverse", s.handleReverse)
+		mux.HandleFunc("POST /3ds/authenticate", s.handleAuthenticate3DS)
+		mux.HandleFunc("POST /3ds/challenge", s.handleChallenge3DS)
 		mux.HandleFunc("POST /clearing/presentments", s.handlePresentments)
 		mux.HandleFunc("GET /admin/mode", s.handleGetMode)
 		mux.HandleFunc("POST /admin/mode", s.handleSetMode)
