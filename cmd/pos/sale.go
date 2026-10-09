@@ -27,6 +27,11 @@ type fieldErrors map[string]string
 // field errors when the input is invalid.
 func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequest, fieldErrors) {
 	errs := fieldErrors{}
+	t, ok := s.lane(in.TerminalID)
+	if !ok {
+		errs["form"] = "unknown terminal " + in.TerminalID
+		return iso8583.AuthRequest{}, errs
+	}
 	entry := in.EntryMode
 	if _, ok := iso8583.EntryModes[entry]; !ok {
 		errs["entry_mode"] = "unsupported entry mode"
@@ -113,8 +118,7 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 
 	stan := s.nextSTAN()
 	utc := now.UTC()
-	local := now.In(s.location) // DE12/DE13 are the merchant's local time
-	t := s.terminal
+	local := now.In(t.loc) // DE12/DE13 are the merchant's local time
 	return iso8583.AuthRequest{
 		MTI:              iso8583.MTIAuthRequest,
 		PAN:              pan,

@@ -1,32 +1,17 @@
 package main
 
-import "slices"
+import "github.com/JonahR/simple-network/internal/merchant"
 
 // Merchant is a business the acquirer has signed up to accept cards. The
 // acquirer, not the terminal, is the source of truth for its category code
-// and pricing.
-type Merchant struct {
-	ID          string   `json:"merchant_id"` // DE42
-	Name        string   `json:"name"`
-	City        string   `json:"city"`
-	Country     string   `json:"country"`
-	MCC         string   `json:"mcc"`          // DE18, from the merchant agreement
-	Terminals   []string `json:"terminals"`    // DE41 IDs deployed at this merchant
-	DiscountBPS int64    `json:"discount_bps"` // Merchant discount rate in basis points (250 = 2.50%)
-}
+// and pricing. The POS merchants come from the shared catalog
+// (internal/merchant).
+type Merchant = merchant.Merchant
 
-// HasTerminal reports whether the terminal is registered to this merchant.
-func (m Merchant) HasTerminal(id string) bool { return slices.Contains(m.Terminals, id) }
-
-// demoMerchants are signed up alongside the merchant configured from the
-// environment, so the back office shows more than one account.
-var demoMerchants = []Merchant{
-	{ID: "000000000023456", Name: "Corner Grocery", City: "Oakland", Country: "US", MCC: "5411",
-		Terminals: []string{"TERM0101", "TERM0102"}, DiscountBPS: 190},
-	{ID: "000000000034567", Name: "Bayside Fuel", City: "San Jose", Country: "US", MCC: "5542",
-		Terminals: []string{"PUMP0001", "PUMP0002", "PUMP0003"}, DiscountBPS: 210},
+// acquirerOnlyMerchants are signed up here but have no POS lane.
+var acquirerOnlyMerchants = []Merchant{
 	// The Risk lab (cmd/risklab) sends its drills as this merchant's terminal,
 	// so they are easy to pick out on every page.
 	{ID: "000000000099001", Name: "Risk Lab", City: "San Francisco", Country: "US", MCC: "5999",
-		Terminals: []string{"RISK0001"}, DiscountBPS: 250},
+		TimeZone: "America/Los_Angeles", Terminals: []string{"RISK0001"}, DiscountBPS: 250},
 }

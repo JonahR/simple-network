@@ -101,8 +101,13 @@ func (s *server) handleCash(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cash is taken at the lane that rang up the sale.
+	l, ok := s.lane(first.Request.TerminalID)
+	if !ok {
+		l = s.lanes[0]
+	}
 	now := time.Now()
-	local := now.In(s.location)
+	local := now.In(l.loc)
 	tx := &Transaction{
 		Status:  "CASH",
 		Message: fmt.Sprintf("%s cash collected.", cents(amount)),
@@ -112,7 +117,7 @@ func (s *server) handleCash(w http.ResponseWriter, r *http.Request) {
 		Request: iso8583.AuthRequest{
 			Amount: amount, Currency: first.Request.Currency, STAN: s.nextSTAN(),
 			LocalTime: local.Format("150405"), LocalDate: local.Format("0102"),
-			TerminalID: s.terminal.TerminalID, MerchantID: s.terminal.MerchantID,
+			TerminalID: l.TerminalID, MerchantID: l.MerchantID,
 		},
 	}
 	s.mu.Lock()

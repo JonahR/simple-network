@@ -30,6 +30,7 @@ import (
 	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
+	"github.com/JonahR/simple-network/internal/merchant"
 	"github.com/JonahR/simple-network/internal/ui"
 )
 
@@ -47,20 +48,14 @@ type server struct {
 
 func main() {
 	addr := env("ACQUIRER_ADDR", ":8081")
-	discount, err := strconv.ParseInt(env("MERCHANT_DISCOUNT_BPS", "250"), 10, 64)
-	if err != nil {
-		log.Fatal("MERCHANT_DISCOUNT_BPS must be a whole number of basis points")
+	if v := os.Getenv("MERCHANT_DISCOUNT_BPS"); v != "" {
+		if _, err := strconv.ParseInt(v, 10, 64); err != nil {
+			log.Fatal("MERCHANT_DISCOUNT_BPS must be a whole number of basis points")
+		}
 	}
-	// The terminal's own merchant is signed up from the same settings it uses.
-	merchants := append([]Merchant{{
-		ID:          env("MERCHANT_ID", "000000000012345"),
-		Name:        env("MERCHANT_NAME", "Simple Coffee Co"),
-		City:        env("MERCHANT_CITY", "San Francisco"),
-		Country:     env("MERCHANT_COUNTRY", "US"),
-		MCC:         env("MCC", "5814"),
-		Terminals:   []string{env("TERMINAL_ID", "TERM0001")},
-		DiscountBPS: discount,
-	}}, demoMerchants...)
+	// Every merchant the POS can switch to is signed up, from the same
+	// catalog and settings the POS uses, plus the acquirer-only ones.
+	merchants := append(merchant.FromEnv(os.Getenv), acquirerOnlyMerchants...)
 
 	network := newHTTPNetwork(env("NETWORK_URL", "http://localhost:8090"))
 	s := &server{acq: newAcquirer(env("ACQUIRER_ID", "100001"), env("ACQUIRER_NAME", "Simple Merchant Bank"), merchants, network)}

@@ -2,8 +2,10 @@ const form = document.getElementById("sale");
 const resultEl = document.getElementById("result");
 const historyEl = document.getElementById("history");
 
-// Terminal configuration, loaded from /api/terminal.
+// Terminal configuration, loaded from /api/terminal. `terminal` is the lane
+// the cashier picked in the merchant picker; `terminals` lists every lane.
 let terminal = {};
+let terminals = [];
 let mtis = {};
 let mccs = {};
 let currencies = {};
@@ -420,6 +422,7 @@ form.addEventListener("submit", async (e) => {
     body.lose_response = form.lose_response.checked;
     body.balance_inquiry = e.submitter && e.submitter.id === "balance";
     body.three_ds = form.three_ds.checked;
+    body.terminal_id = terminal.terminal_id;
     const res = await fetch("/api/sale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -774,8 +777,13 @@ let shownSTAN = null;
 let reversalPoll = 0;
 
 async function loadHistory() {
-  const txs = await (await fetch("/api/transactions")).json();
-  if (!txs.length) return;
+  const lane = terminal.terminal_id;
+  const txs = await (await fetch(`/api/transactions?terminal=${encodeURIComponent(lane || "")}`)).json();
+  if (lane !== terminal.terminal_id) return; // The cashier switched merchants meanwhile
+  if (!txs.length) {
+    historyEl.innerHTML = `<tr><td colspan="7" class="empty">No transactions yet at ${escapeHTML(terminal.merchant_name || "this merchant")}.</td></tr>`;
+    return;
+  }
   window.lastTransactions = txs;
   // Keep the result panel and history current while a reversal is retrying.
   const shown = txs.find((tx) => tx.request.de11_stan === shownSTAN);
@@ -886,10 +894,38 @@ function escapeHTML(s) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
+// --- Merchant picker -------------------------------------------------------------
+
+const RESULT_EMPTY = resultEl.innerHTML;
+const merchantSelect = document.getElementById("merchant-select");
+
+const merchantLine = (t) => `${t.merchant_name} · ${t.city}, ${t.country} · MID ${t.merchant_id} · TID ${t.terminal_id} · MCC ${t.mcc}`;
+
+// selectTerminal rings up sales for another merchant: its IDs, category
+// code and local time go into every 0100 from now on. The sale in progress
+// is cleared, and the history shows only this merchant's sales.
+function selectTerminal(id) {
+  terminal = terminals.find((t) => t.terminal_id === id) || terminals[0];
+  merchantSelect.value = terminal.terminal_id;
+  document.getElementById("merchant").textContent = merchantLine(terminal);
+  try { localStorage.setItem("pos-terminal", terminal.terminal_id); } catch {}
+
+  form.reset();
+  setSplit(null);
+  resetCardRead();
+  clearErrors();
+  updateForm();
+  resultEl.className = "empty";
+  resultEl.innerHTML = RESULT_EMPTY;
+  loadHistory();
+}
+
+merchantSelect.addEventListener("change", () => selectTerminal(merchantSelect.value));
+
 async function init() {
   const data = await (await fetch("/api/terminal")).json();
-  const t = data.terminal;
-  terminal = t;
+  terminals = data.terminals || [data.terminal];
+  terminal = data.terminal;
   mtis = data.mtis;
   mccs = data.mccs;
   currencies = data.currencies;
@@ -901,8 +937,9 @@ async function init() {
   binProducts = data.bin_products;
   productNames = data.product_names;
 
-  document.getElementById("merchant").textContent =
-    `${t.merchant_name} · ${t.city}, ${t.country} · MID ${t.merchant_id} · TID ${t.terminal_id} · MCC ${t.mcc}`;
+  for (const t of terminals) {
+    merchantSelect.add(new Option(`${t.merchant_name} · ${t.city} · ${mccs[t.mcc] || "MCC " + t.mcc}`, t.terminal_id));
+  }
 
   fillSelect("currency", currencies, "840");
   fillSelect("entry_mode", entryModes, ENTRY.manual);
@@ -916,8 +953,9 @@ async function init() {
 
   renderWallet();
   renderMobileWallets();
-  updateForm();
-  loadHistory();
+  let saved = "";
+  try { saved = localStorage.getItem("pos-terminal") || ""; } catch {}
+  selectTerminal(saved);
 }
 
 init();

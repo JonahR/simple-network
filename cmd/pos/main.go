@@ -10,6 +10,7 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -23,13 +24,14 @@ import (
 	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
+	"github.com/JonahR/simple-network/internal/merchant"
 	"github.com/JonahR/simple-network/internal/ui"
 )
 
 //go:embed web
 var webFS embed.FS
 
-// Terminal holds the merchant configuration provisioned onto this terminal.
+// Terminal holds the merchant configuration provisioned onto one terminal.
 type Terminal struct {
 	MerchantID   string `json:"merchant_id"`
 	TerminalID   string `json:"terminal_id"`
@@ -40,12 +42,49 @@ type Terminal struct {
 	TimeZone     string `json:"time_zone"` // IANA zone for DE12/DE13 local time
 }
 
+// lane is one merchant's terminal on this POS server. The cashier picks
+// which merchant to ring up for; every request names its terminal.
+type lane struct {
+	Terminal
+	loc *time.Location // TimeZone, loaded
+}
+
+// lane returns the lane for a terminal ID; "" means the default (first) one.
+func (s *server) lane(terminalID string) (lane, bool) {
+	if terminalID == "" {
+		return s.lanes[0], true
+	}
+	for _, l := range s.lanes {
+		if l.TerminalID == terminalID {
+			return l, true
+		}
+	}
+	return lane{}, false
+}
+
+// newLanes gives each merchant in the catalog its first terminal.
+func newLanes(merchants []merchant.Merchant) ([]lane, error) {
+	out := make([]lane, len(merchants))
+	for i, m := range merchants {
+		loc, err := time.LoadLocation(m.TimeZone)
+		if err != nil {
+			return nil, fmt.Errorf("%s: MERCHANT_TZ must be an IANA time zone like America/New_York: %v", m.Name, err)
+		}
+		out[i] = lane{Terminal{
+			MerchantID: m.ID, TerminalID: m.Terminals[0], MerchantName: m.Name,
+			City: m.City, Country: m.Country, MCC: m.MCC, TimeZone: m.TimeZone,
+		}, loc}
+	}
+	return out, nil
+}
+
 // SaleInput is what the cashier enters for one sale.
 type SaleInput struct {
 	CardNumber     string `json:"card_number"`
 	Expiry         string `json:"expiry"`
 	CVV            string `json:"cvv"`
 	CardholderName string `json:"cardholder_name"`
+	TerminalID     string `json:"terminal_id"` // Which merchant's lane; "" for the default
 	Amount         string `json:"amount"`
 	Currency       string `json:"currency"`
 	EntryMode      string `json:"entry_mode"`
@@ -114,12 +153,12 @@ func cardOnFile(id string) (StoredCard, bool) {
 
 // Transaction is a sale as recorded by the terminal.
 type Transaction struct {
-	Status   string                `json:"status"` // APPROVED, PARTIAL, DECLINED, NO_RESPONSE, or VOIDED
-	Message  string                `json:"message"`
-	Request  iso8583.AuthRequest   `json:"request"`            // Redacted
-	Response *iso8583.AuthResponse `json:"response,omitempty"` // Redacted; nil if the acquirer never answered
-	Created  time.Time             `json:"created"`
-	Reversal *Reversal             `json:"reversal,omitempty"` // Set once the terminal starts undoing the sale
+	Status   string                 `json:"status"` // APPROVED, PARTIAL, DECLINED, NO_RESPONSE, or VOIDED
+	Message  string                 `json:"message"`
+	Request  iso8583.AuthRequest    `json:"request"`            // Redacted
+	Response *iso8583.AuthResponse  `json:"response,omitempty"` // Redacted; nil if the acquirer never answered
+	Created  time.Time              `json:"created"`
+	Reversal *Reversal              `json:"reversal,omitempty"` // Set once the terminal starts undoing the sale
 	ThreeDS  *iso8583.ThreeDSResult `json:"three_ds,omitempty"` // The 3-D Secure outcome, for online sales that used it
 
 	// Split tender. A partial approval leaves a balance due on the first
@@ -135,9 +174,8 @@ type Transaction struct {
 }
 
 type server struct {
-	terminal     Terminal
-	location     *time.Location // Merchant's time zone, for DE12/DE13
-	pinKey       []byte         // PIN key shared between the acquirer and the network
+	lanes        []lane // One per merchant; the first is the default
+	pinKey       []byte // PIN key shared between the acquirer and the network
 	acquirer     *acquirerClient
 	dashboardURL string
 	acquirerURL  string // For the browser
@@ -148,19 +186,16 @@ type server struct {
 
 	reversalRetry time.Duration // Wait between attempts to deliver an 0420
 
-	chipFailures map[string]time.Time // PAN -> last failed chip read, for fallback swipes
+	chipFailures map[string]time.Time   // PAN -> last failed chip read, for fallback swipes
 	challenges   map[string]*pending3DS // 3-D Secure ID -> sale waiting for the shopper's code
 }
 
 func main() {
-	t := Terminal{
-		MerchantID:   env("MERCHANT_ID", "000000000012345"),
-		TerminalID:   env("TERMINAL_ID", "TERM0001"),
-		MerchantName: env("MERCHANT_NAME", "Simple Coffee Co"),
-		City:         env("MERCHANT_CITY", "San Francisco"),
-		Country:      env("MERCHANT_COUNTRY", "US"),
-		MCC:          env("MCC", "5814"),
-		TimeZone:     env("MERCHANT_TZ", "America/Los_Angeles"),
+	// The same catalog and settings the acquirer onboards, so every lane is
+	// a terminal it recognizes.
+	lanes, err := newLanes(merchant.FromEnv(os.Getenv))
+	if err != nil {
+		log.Fatal(err)
 	}
 	addr := env("POS_ADDR", ":8080")
 
@@ -169,14 +204,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	loc, err := time.LoadLocation(t.TimeZone)
-	if err != nil {
-		log.Fatalf("MERCHANT_TZ must be an IANA time zone like America/New_York: %v", err)
-	}
-
 	s := &server{
-		terminal:     t,
-		location:     loc,
+		lanes:        lanes,
 		pinKey:       pinKey,
 		acquirer:     newAcquirerClient(env("ACQUIRER_URL", "http://localhost:8081")),
 		dashboardURL: env("NETWORK_DASHBOARD_URL", "http://localhost:8090"),
@@ -203,7 +232,7 @@ func main() {
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	ui.Register(mux, ui.PagesFromEnv())
 
-	log.Printf("POS terminal %s (merchant %s) listening on %s", t.TerminalID, t.MerchantID, addr)
+	log.Printf("POS with %d merchant lanes (default %s, terminal %s) listening on %s", len(lanes), lanes[0].MerchantName, lanes[0].TerminalID, addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
@@ -212,8 +241,13 @@ func (s *server) handleTerminal(w http.ResponseWriter, _ *http.Request) {
 	for i, c := range cardsOnFile {
 		saved[i] = map[string]string{"id": c.ID, "customer": c.Customer, "masked": card.Mask(c.PAN)}
 	}
+	terminals := make([]Terminal, len(s.lanes))
+	for i, l := range s.lanes {
+		terminals[i] = l.Terminal
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"terminal":       s.terminal,
+		"terminal":       s.lanes[0].Terminal, // The default
+		"terminals":      terminals,
 		"mtis":           iso8583.MTINames,
 		"mccs":           iso8583.MCCs,
 		"entry_modes":    iso8583.EntryModes,
@@ -284,12 +318,16 @@ func (s *server) completeSale(ctx context.Context, in SaleInput, req iso8583.Aut
 	return s.snapshot(tx)
 }
 
-func (s *server) handleTransactions(w http.ResponseWriter, _ *http.Request) {
+// handleTransactions lists sales newest first, for one terminal when
+// ?terminal= names it.
+func (s *server) handleTransactions(w http.ResponseWriter, r *http.Request) {
+	only := r.URL.Query().Get("terminal")
 	s.mu.Lock()
-	out := make([]Transaction, len(s.history))
-	// Newest first.
-	for i, tx := range s.history {
-		out[len(s.history)-1-i] = copyTx(tx)
+	out := []Transaction{}
+	for i := len(s.history) - 1; i >= 0; i-- {
+		if tx := s.history[i]; only == "" || tx.Request.TerminalID == only {
+			out = append(out, copyTx(tx))
+		}
 	}
 	s.mu.Unlock()
 	writeJSON(w, http.StatusOK, out)

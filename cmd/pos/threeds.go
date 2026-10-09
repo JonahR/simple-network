@@ -70,9 +70,10 @@ func defaultECI(in SaleInput) string {
 // network's directory server, to authenticate the shopper. A frictionless
 // result goes straight to authorization; a challenge waits for the code.
 func (s *server) startThreeDS(w http.ResponseWriter, r *http.Request, in SaleInput, req iso8583.AuthRequest) {
+	l, _ := s.lane(req.TerminalID) // The picked merchant, shown to the shopper in the challenge
 	res, err := s.acquirer.authenticate3DS(r.Context(), iso8583.ThreeDSRequest{
 		PAN: req.PAN, Expiry: req.Expiry, Amount: req.Amount, Currency: req.Currency,
-		MerchantID: req.MerchantID, MerchantName: s.terminal.MerchantName,
+		MerchantID: req.MerchantID, MerchantName: l.MerchantName,
 	})
 	if err != nil {
 		res = iso8583.ThreeDSResult{Status: "U", Reason: err.Error()}

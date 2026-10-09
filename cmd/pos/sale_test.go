@@ -16,9 +16,8 @@ func newTestServer() *server {
 	key, _ := hex.DecodeString(demokeys.AcquirerPIN)
 	loc, _ := time.LoadLocation("America/Los_Angeles")
 	return &server{
-		terminal: Terminal{MerchantID: "M1", TerminalID: "T1", MerchantName: "Shop", City: "SF", Country: "US", MCC: "5814"},
-		location: loc,
-		pinKey:   key,
+		lanes:  []lane{{Terminal{MerchantID: "M1", TerminalID: "T1", MerchantName: "Shop", City: "SF", Country: "US", MCC: "5814"}, loc}},
+		pinKey: key,
 	}
 }
 

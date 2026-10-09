@@ -59,6 +59,12 @@ header {
 .brand span { color: var(--accent); }
 .merchant { flex: 1 1 280px; color: var(--muted); font-size: 13px; }
 
+/* Merchant picker: which business this POS is ringing up for. */
+.merchant-pick { flex: 1 1 360px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.merchant-pick label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.merchant-pick select { width: auto; max-width: 100%; padding: 6px 10px; font-weight: 600; }
+.merchant-pick .merchant { flex: 1 1 100%; }
+
 main {
   display: grid;
   grid-template-columns: minmax(250px, 290px) minmax(300px, 380px) 1fr;
