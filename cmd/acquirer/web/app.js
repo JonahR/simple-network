@@ -88,6 +88,140 @@ function selected() {
   return (selectedKey && txns.find((r) => keyOf(r) === selectedKey)) || txns[0];
 }
 
+// --- Sent to the network ------------------------------------------------------
+// The messages the acquirer put on the wire to the network, field by field, as
+// the record keeps them: card number masked, PIN block and CVV2 hidden.
+
+const PROC_TYPES = { "00": "Purchase", "09": "Purchase with cash back", "20": "Refund", "30": "Balance inquiry" };
+const ACCOUNT_TYPES = { "00": "default account", "10": "savings", "20": "checking", "30": "credit" };
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// mmdd formats an MMDD date, and hms an hhmmss time, as they are read.
+const mmdd = (v) => `${MONTHS[Number(v.slice(0, 2)) - 1] || v.slice(0, 2)} ${Number(v.slice(2, 4))}`;
+const hms = (v) => `${v.slice(0, 2)}:${v.slice(2, 4)}:${v.slice(4, 6)}`;
+const amountWire = (minor) => String(minor).padStart(12, "0");
+
+// The 0100's fields in ISO 8583 order: the data element, the record's key,
+// and how to read the value.
+const AUTH_FIELDS = [
+  { de: "MTI", name: "Message type", key: "mti", term: "mti", read: () => "Authorization request" },
+  { de: "DE2", name: "Card number", key: "de2_pan", term: "de2", read: (v, r) => (r.wallet_provider ? "Device token, masked here" : "Masked here; sent in full") },
+  { de: "DE3", name: "Processing code", key: "de3_processing_code", term: "de3", read: (v) => [PROC_TYPES[v.slice(0, 2)], ACCOUNT_TYPES[v.slice(2, 4)] && `from ${ACCOUNT_TYPES[v.slice(2, 4)]}`].filter(Boolean).join(", ") },
+  { de: "DE4", name: "Amount", key: "de4_amount", term: "de4", wire: amountWire, read: (v, r) => money(v, r.de49_currency) },
+  { de: "DE7", name: "Transmission time", key: "de7_transmission_datetime", term: "de7", read: (v) => `${mmdd(v)} ${hms(v.slice(4))} UTC` },
+  { de: "DE11", name: "STAN", key: "de11_stan", term: "de11", read: () => "Acquirer's trace number for this leg" },
+  { de: "DE12", name: "Local time", key: "de12_local_time", term: "de12", read: hms },
+  { de: "DE13", name: "Local date", key: "de13_local_date", term: "de12", read: mmdd },
+  { de: "DE14", name: "Expiry", key: "de14_expiry", term: "de14", read: (v) => `${v.slice(2)}/${v.slice(0, 2)}` },
+  { de: "DE18", name: "Merchant category", key: "de18_mcc", term: "de18", read: (v) => data.mccs[v] || "" },
+  { de: "DE22", name: "Entry mode", key: "de22_pos_entry_mode", term: "de22", read: (v) => data.entry_modes[v] || "" },
+  { de: "DE32", name: "Acquirer ID", key: "de32_acquirer_id", term: "de32-acquirer-id", read: (v) => (v === data.bank.id ? data.bank.name : "") },
+  { de: "DE35", name: "Track 2", key: "de35_track2", term: "de35", read: () => "Stripe data, masked here" },
+  { de: "DE37", name: "Retrieval reference", key: "de37_rrn", term: "de37", read: () => "Year digit, day of year, hour, STAN" },
+  { de: "DE41", name: "Terminal ID", key: "de41_terminal_id", term: "de41", read: () => "" },
+  { de: "DE42", name: "Merchant ID", key: "de42_merchant_id", term: "de42", read: () => "" },
+  { de: "DE43", name: "Merchant name and location", key: "de43_merchant_name_location", term: "de43", read: () => "" },
+  { de: "DE48", name: "Fleet prompts", key: "de48_fleet", term: "de48-fleet", wire: (f) => [f.odometer, f.vehicle_id, f.driver_id].join(" / "), read: () => "Odometer / vehicle / driver" },
+  { de: "DE48", name: "Card-on-file indicator", key: "de48_cof_indicator", term: "de48-cof", read: () => "" },
+  { de: "DE49", name: "Currency", key: "de49_currency", term: "de49", read: (v) => data.currencies[v] || "" },
+  { de: "DE52", name: "PIN block", key: "de52_pin_data", term: "de52", wire: () => "••••••••••••••••", read: () => "Encrypted on the PIN pad; passed through unchanged" },
+  { de: "DE54", name: "Additional amounts", key: "de54_additional_amounts", term: "de54", wire: (list) => list.map((a) => `${a.type}:${amountWire(a.amount)}`).join(" "), read: (list, r) => list.map((a) => money(a.amount, r.de49_currency)).join(", ") },
+  { de: "DE55", name: "Chip cryptogram", key: "de55_arqc", term: "de55", read: () => "ARQC" },
+  { de: "DE123", name: "Billing address (AVS)", key: "de123_avs", term: "avs", wire: (a) => [a.zip, a.street].filter(Boolean).join(" · "), read: () => "Issuer checks it against its records" },
+  { de: "", name: "E-commerce indicator", key: "eci", term: "eci", read: (v) => ({ "05": "3-D Secure authenticated", "06": "Authentication attempted", "07": "Not authenticated" })[v] || "" },
+  { de: "", name: "CAVV", key: "cavv", term: "cavv", read: () => "Proof of 3-D Secure authentication" },
+  { de: "", name: "Cardholder name", key: "cardholder_name", term: "cardholder-name", read: () => "" },
+  { de: "", name: "Wallet provider", key: "wallet_provider", term: "wallet-provider", read: () => "" },
+];
+
+// The 0420's fields: which ones it copies from the 0100 it undoes, and which
+// are its own.
+const REVERSAL_FIELDS = [
+  { de: "MTI", name: "Message type", key: "mti", term: "mti", own: true, read: () => "Reversal advice" },
+  { de: "DE2", name: "Card number", key: "de2_pan", term: "de2", read: () => "Masked here; sent in full" },
+  { de: "DE4", name: "Amount", key: "de4_amount", term: "de4", wire: amountWire, read: (v, r, rec) => money(v, rec.request.de49_currency) },
+  { de: "DE7", name: "Transmission time", key: "de7_transmission_datetime", term: "de7", own: true, read: (v) => `${mmdd(v)} ${hms(v.slice(4))} UTC` },
+  { de: "DE11", name: "STAN", key: "de11_stan", term: "de11", own: true, read: () => "The 0420's own trace number" },
+  { de: "DE32", name: "Acquirer ID", key: "de32_acquirer_id", term: "de32-acquirer-id", read: (v) => (v === data.bank.id ? data.bank.name : "") },
+  { de: "DE37", name: "Retrieval reference", key: "de37_rrn", term: "de37", read: () => "" },
+  { de: "DE39", name: "Reversal reason", key: "de39_response_code", term: "de39", own: true, read: (v) => data.response_codes[v]?.text || "" },
+  { de: "DE90", name: "Original data elements", key: "de90_original_data", term: "de90", own: true,
+    wire: (o) => `${o.mti} ${o.stan} ${o.transmission_time} ${o.acquirer_id}`,
+    read: (o) => `Original ${o.mti}: STAN ${o.stan}, sent ${mmdd(o.transmission_time)} ${hms(o.transmission_time.slice(4))} UTC` },
+];
+
+const present = (v) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length);
+
+// source tags a field with where its value came from.
+function source(label, cls) {
+  return `<span class="src ${cls}">${label}</span>`;
+}
+
+// wireCard draws one message: its bitmap of present fields, then each field's
+// value on the wire and what it means.
+function wireCard(id, mti, title, msg, fields, tag, rec) {
+  const rows = fields.filter((f) => present(msg[f.key]));
+  const chips = rows
+    .filter((f) => f.de.startsWith("DE"))
+    .map((f) => `<span class="bit ${tag(f).cls}">${f.de.slice(2)}</span>`)
+    .join("");
+  const body = rows
+    .map((f) => {
+      const v = msg[f.key];
+      const t = tag(f);
+      return `<tr class="${t.cls}">
+        <td><span class="mono de" data-term="${f.term}">${escapeHTML(f.de)}</span> ${escapeHTML(f.name)}</td>
+        <td class="mono value">${escapeHTML(f.wire ? f.wire(v) : v)}</td>
+        <td class="meaning">${escapeHTML(f.read(v, msg, rec))}</td>
+        <td>${source(t.label, t.cls)}</td>
+      </tr>`;
+    })
+    .join("");
+  return `<div class="wire-card" id="${id}">
+    <div class="wire-head">
+      <span class="mti-badge" data-term="${MTI_TERMS[mti] || "mti"}">${mti}</span>
+      <b>${title}</b>
+      <span class="muted">STAN ${escapeHTML(msg.de11_stan)}</span>
+    </div>
+    <div class="bitmap"><small data-term="bitmap">Bitmap: fields present</small>${chips}</div>
+    <div class="table-wrap"><table class="wire">
+      <thead><tr><th data-term="iso8583">Field</th><th>On the wire</th><th>Meaning</th><th>From</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// wireHTML shows what the acquirer sent the network for rec: the 0100 it
+// forwarded, and the 0420 if it had to reverse it.
+function wireHTML(rec) {
+  const forwarded = rec.steps.some((s) => s.from === "acquirer" && s.to === "network" && s.mti === "0100");
+  if (!forwarded) {
+    return `<h3>Sent to the network</h3><p class="hint">Nothing. The acquirer declined this one itself, before asking the network.</p>`;
+  }
+  // A change applies to the 0100 when the network leg carries its new value;
+  // the 0110's restored STAN doesn't.
+  const changed = {};
+  for (const c of rec.changes) {
+    const f = AUTH_FIELDS.find((f) => f.de === c.field);
+    if (f && String(rec.request[f.key]) === c.after) changed[c.field] = c.before ? "rewritten" : "added";
+  }
+  const authTag = (f) =>
+    changed[f.de] === "added" ? { label: "Added by acquirer", cls: "acq" }
+      : changed[f.de] === "rewritten" ? { label: "Rewritten by acquirer", cls: "acq" }
+        : f.de === "MTI" ? { label: "Terminal", cls: "" }
+          : { label: "Terminal, unchanged", cls: "" };
+  let html = `<h3>Sent to the network</h3>
+    <p class="hint wire-intro">Each data element the acquirer put on the wire. <span class="src acq">Highlighted</span> fields are the acquirer's own; the rest pass through from the terminal. The card number is masked and the PIN block and CVV2 are hidden here; the network receives them.</p>
+    <div class="wire-grid">`;
+  html += wireCard("wire-0100", "0100", "Authorization request", rec.request, AUTH_FIELDS, authTag, rec);
+  const adv = rec.reversal_advice;
+  if (adv) {
+    const advTag = (f) => (f.own ? { label: "New in the 0420", cls: "acq" } : { label: "Copied from the 0100", cls: "" });
+    html += wireCard("wire-0420", "0420", "Reversal advice", adv, REVERSAL_FIELDS, advTag, rec);
+  }
+  return html + "</div>";
+}
+
 // renderPath draws the selected authorization as a sequence diagram.
 function renderPath(rec) {
   const el = document.getElementById("path");
@@ -129,7 +263,7 @@ function renderPath(rec) {
           <div class="msg-line"></div>
           <div class="msg-ms">${s.ms ? fmtMS(s.ms) : "&nbsp;"}</div>
         </div>
-        <div class="msg-detail">${escapeHTML(s.detail)}</div>
+        <div class="msg-detail">${escapeHTML(s.detail)}${toNetwork(s) ? ` <button type="button" class="link" data-wire="wire-${s.mti}">Show the fields ↓</button>` : ""}</div>
       </div>`;
     })
     .join("");
@@ -160,8 +294,24 @@ function renderPath(rec) {
       ${rec.reversal ? `<span><span data-term="reversal">Reversal</span> <b>${escapeHTML(REVERSAL_TEXT[rec.reversal] || rec.reversal)}</b>${rec.reversal_reason ? ` · reason <b class="mono" data-term="reversal">${escapeHTML(rec.reversal_reason)}</b> ${escapeHTML(data.response_codes[rec.reversal_reason]?.text || "")}` : ""}</span>` : ""}
       ${link}
     </div>
-    ${changes}`;
+    ${changes}
+    ${wireHTML(rec)}`;
 }
+
+// toNetwork is true for the messages the acquirer sent the network; the
+// page shows each one's fields.
+const toNetwork = (s) => s.from === "acquirer" && s.to === "network" && (s.mti === "0100" || s.mti === "0420");
+
+document.getElementById("path").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-wire]");
+  if (!b) return;
+  const card = document.getElementById(b.dataset.wire);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  card.classList.remove("flash");
+  void card.offsetWidth; // Restart the highlight
+  card.classList.add("flash");
+});
 
 function renderTransactions(current) {
   const body = document.getElementById("txns");

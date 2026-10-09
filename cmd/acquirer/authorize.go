@@ -86,6 +86,8 @@ type Record struct {
 	// ReversalReason is the 0420's DE39: 17 customer cancellation (a void),
 	// 68 response received too late, or 22 suspected malfunction.
 	ReversalReason string `json:"reversal_reason,omitempty"`
+	// ReversalAdvice is the 0420 the acquirer sent the network, PAN masked.
+	ReversalAdvice *iso8583.ReversalAdvice `json:"reversal_advice,omitempty"`
 }
 
 // leg is what the acquirer sent the network for one terminal request, so a
@@ -397,6 +399,10 @@ func (a *acquirer) reverse(ctx context.Context, rec *Record, orig iso8583.AuthRe
 			AcquirerID:       orig.AcquirerID,
 		},
 	}
+	shown := adv.Redacted(card.Mask)
+	a.mu.Lock()
+	rec.ReversalAdvice = &shown
+	a.mu.Unlock()
 	a.addStep(rec, Step{
 		From: PartyAcquirer, To: PartyNetwork, MTI: adv.MTI, Title: "Reversal advice",
 		Detail: fmt.Sprintf("0420 STAN %s, reason %s %s. DE90 names the original 0100: STAN %s sent at %s by acquirer %s. Resent until the network acknowledges it.",

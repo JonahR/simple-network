@@ -224,3 +224,55 @@ button.small {
   cursor: pointer;
 }
 button.small:disabled { opacity: .6; cursor: wait; }
+
+/* Sent to the network: each message the acquirer put on the wire. */
+.wire-intro { margin: 0 0 10px; }
+.wire-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.wire-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-width: 0;
+  scroll-margin-top: 12px;
+}
+.wire-card.flash { animation: wire-flash 1.2s ease-out; }
+@keyframes wire-flash { from { box-shadow: 0 0 0 3px var(--accent); } to { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .wire-card.flash { animation: none; } }
+.wire-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 10px; }
+.mti-badge {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--select);
+  color: var(--accent);
+}
+.bitmap { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 10px; }
+.bitmap small { color: var(--muted); font-size: 11px; margin-right: 4px; }
+.bit {
+  font: 600 11px ui-monospace, "SF Mono", Menlo, monospace;
+  min-width: 26px;
+  text-align: center;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--code-bg);
+  color: var(--muted);
+}
+.bit.acq { background: var(--select); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+table.wire td { vertical-align: top; }
+table.wire .de { color: var(--muted); display: inline-block; min-width: 44px; }
+table.wire .value { white-space: normal; overflow-wrap: anywhere; min-width: 120px; }
+table.wire .meaning { white-space: normal; color: var(--muted); min-width: 160px; }
+table.wire tr.acq td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.src { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.src.acq { color: var(--accent); font-weight: 600; }
+button.link {
+  font: inherit;
+  font-size: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}

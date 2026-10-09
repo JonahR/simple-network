@@ -235,6 +235,10 @@ func TestAuthorizeNetworkDownSendsReversal(t *testing.T) {
 			if got := strings.Join(path, ","); got != want {
 				t.Errorf("steps = %s\nwant    %s", got, want)
 			}
+			// The page shows the 0420 as sent, with the card number masked.
+			if shown := rec.ReversalAdvice; shown == nil || shown.STAN != adv.STAN || shown.PAN == adv.PAN || *shown.OriginalData != wantOrig {
+				t.Errorf("recorded 0420 = %+v, want the one sent with DE2 masked", shown)
+			}
 			if rec.Steps[2].Title != tc.title {
 				t.Errorf("timeout step title = %q, want %q", rec.Steps[2].Title, tc.title)
 			}
