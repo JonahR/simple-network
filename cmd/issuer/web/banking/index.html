@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Online Banking</title>
+<link rel="stylesheet" href="/ui/nav.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/learn/learn.css">
+</head>
+<body>
+<div class="sim-bar" data-term-scope="cardholder">
+  <span class="sim-label"><b data-term="network">simple-network</b> <span data-term="cardholder">Cardholder</span></span>
+  <nav class="sn-nav" data-page="cardholder"></nav>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/learn/">Learn the network</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" aria-keyshortcuts="h">Help <kbd>H</kbd></button>
+  </nav>
+</div>
+
+<header class="bank-header" data-term-scope="issuer">
+  <div class="bank-brand">
+    <span class="bank-mark" aria-hidden="true" id="bank-mark">F</span>
+    <span><b id="bank-name" data-term="issuer">Loading…</b><small>Online Banking</small></span>
+  </div>
+  <div class="session">
+    <label for="customer"><span data-term="cardholder">Signed in as</span></label>
+    <select id="customer"></select>
+    <nav class="other-banks" id="banks" aria-label="Your banks"></nav>
+  </div>
+</header>
+
+<main>
+  <aside class="cards-col" data-term-scope="cardholder">
+    <h2>Your cards</h2>
+    <div id="cards" class="card-list" role="radiogroup" aria-label="Your cards"></div>
+  </aside>
+
+  <section class="account" id="account" aria-live="polite">
+    <p class="empty">Loading your accounts…</p>
+  </section>
+</main>
+
+<footer class="bank-foot" data-term-scope="cardholder">
+  This is your bank's view of your card. <b>Pending</b> transactions are purchases the bank approved and is holding against your
+  available credit; they become <b>posted</b> when the merchant's bank clears them at end of day, for their final amount
+  (a tip can change it). Refunds work the other way: approved now, credited when they clear.
+</footer>
+
+<script src="/ui/nav.js"></script>
+<script src="app.js"></script>
+<script src="/learn/learn.js"></script>
+</body>
+</html>

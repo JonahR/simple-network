@@ -37,6 +37,7 @@ func (b *Bank) ApplyDispute(n DisputeNotice) error {
 	for i := range b.decisions {
 		if b.decisions[i].NetworkTxnID == n.NetworkTxnID {
 			b.decisions[i].Dispute = n.Summary
+			b.decisions[i].DisputeCredit = want
 		}
 	}
 	return nil

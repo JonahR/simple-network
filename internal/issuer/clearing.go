@@ -27,6 +27,7 @@ func (b *Bank) Post(f clearing.IssuerFile) clearing.IssuerAck {
 				acct.Available += r.Amount
 				b.setHold(r.NetworkTxnID, "credited")
 				b.recordRefund(r)
+				b.recordPosting(acct, r)
 				ack.Posted++
 			} else {
 				ack.Unmatched = append(ack.Unmatched, r.NetworkTxnID)
@@ -41,6 +42,7 @@ func (b *Bank) Post(f clearing.IssuerFile) clearing.IssuerAck {
 				acct.Available -= r.Amount
 				acct.Posted += r.Amount
 				b.setHold(r.NetworkTxnID, "posted")
+				b.recordPosting(acct, r)
 				ack.Posted++
 			}
 			ack.Unmatched = append(ack.Unmatched, r.NetworkTxnID)
@@ -51,6 +53,7 @@ func (b *Bank) Post(f clearing.IssuerFile) clearing.IssuerAck {
 		acct.Posted += r.Amount
 		delete(b.holds, r.NetworkTxnID)
 		b.setHold(r.NetworkTxnID, "posted")
+		b.recordPosting(acct, r)
 		ack.Posted++
 	}
 	b.postedFiles[f.FileID] = ack

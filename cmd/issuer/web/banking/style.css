@@ -1,0 +1,124 @@
+/* The cardholder's online banking: a consumer bank's look, not the ops
+   dashboards'. Each bank sets its brand color on <body data-bank>. */
+:root {
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --text: #16202c;
+  --muted: #5d6877;
+  --border: #e1e6ed;
+  --code-bg: #eef1f5;
+  --brand: #0b5cad;
+  --brand-ink: #ffffff;
+  --brand-soft: #e6f0fa;
+  --credit: #137a3a;
+  --warn: #8a5a00;
+  --warn-bg: #fff4d6;
+  --bad: #b42323;
+  color-scheme: light;
+}
+body[data-bank="UCB"] { --brand: #7a1f3d; --brand-soft: #f6e8ee; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11151b;
+    --panel: #1a2029;
+    --text: #e8edf3;
+    --muted: #9aa6b4;
+    --border: #2a3340;
+    --code-bg: #222a35;
+    --brand: #4d9be6;
+    --brand-ink: #0b1220;
+    --brand-soft: #18293d;
+    --credit: #5fd08a;
+    --warn: #f3cf73;
+    --warn-bg: #3a2f10;
+    --bad: #ff8a8a;
+    color-scheme: dark;
+  }
+  body[data-bank="UCB"] { --brand: #e07a9c; --brand-soft: #3a1d29; }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--brand); }
+.empty, .muted { color: var(--muted); }
+
+/* The simulation's own bar, kept small so the page reads as the bank's. */
+.sim-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 8px 24px; background: var(--code-bg); border-bottom: 1px solid var(--border); font-size: 13px; }
+.sim-label { color: var(--muted); }
+.sim-label span { color: var(--brand); font-weight: 600; }
+.sim-bar .learn-nav { margin-left: auto; }
+
+.bank-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding: 18px 24px; background: var(--brand); color: var(--brand-ink); }
+.bank-brand { display: flex; align-items: center; gap: 12px; }
+.bank-brand b { display: block; font-size: 20px; line-height: 1.2; }
+.bank-brand small { display: block; opacity: .85; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.bank-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--brand-ink); color: var(--brand); font-weight: 800; font-size: 20px; }
+.session { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; }
+.session select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 0; background: var(--brand-ink); color: var(--brand); font-weight: 600; max-width: 100%; }
+.other-banks { display: flex; gap: 4px; }
+.other-banks a { color: var(--brand-ink); opacity: .8; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; text-decoration: none; }
+.other-banks a[aria-current="page"] { opacity: 1; background: rgba(255, 255, 255, .18); font-weight: 600; }
+
+main { display: grid; grid-template-columns: minmax(220px, 280px) 1fr; gap: 24px; padding: 24px; max-width: 1180px; margin: 0 auto; align-items: start; }
+@media (max-width: 820px) { main { grid-template-columns: 1fr; padding: 16px; } .bank-header, .sim-bar { padding-left: 16px; padding-right: 16px; } }
+h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+h3 { margin: 0 0 10px; font-size: 16px; }
+
+/* Card picker */
+.card-list { display: flex; flex-direction: column; gap: 8px; }
+.card-pick { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.card-pick:hover { border-color: var(--brand); }
+.card-pick[aria-checked="true"] { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+.mini { width: 44px; height: 28px; border-radius: 5px; flex: none; background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 55%, #fff)); }
+.card-pick b { display: block; font-size: 14px; }
+.card-pick small { color: var(--muted); font-size: 12px; }
+.locked-tag { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--bad); }
+
+/* Account */
+.account { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+.overview { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: center; }
+@media (max-width: 1000px) { .overview { grid-template-columns: 1fr; } }
+.plastic { position: relative; aspect-ratio: 1.586; border-radius: 14px; padding: 16px 18px; color: #fff; display: flex; flex-direction: column; justify-content: space-between;
+  background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 50%, #000)); box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
+.plastic .p-top { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; opacity: .9; }
+.plastic .p-num { font: 600 18px ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .08em; }
+.plastic .p-bottom { display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.plastic.locked::after { content: "Locked"; position: absolute; inset: 0; display: grid; place-items: center; border-radius: 14px; background: rgba(0, 0, 0, .55); font-weight: 800; font-size: 22px; letter-spacing: .1em; text-transform: uppercase; }
+
+.numbers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; }
+.numbers div small { display: block; color: var(--muted); font-size: 13px; }
+.numbers div b { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.numbers .big b { font-size: 30px; color: var(--brand); }
+.util { grid-column: 1 / -1; }
+.util-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--code-bg); }
+.util-bar .posted { background: var(--brand); }
+.util-bar .pending { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--brand) 55%, transparent) 0 6px, color-mix(in srgb, var(--brand) 30%, transparent) 6px 12px); }
+.util-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.util-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 4px; font-size: 14px; }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; }
+.switch input { appearance: none; width: 42px; height: 24px; border-radius: 999px; background: var(--border); position: relative; cursor: pointer; transition: background .15s; margin: 0; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+.switch input:checked { background: var(--bad); }
+.switch input:checked::after { left: 21px; }
+.switch input:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Transactions */
+.txn-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; }
+.txn-head small { color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td small { display: block; color: var(--muted); font-size: 12px; }
+td.date { white-space: nowrap; color: var(--muted); }
+.amt-credit { color: var(--credit); font-weight: 600; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); margin-left: 6px; vertical-align: 1px; }
+.tag.credit { background: color-mix(in srgb, var(--credit) 15%, transparent); color: var(--credit); }
+tbody tr:last-child td { border-bottom: 0; }
+
+.bank-foot { max-width: 1180px; margin: 0 auto; padding: 0 24px 32px; color: var(--muted); font-size: 13px; }
+.numbers .refund-note { display: block; font-size: 12px; font-weight: 600; color: var(--credit); }

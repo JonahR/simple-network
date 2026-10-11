@@ -17,6 +17,7 @@ type BankState struct {
 	Reversals      []Reversal                    `json:"reversals"`
 	PostedFiles    map[string]clearing.IssuerAck `json:"posted_files"`
 	DisputeCredits map[string]int64              `json:"dispute_credits,omitempty"`
+	Postings       []Posting                     `json:"postings,omitempty"` // The cardholder's posted transactions
 }
 
 // SavedHold is an authorization hold.
@@ -37,7 +38,7 @@ func (b *Bank) SaveState() BankState {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	st := BankState{Holds: map[string]SavedHold{}, Reversed: []string{}, PostedFiles: map[string]clearing.IssuerAck{},
-		Decisions: slices.Clone(b.decisions), Reversals: slices.Clone(b.reversals)}
+		Decisions: slices.Clone(b.decisions), Reversals: slices.Clone(b.reversals), Postings: slices.Clone(b.postings)}
 	for _, pan := range b.order {
 		st.Accounts = append(st.Accounts, *b.accounts[pan])
 	}
@@ -95,7 +96,7 @@ func (b *Bank) RestoreState(st BankState) {
 	for _, id := range st.Reversed {
 		b.reversed[id] = struct{}{}
 	}
-	b.decisions, b.reversals = st.Decisions, st.Reversals
+	b.decisions, b.reversals, b.postings = st.Decisions, st.Reversals, st.Postings
 	b.postedFiles = map[string]clearing.IssuerAck{}
 	for id, ack := range st.PostedFiles {
 		b.postedFiles[id] = ack

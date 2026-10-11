@@ -92,11 +92,12 @@ type Decision struct {
 	Limit           int64     `json:"limit"`
 	AvailableBefore int64     `json:"available_before"`
 	AvailableAfter  int64     `json:"available_after"`
-	Hold            string    `json:"hold"`                  // "active", "released", "posted", "none", or for a refund "credit pending" then "credited"
-	Dispute         string    `json:"dispute,omitempty"`     // Where a chargeback on this sale stands
-	AVSResult       string    `json:"avs_result,omitempty"`  // DE44 AVS code, if AVS was asked
-	CVV2Result      string    `json:"cvv2_result,omitempty"` // DE44 CVV2 code, if a CVV2 was sent
-	ECI             string    `json:"eci,omitempty"`         // 3-D Secure e-commerce indicator, if any
+	Hold            string    `json:"hold"`                     // "active", "released", "posted", "none", or for a refund "credit pending" then "credited"
+	Dispute         string    `json:"dispute,omitempty"`        // Where a chargeback on this sale stands
+	DisputeCredit   int64     `json:"dispute_credit,omitempty"` // Provisional credit applied for that chargeback
+	AVSResult       string    `json:"avs_result,omitempty"`     // DE44 AVS code, if AVS was asked
+	CVV2Result      string    `json:"cvv2_result,omitempty"`    // DE44 CVV2 code, if a CVV2 was sent
+	ECI             string    `json:"eci,omitempty"`            // 3-D Secure e-commerce indicator, if any
 	// Refunds. A linked refund names the sale it returns; that sale's
 	// decision adds up what was credited back once the refunds clear.
 	OriginalTxnID string `json:"original_txn_id,omitempty"`
@@ -134,6 +135,7 @@ type Bank struct {
 	reversals      []Reversal
 	postedFiles    map[string]clearing.IssuerAck // Clearing files already posted, by file ID
 	disputeCredits map[string]int64              // Provisional credit applied per dispute ID
+	postings       []Posting                     // What clearing posted to accounts, oldest first
 
 	// 3-D Secure (the bank's ACS): challenges waiting for a code, and the
 	// authentication values (CAVVs) it issued, checked at authorization.

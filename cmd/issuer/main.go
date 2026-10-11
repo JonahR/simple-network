@@ -125,6 +125,9 @@ func main() {
 		mux.Handle("GET /", http.FileServerFS(static))
 		mux.HandleFunc("GET /api/overview", s.handleOverview)
 		mux.HandleFunc("POST /api/accounts/{id}/blocked", s.handleBlocked)
+		// The cardholder's online banking at /banking/ (see banking.go).
+		mux.HandleFunc("GET /api/banking/customers", s.handleCustomers)
+		mux.HandleFunc("GET /api/banking/accounts/{id}", s.handleStatement)
 		mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 		ui.Register(mux, ui.PagesFromEnv())
 		mux.Handle("GET /learn/", learnHandler)

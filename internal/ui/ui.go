@@ -36,6 +36,9 @@ type Page struct {
 // browser should use. They differ from the service-to-service URLs in Docker.
 func PagesFromEnv() []Page {
 	return []Page{
+		// The cardholder starts every payment; their online banking is served
+		// by the issuer that holds their card.
+		{"cardholder", "Cardholder", "Customer's online banking", "cardholder", env("CARDHOLDER_PUBLIC_URL", "http://localhost:8091/banking/"), false},
 		{"pos", "POS", "Merchant terminal", "pos-terminal", env("POS_PUBLIC_URL", "http://localhost:8080"), false},
 		{"acquirer", "Acquirer", "Merchant's bank", "acquirer", env("ACQUIRER_PUBLIC_URL", "http://localhost:8081"), false},
 		{"network", "Network", "Card network switch", "network", env("NETWORK_DASHBOARD_URL", "http://localhost:8090"), false},
