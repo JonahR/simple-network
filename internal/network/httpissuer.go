@@ -63,3 +63,10 @@ func (h *HTTPIssuer) post(ctx context.Context, path string, in, out any) error {
 	}
 	return nil
 }
+
+// Advise delivers a stand-in 0120 advice.
+func (h *HTTPIssuer) Advise(ctx context.Context, adv iso8583.AuthAdvice) (iso8583.AuthAdviceResponse, error) {
+	var resp iso8583.AuthAdviceResponse
+	err := h.post(ctx, "/advice", adv, &resp)
+	return resp, err
+}

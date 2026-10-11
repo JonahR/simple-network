@@ -115,6 +115,7 @@ func main() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("POST /authorize", s.handleAuthorize)
 		mux.HandleFunc("POST /reverse", s.handleReverse)
+		mux.HandleFunc("POST /advice", s.handleAdvice)
 		mux.HandleFunc("POST /3ds/authenticate", s.handleAuthenticate3DS)
 		mux.HandleFunc("POST /3ds/challenge", s.handleChallenge3DS)
 		mux.HandleFunc("POST /clearing/presentments", s.handlePresentments)
@@ -151,6 +152,23 @@ func (s *bankServer) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	resp := s.bank.Authorize(req)
 	log.Printf("%s auth txn=%s pan=%s amount=%d code=%s approved=%d",
 		s.bank.ID, req.NetworkTxnID, card.Mask(req.PAN), req.Amount, resp.ResponseCode, resp.Amount)
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleAdvice honors the network's 0120 for an authorization it approved
+// in stand-in while this bank couldn't answer.
+func (s *bankServer) handleAdvice(w http.ResponseWriter, r *http.Request) {
+	if s.mode.Load() == "down" {
+		http.Error(w, "issuer down (simulated)", http.StatusServiceUnavailable)
+		return
+	}
+	var adv iso8583.AuthAdvice
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&adv); err != nil || adv.MTI != iso8583.MTIAuthAdvice {
+		http.Error(w, "invalid 0120 advice", http.StatusBadRequest)
+		return
+	}
+	resp := s.bank.Advise(adv)
+	log.Printf("%s advice txn=%s pan=%s amount=%d held=%v %s", s.bank.ID, adv.NetworkTxnID, adv.PAN, adv.Amount, resp.Held, resp.Note)
 	writeJSON(w, http.StatusOK, resp)
 }
 

@@ -6,6 +6,7 @@
 const CHECKS = ["Account", "Card status", "Expiry", "CVV2", "PIN", "Product rules", "Funds"];
 const CHECK_TERMS = {
   Reversal: "reversal",
+  "Stand-in": "stip",
   Account: "account-id",
   "Card status": "card-controls",
   Expiry: "de14",

@@ -16,12 +16,14 @@ const (
 
 // MTINames maps message type indicators to display names.
 var MTINames = map[string]string{
-	MTIAuthRequest:      "Authorization request",
-	MTIAuthResponse:     "Authorization response",
-	MTIReversalAdvice:   "Reversal advice",
-	MTIReversalResponse: "Reversal advice response",
-	MTICompletion:       "Completion advice",
-	MTICompletionResp:   "Completion advice response",
+	MTIAuthRequest:        "Authorization request",
+	MTIAuthResponse:       "Authorization response",
+	MTIReversalAdvice:     "Reversal advice",
+	MTIReversalResponse:   "Reversal advice response",
+	MTICompletion:         "Completion advice",
+	MTICompletionResp:     "Completion advice response",
+	MTIAuthAdvice:         "Authorization advice (stand-in)",
+	MTIAuthAdviceResponse: "Authorization advice response",
 }
 
 // Processing code (DE3) parts: two digits each for the transaction type,

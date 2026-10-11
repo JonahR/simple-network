@@ -48,8 +48,8 @@ func TestIssuerRuntimeTermsExist(t *testing.T) {
 		t.Fatal("CHECK_TERMS not found in app.js")
 	}
 	values := regexp.MustCompile(`: "([a-z0-9-]+)"`).FindAllStringSubmatch(checkMap[1], -1)
-	if len(values) != 8 {
-		t.Errorf("CHECK_TERMS has %d terms, want one per check (8)", len(values))
+	if len(values) != 9 {
+		t.Errorf("CHECK_TERMS has %d terms, want one per check (9)", len(values))
 	}
 	for _, v := range values {
 		ids = append(ids, v[1])

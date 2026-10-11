@@ -189,6 +189,9 @@ func HashPIN(pan, p string) string {
 func (b *Bank) Authorize(req iso8583.AuthRequest) iso8583.AuthResponse {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if resp, ok := b.alreadyHeld(req); ok {
+		return resp
+	}
 
 	d := Decision{
 		Time:         b.now().UTC(),

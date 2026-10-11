@@ -96,7 +96,7 @@ A purchase goes through three phases:
 | 6 | Settlement + fees | Net settlement report per bank; interchange and network fees applied ✅ Versioned interchange programs and network fees, double-entry ledger, zero-sum check before money moves, simulated settlement bank, merchant funding; Settlement page at :8090/settlement/ |
 | 7 | Reversals, refunds, chargebacks | Full transaction lifecycle |
 | 8 | Ops dashboard | Web UI with live auth stream, approval rates, and settlement positions (partial: live dashboard on :8090 without settlement) |
-| 9 | Hardening | Message signing between participants, idempotency, timeouts/stand-in, load test (partial: services save their state across restarts, `internal/store`; JSON snapshots rather than D4's event log) |
+| 9 | Hardening | Message signing between participants, idempotency, timeouts/stand-in, load test (partial: services save their state across restarts, `internal/store`, as JSON snapshots rather than D4's event log; stand-in processing per issuer with 0120 advices, off by default) |
 
 ## 6. Security (simulated)
 

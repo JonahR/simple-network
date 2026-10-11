@@ -50,6 +50,9 @@ type Switch struct {
 	ReversalRetryMax time.Duration
 	Recorder         *Recorder
 	Now              func() time.Time // Injectable clock (D20)
+	// StandIn approves on an issuer's behalf, within limits it agreed to,
+	// when it can't answer. Nil means always decline with 91.
+	StandIn *StandIn
 	// Fraud is the fraud department's rule engine. It screens every routed
 	// authorization before the issuer sees it; nil skips the check.
 	Fraud *fraud.Engine
@@ -309,6 +312,9 @@ func (s *Switch) authorize(req iso8583.AuthRequest, id string, tr *tracer) (iso8
 	t0 = s.Now()
 	if !iss.Breaker.Allow() {
 		tr.step("breaker", fmt.Sprintf("%s circuit breaker open; request not sent", iss.Name), false, t0)
+		if resp, ok := s.standIn(iss, req, fwd, id, tr, "circuit breaker open"); ok {
+			return resp, &fwd
+		}
 		return decline(iso8583.RCIssuerUnavailable)
 	}
 	before := iss.Breaker.State()
@@ -325,10 +331,18 @@ func (s *Switch) authorize(req iso8583.AuthRequest, id string, tr *tracer) (iso8
 		}
 		if errors.Is(err, ErrIssuerTimeout) {
 			tr.step("issuer", fmt.Sprintf("no response from %s within %s", iss.Name, s.IssuerTimeout), false, t0)
+			// Approved in stand-in: the 0120 tells the issuer instead of a
+			// reversal, and a late approval of its own is the same hold.
+			if resp, ok := s.standIn(iss, req, fwd, id, tr, "issuer timed out"); ok {
+				return resp, &fwd
+			}
 			// D9: the issuer may still approve and hold funds, so reverse it.
 			s.background(func(ctx context.Context) { s.reverse(ctx, iss, fwd, tr, iso8583.RCLateResponse) })
 		} else {
 			tr.step("issuer", fmt.Sprintf("%s: %v", iss.Name, err), false, t0)
+			if resp, ok := s.standIn(iss, req, fwd, id, tr, "issuer unavailable"); ok {
+				return resp, &fwd
+			}
 		}
 		return s.decline(req, id, iso8583.RCIssuerUnavailable), &fwd
 	}

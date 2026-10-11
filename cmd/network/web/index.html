@@ -69,7 +69,7 @@
       <section class="panel">
         <h2><span data-term="issuer">Issuers</span></h2>
         <div id="issuers"></div>
-        <p class="hint"><span data-term="issuer-health">Simulation</span>: <b data-term="issuer-health">Slow</b> answers after the <span data-term="timeout"><span id="timeout">5s</span> timeout</span>, so the network declines with <span data-term="de39">91</span> and sends an <span data-term="reversal">0420 reversal</span>. <b data-term="issuer-health">Down</b> refuses requests. Three failures in a row open the issuer's <span data-term="circuit-breaker">circuit breaker</span> for 15s.</p>
+        <p class="hint"><span data-term="issuer-health">Simulation</span>: <b data-term="issuer-health">Slow</b> answers after the <span data-term="timeout"><span id="timeout">5s</span> timeout</span>, so the network declines with <span data-term="de39">91</span> and sends an <span data-term="reversal">0420 reversal</span>. <b data-term="issuer-health">Down</b> refuses requests. Three failures in a row open the issuer's <span data-term="circuit-breaker">circuit breaker</span> for 15s. With <span data-term="stip">stand-in</span> on, the network approves small sales on the issuer's behalf instead, and sends it <span data-term="stip">0120 advices</span> when it's back.</p>
       </section>
     </div>
   </section>

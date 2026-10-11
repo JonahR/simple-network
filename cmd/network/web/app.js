@@ -20,6 +20,8 @@ const STEP_NAMES = {
   issuer: "Issuer",
   respond: "Respond",
   reversal: "Reversal 0420",
+  stand_in: "Stand-in",
+  advice: "Advice 0120",
 };
 const ENTRY_SHORT = { "011": "Keyed", "901": "Swipe", "051": "Chip", "071": "Contactless", "812": "E-commerce", "100": "On file", "801": "Fallback swipe" };
 
@@ -110,7 +112,7 @@ function renderIssuers() {
   document.getElementById("timeout").textContent = overview.issuer_timeout;
   document.getElementById("issuers").innerHTML = `
     <div class="table-wrap"><table>
-      <thead><tr><th>Issuer</th><th>Health</th><th class="num">Auths</th><th class="num">Approved</th><th class="num">Avg time</th><th>Simulate</th></tr></thead>
+      <thead><tr><th>Issuer</th><th>Health</th><th class="num">Auths</th><th class="num">Approved</th><th class="num">Avg time</th><th>Simulate · stand-in</th></tr></thead>
       <tbody>${overview.issuers
         .map((i) => {
           const h = issuerHealth(i);
@@ -124,14 +126,39 @@ function renderIssuers() {
             <td class="num">${i.stats.total}</td>
             <td class="num">${rate}</td>
             <td class="num">${i.stats.total ? ms(i.stats.avg_issuer_us) : "—"}</td>
-            <td><span class="seg" role="group" aria-label="Simulate ${escapeHTML(i.name)}">${seg}</span></td>
+            <td><span class="seg" role="group" aria-label="Simulate ${escapeHTML(i.name)}">${seg}</span>
+              <div class="standin"><span data-term="stip">Stand-in</span> ${standInCell(i)}</div></td>
           </tr>`;
         })
         .join("")}</tbody>
     </table></div>`;
 }
 
+// standInCell shows an issuer's stand-in agreement, its switch, and the
+// 0120 advices the network still owes the issuer.
+function standInCell(i) {
+  const si = i.stand_in;
+  if (!si) return "—";
+  const p = si.params;
+  const limits = `≤ ${money(p.max_amount, "840")} a sale, ${money(p.daily_card_limit, "840")} a card a day`;
+  return `<span class="seg" role="group" aria-label="Stand-in for ${escapeHTML(i.name)}">
+      <button type="button" data-standin="${i.id}" data-enabled="true" aria-pressed="${p.enabled}">On</button>
+      <button type="button" data-standin="${i.id}" data-enabled="false" aria-pressed="${!p.enabled}">Off</button>
+    </span>
+    <div class="muted">${limits}${si.pending ? ` · <b>${si.pending} advice${si.pending === 1 ? "" : "s"} waiting</b>` : ""}${si.delivered ? ` · ${si.delivered} delivered` : ""}</div>`;
+}
+
 document.getElementById("issuers").addEventListener("click", async (e) => {
+  const sb = e.target.closest("button[data-standin]");
+  if (sb) {
+    await fetch(`/api/standin/${sb.dataset.standin}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: sb.dataset.enabled === "true" }),
+    });
+    refreshOverview();
+    return;
+  }
   const b = e.target.closest("button[data-mode]");
   if (!b) return;
   await fetch(`/api/sim/issuers/${b.dataset.issuer}/mode`, {

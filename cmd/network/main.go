@@ -85,6 +85,13 @@ func main() {
 		}
 	}
 
+	ids := make([]string, len(issuers))
+	for i, ic := range issuers {
+		ids[i] = ic.ID
+	}
+	sw.StandIn = network.NewStandIn(ids, time.Now)
+	sw.RunAdviceDelivery(2 * time.Second)
+
 	s := &server{sw: sw, issuers: issuers, http: &http.Client{Timeout: 2 * time.Second}}
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
@@ -105,6 +112,7 @@ func main() {
 	mux.HandleFunc("GET /api/stream", s.handleStream)
 	mux.HandleFunc("POST /api/tokens/{token}/active", s.handleTokenActive)
 	mux.HandleFunc("POST /api/sim/issuers/{id}/mode", s.handleIssuerMode)
+	mux.HandleFunc("POST /api/standin/{id}", s.handleStandIn)
 	// The fraud department: its page at /fraud/, rules, cases, and blocks.
 	sw.Fraud.Register(mux, s.fraudHistory)
 	ui.Register(mux, ui.PagesFromEnv())
@@ -120,6 +128,7 @@ func main() {
 	} else if ok {
 		sw.Recorder.RestoreState(saved.Recorder)
 		sw.RestoreState(saved.Switch)
+		sw.StandIn.RestoreState(saved.StandIn)
 		sw.Vault.RestoreState(saved.Vault)
 		eng.RestoreState(saved.Clearing)
 		if sw.Fraud != nil {
@@ -132,6 +141,7 @@ func main() {
 		if sw.Fraud != nil {
 			st.Fraud = sw.Fraud.SaveState()
 		}
+		st.StandIn = sw.StandIn.SaveState()
 		return st
 	}, store.DefaultInterval)
 
@@ -165,6 +175,7 @@ type networkState struct {
 	Vault    network.VaultState    `json:"vault"`
 	Clearing clearing.EngineState  `json:"clearing"`
 	Fraud    fraud.EngineState     `json:"fraud"`
+	StandIn  network.StandInState  `json:"stand_in"`
 }
 
 // handleAuthorize is the acquirer-facing endpoint.
@@ -209,6 +220,24 @@ type issuerView struct {
 	Mode    string              `json:"mode"` // Simulated fault mode, or "unreachable"
 	BINs    []string            `json:"bins"`
 	Stats   network.IssuerStats `json:"stats"`
+	StandIn network.StandInView `json:"stand_in"`
+}
+
+// handleStandIn switches stand-in processing on or off for an issuer.
+func (s *server) handleStandIn(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	if !s.sw.StandIn.SetEnabled(r.PathValue("id"), body.Enabled) {
+		http.Error(w, "unknown issuer", http.StatusNotFound)
+		return
+	}
+	s.sw.Recorder.PublishHealth()
+	writeJSON(w, http.StatusOK, map[string]bool{"enabled": body.Enabled})
 }
 
 type tokenView struct {
@@ -224,7 +253,8 @@ func (s *server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	stats := s.sw.Recorder.Stats()
 	issuers := make([]issuerView, len(s.issuers))
 	for i, ic := range s.issuers {
-		v := issuerView{ID: ic.ID, Name: ic.Name, Breaker: s.sw.Issuers[ic.ID].Breaker.State(), Mode: s.issuerMode(r.Context(), ic), Stats: stats.ByIssuer[ic.ID]}
+		v := issuerView{ID: ic.ID, Name: ic.Name, Breaker: s.sw.Issuers[ic.ID].Breaker.State(), Mode: s.issuerMode(r.Context(), ic), Stats: stats.ByIssuer[ic.ID],
+			StandIn: s.sw.StandIn.View(ic.ID)}
 		for _, e := range s.sw.BINs.Entries {
 			if e.IssuerID == ic.ID {
 				v.BINs = append(v.BINs, e.Prefix)
