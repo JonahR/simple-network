@@ -74,8 +74,11 @@ type Item struct {
 	Product    string  `json:"product"`
 	Channel    Channel `json:"channel"`
 	Pricing
-	IssuerOwes   int64  `json:"issuer_owes"`   // Amount − interchange + issuer fee
-	AcquirerGets int64  `json:"acquirer_gets"` // Amount − interchange − acquirer fee
+	// Credit marks a refund: money flows back from the acquirer to the
+	// issuer. Amount stays positive; IssuerOwes and AcquirerGets go negative.
+	Credit       bool   `json:"credit,omitempty"`
+	IssuerOwes   int64  `json:"issuer_owes"`   // Amount − interchange + issuer fee; −Amount for a credit
+	AcquirerGets int64  `json:"acquirer_gets"` // Amount − interchange − acquirer fee; −Amount for a credit
 	Posting      string `json:"posting"`       // pending, posted, unmatched, or delivery failed
 }
 
@@ -356,10 +359,30 @@ func (e *Engine) match(c *Cycle, acquirerID string, p Presentment) (Item, string
 		return Item{}, "currency differs from the authorization"
 	case p.Amount <= 0:
 		return Item{}, "amount must be positive"
+	case iso8583.IsRefund(auth.ProcessingCode) && p.Amount > auth.Amount:
+		return Item{}, fmt.Sprintf("refund amount %d is over the authorized %d", p.Amount, auth.Amount)
 	case p.Amount > MaxCapture(auth.Amount, p.MCC):
 		return Item{}, fmt.Sprintf("amount %d is over the authorized %d plus the tolerance for MCC %s", p.Amount, auth.Amount, p.MCC)
 	}
 	ch := ChannelOf(p.EntryMode)
+	if iso8583.IsRefund(auth.ProcessingCode) {
+		// A refund (credit) sends the money back: the acquirer owes it and
+		// the issuer is owed it. This simulation charges no interchange or
+		// network fees on credits; real networks have credit interchange.
+		return Item{
+			Presentment:  p,
+			CycleID:      c.ID,
+			AcquirerID:   acquirerID,
+			IssuerID:     auth.IssuerID,
+			Product:      string(auth.Product),
+			Channel:      ch,
+			Pricing:      Pricing{ProgramID: ProgramCredit, FeeVersion: e.Fees.Version},
+			Credit:       true,
+			IssuerOwes:   -p.Amount,
+			AcquirerGets: -p.Amount,
+			Posting:      "pending",
+		}, ""
+	}
 	price := e.Fees.Price(auth.Product, ch, p.Amount, p.Cashback)
 	return Item{
 		Presentment:  p,
@@ -378,8 +401,20 @@ func (e *Engine) match(c *Cycle, acquirerID string, p Presentment) (Item, string
 // postClearing records a cleared item in the ledger (KT 05's entry): the
 // issuer owes the amount, the acquirer is owed it, interchange moves from the
 // acquirer to the issuer, and each side pays its network fee.
+//
+// A credit is the same entry the other way round: it reduces what the
+// issuer owes and what the acquirer is owed, which can leave either one
+// owed by the other for the cycle.
 func (e *Engine) postClearing(c *Cycle, it Item) {
 	iss, acq := DueFrom(it.IssuerID), DueTo(it.AcquirerID)
+	if it.Credit {
+		if err := e.ledger.Post(Entry{Time: e.Now().UTC(), CycleID: c.ID, Ref: it.NetworkTxnID, Currency: it.Currency,
+			Memo:  fmt.Sprintf("Refund %s: %s → %s", it.ARN, it.AcquirerID, it.IssuerID),
+			Lines: []Line{{Account: acq, Debit: it.Amount}, {Account: iss, Credit: it.Amount}}}); err != nil {
+			panic(err) // Balanced by construction.
+		}
+		return
+	}
 	lines := []Line{
 		{Account: iss, Debit: it.Amount},
 		{Account: acq, Credit: it.Amount},
@@ -552,7 +587,7 @@ func (e *Engine) issuerFiles(c *Cycle) []IssuerFile {
 			order = append(order, it.IssuerID)
 		}
 		f.Records = append(f.Records, IssuerRecord{
-			NetworkTxnID: it.NetworkTxnID, ARN: it.ARN, Amount: it.Amount, Currency: it.Currency,
+			NetworkTxnID: it.NetworkTxnID, ARN: it.ARN, Amount: it.Amount, Currency: it.Currency, Credit: it.Credit,
 			MerchantName: it.MerchantName, Interchange: it.Interchange, NetworkFee: it.IssuerFee,
 		})
 	}
@@ -600,16 +635,20 @@ func (e *Engine) net(c *Cycle) {
 	}
 	revenue := map[string]int64{}
 	for _, it := range c.Items {
+		amount := it.Amount // Signed: a credit moves money the other way
+		if it.Credit {
+			amount = -amount
+		}
 		iss := get(it.IssuerID, RoleIssuer, it.Currency)
 		iss.Count++
-		iss.Gross -= it.Amount
+		iss.Gross -= amount
 		iss.Interchange += it.Interchange
 		iss.NetworkFees -= it.IssuerFee
 		iss.Net -= it.IssuerOwes
 
 		acq := get(it.AcquirerID, RoleAcquirer, it.Currency)
 		acq.Count++
-		acq.Gross += it.Amount
+		acq.Gross += amount
 		acq.Interchange -= it.Interchange
 		acq.NetworkFees -= it.AcquirerFee
 		acq.Net += it.AcquirerGets
@@ -640,10 +679,15 @@ func (e *Engine) net(c *Cycle) {
 // member and currency, and moves the money through the settlement bank:
 // net payers fund the network's settlement account, which pays net
 // receivers and keeps the network's fee revenue. The caller holds e.mu.
+//
+// Each member's entry clears its role accounts for the cycle (due_to as an
+// acquirer, due_from as an issuer) whichever way they ended up: refunds can
+// leave an acquirer owing or an issuer owed. A member in both roles offsets
+// one against the other in the same entry and moves only the difference.
 func (e *Engine) settle(c *Cycle) {
 	net := map[[2]string]int64{}
-	owes := map[[2]string]int64{} // As an issuer
-	gets := map[[2]string]int64{} // As an acquirer
+	lines := map[[2]string][]Line{}
+	roles := map[[2]string]int{}
 	var keys [][2]string
 	for _, p := range c.Positions {
 		k := [2]string{p.MemberID, p.Currency}
@@ -651,19 +695,16 @@ func (e *Engine) settle(c *Cycle) {
 			keys = append(keys, k)
 		}
 		net[k] += p.Net
-		if p.Net < 0 {
-			owes[k] -= p.Net
-		} else {
-			gets[k] += p.Net
+		roles[k]++
+		account := DueTo(p.MemberID)
+		if p.Role == RoleIssuer {
+			account = DueFrom(p.MemberID)
 		}
-	}
-	// A member that is both an issuer and an acquirer settles one net
-	// amount, so offset what it is owed against what it owes first.
-	for _, k := range keys {
-		if off := min(owes[k], gets[k]); off > 0 {
-			e.ledger.Post(Entry{Time: e.Now().UTC(), CycleID: c.ID, Ref: "netting:" + k[0], Currency: k[1],
-				Memo:  fmt.Sprintf("Netting: %s's acquirer credit offsets its issuer debit", e.name(k[0])),
-				Lines: []Line{{Account: DueTo(k[0]), Debit: off}, {Account: DueFrom(k[0]), Credit: off}}})
+		switch {
+		case p.Net > 0: // Owed to the member: its account has a credit balance
+			lines[k] = append(lines[k], Line{Account: account, Debit: p.Net})
+		case p.Net < 0: // Owed by the member: a debit balance
+			lines[k] = append(lines[k], Line{Account: account, Credit: -p.Net})
 		}
 	}
 	sort.Slice(keys, func(i, j int) bool { return net[keys[i]] < net[keys[j]] }) // Payers first
@@ -671,21 +712,30 @@ func (e *Engine) settle(c *Cycle) {
 		member, cur, amt := k[0], k[1], net[k]
 		e.fund(member, cur)
 		e.fund(NetworkID, cur)
+		ls := lines[k]
+		var memo string
 		switch {
 		case amt < 0:
 			c.Transfers = append(c.Transfers, Transfer{From: member, To: NetworkID, Currency: cur, Amount: -amt, Memo: "Net settlement payment"})
-			e.bank[[2]string{member, cur}] += amt
-			e.bank[[2]string{NetworkID, cur}] -= amt
-			e.ledger.Post(Entry{Time: e.Now().UTC(), CycleID: c.ID, Ref: "settlement:" + member, Currency: cur,
-				Memo:  fmt.Sprintf("Settlement: %s pays the network", e.name(member)),
-				Lines: []Line{{Account: AccountCash, Debit: -amt}, {Account: DueFrom(member), Credit: -amt}}})
+			ls = append(ls, Line{Account: AccountCash, Debit: -amt})
+			memo = fmt.Sprintf("Settlement: %s pays the network", e.name(member))
 		case amt > 0:
 			c.Transfers = append(c.Transfers, Transfer{From: NetworkID, To: member, Currency: cur, Amount: amt, Memo: "Net settlement credit"})
-			e.bank[[2]string{member, cur}] += amt
-			e.bank[[2]string{NetworkID, cur}] -= amt
-			e.ledger.Post(Entry{Time: e.Now().UTC(), CycleID: c.ID, Ref: "settlement:" + member, Currency: cur,
-				Memo:  fmt.Sprintf("Settlement: the network pays %s", e.name(member)),
-				Lines: []Line{{Account: DueTo(member), Debit: amt}, {Account: AccountCash, Credit: amt}}})
+			ls = append(ls, Line{Account: AccountCash, Credit: amt})
+			memo = fmt.Sprintf("Settlement: the network pays %s", e.name(member))
+		default:
+			memo = fmt.Sprintf("Settlement: %s's positions offset to zero", e.name(member))
+		}
+		if roles[k] > 1 {
+			memo += " (acquirer and issuer positions netted)"
+		}
+		e.bank[[2]string{member, cur}] += amt
+		e.bank[[2]string{NetworkID, cur}] -= amt
+		if len(ls) == 0 {
+			continue
+		}
+		if err := e.ledger.Post(Entry{Time: e.Now().UTC(), CycleID: c.ID, Ref: "settlement:" + member, Currency: cur, Memo: memo, Lines: ls}); err != nil {
+			panic(err) // Each member's lines sum to its net, which the cash line offsets.
 		}
 	}
 }
@@ -710,10 +760,14 @@ func (e *Engine) advices(c *Cycle) []Advice {
 			byKey[k] = a
 			keys = append(keys, k)
 		}
-		a.Gross += it.Amount
+		if it.Credit {
+			a.Gross -= it.Amount
+		} else {
+			a.Gross += it.Amount
+		}
 		a.Net += it.AcquirerGets
 		a.Items = append(a.Items, AdviceItem{
-			NetworkTxnID: it.NetworkTxnID, ARN: it.ARN, MerchantID: it.MerchantID, Amount: it.Amount,
+			NetworkTxnID: it.NetworkTxnID, ARN: it.ARN, MerchantID: it.MerchantID, Amount: it.Amount, Credit: it.Credit,
 			Interchange: it.Interchange, NetworkFee: it.AcquirerFee, ProgramID: it.ProgramID,
 		})
 	}

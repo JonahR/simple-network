@@ -117,6 +117,7 @@ type IssuerRecord struct {
 	ARN          string `json:"arn"`
 	Amount       int64  `json:"amount"` // Final amount to post to the cardholder
 	Currency     string `json:"currency"`
+	Credit       bool   `json:"credit,omitempty"` // A refund: credit the cardholder instead of charging
 	MerchantName string `json:"merchant_name"`
 	Interchange  int64  `json:"interchange"` // What the issuer earns
 	NetworkFee   int64  `json:"network_fee"` // What the issuer pays the network
@@ -145,6 +146,7 @@ type AdviceItem struct {
 	ARN          string `json:"arn"`
 	MerchantID   string `json:"merchant_id"`
 	Amount       int64  `json:"amount"`
+	Credit       bool   `json:"credit,omitempty"` // A refund the acquirer pays back
 	Interchange  int64  `json:"interchange"`
 	NetworkFee   int64  `json:"network_fee"`
 	ProgramID    string `json:"program_id"`
@@ -156,7 +158,7 @@ type Advice struct {
 	ValueDate  string       `json:"value_date"`
 	AcquirerID string       `json:"acquirer_id"`
 	Currency   string       `json:"currency"`
-	Gross      int64        `json:"gross"`
-	Net        int64        `json:"net"` // Credited to the acquirer's settlement account
+	Gross      int64        `json:"gross"` // Sales minus refunds
+	Net        int64        `json:"net"`   // Credited to the acquirer's settlement account
 	Items      []AdviceItem `json:"items"`
 }

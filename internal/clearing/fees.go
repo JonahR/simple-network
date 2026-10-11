@@ -71,6 +71,9 @@ func DefaultFees() FeeTable {
 	}
 }
 
+// ProgramCredit labels refunds, which are cleared without fees.
+const ProgramCredit = "CREDIT"
+
 // Pricing is the fees on one cleared transaction.
 type Pricing struct {
 	ProgramID   string `json:"program_id"`

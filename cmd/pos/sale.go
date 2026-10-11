@@ -64,6 +64,15 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 
 	// A balance inquiry asks the issuer what's left; it has no amount.
 	inquiry := in.BalanceInquiry
+	refund := in.Refund
+	switch {
+	case refund && (inquiry || in.PreAuth || in.SplitOf != "" || in.ThreeDS):
+		errs["form"] = "a refund can't be a balance inquiry, a pre-auth, a split tender, or use 3-D Secure"
+	case refund && (in.Cashback != "" || in.HealthcareAmount != ""):
+		errs["form"] = "a refund can't include cash back or a healthcare amount"
+	case in.RefundOf != "" && !refund:
+		errs["form"] = "this sale is linked to a refund: press Refund, or cancel the refund"
+	}
 	amount, err := parseAmount(in.Amount)
 	switch {
 	case inquiry:
@@ -80,7 +89,7 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 
 	arqc, track2 := checkCardRead(in, pan, expiry, s.chipFailedRecently(pan, now), errs)
 	cvv := checkCVV(in, errs)
-	avs := checkCardNotPresent(in, inquiry, errs)
+	avs := checkCardNotPresent(in, inquiry || refund, errs)
 	authType := ""
 	if in.PreAuth {
 		authType = iso8583.AuthEstimated
@@ -88,10 +97,14 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 			errs["form"] = "a pre-auth holds an estimate: it can't be a balance inquiry, a split tender, or include cash back"
 		}
 	}
-	clearPIN := checkPIN(in, product, errs)
+	// A refund gives money back, so it needs no PIN or prompts.
+	var clearPIN string
+	if !refund {
+		clearPIN = checkPIN(in, product, errs)
+	}
 	var cashback, healthcare int64
 	var fleet *iso8583.FleetData
-	if !inquiry {
+	if !inquiry && !refund {
 		cashback = checkCashback(in, product, clearPIN != "", errs)
 		fleet = checkFleet(in, product, errs)
 		healthcare = checkHealthcare(in, product, amount, errs)
@@ -111,8 +124,11 @@ func (s *server) buildAuthRequest(in SaleInput, now time.Time) (iso8583.AuthRequ
 	}
 
 	txn := iso8583.TxnPurchase
-	if inquiry {
+	switch {
+	case inquiry:
 		txn = iso8583.TxnBalanceInquiry
+	case refund:
+		txn = iso8583.TxnRefund
 	}
 	var extra []iso8583.AdditionalAmount
 	if cashback > 0 {

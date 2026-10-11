@@ -133,7 +133,10 @@ func TestKTWorkedExample(t *testing.T) {
 func TestSettlementIsZeroSum(t *testing.T) {
 	products := []card.Product{card.Credit, card.Debit, card.Prepaid, card.Fleet, card.Healthcare}
 	entries := []string{"011", "051", "071", "901", "812", "100"}
-	issuers, acquirers := []string{"FSB", "UCB", "X"}, []string{"A1", "A2"}
+	// B is both an issuer and an acquirer, so its positions net. About a
+	// quarter of the records are refunds, so some members end up owing in a
+	// role that is normally owed (an acquirer with mostly refunds).
+	issuers, acquirers := []string{"FSB", "UCB", "B"}, []string{"A1", "B"}
 	for seed := uint64(0); seed < 300; seed++ {
 		r := rand.New(rand.NewPCG(seed, 7))
 		a := auths{}
@@ -146,8 +149,13 @@ func TestSettlementIsZeroSum(t *testing.T) {
 			a[id] = AuthInfo{AcquirerID: acq, IssuerID: issuers[r.IntN(len(issuers))], Approved: true, Amount: amt, Currency: cur, Product: products[r.IntN(len(products))]}
 			p := pres(id, amt)
 			p.Currency, p.EntryMode = cur, entries[r.IntN(len(entries))]
-			if r.IntN(4) == 0 {
+			switch r.IntN(4) {
+			case 0:
 				p.Cashback = int64(r.IntN(int(amt)))
+			case 1:
+				info := a[id]
+				info.ProcessingCode, p.ProcessingCode = "200000", "200000"
+				a[id] = info
 			}
 			files[acq] = append(files[acq], p)
 		}
@@ -307,5 +315,86 @@ func TestRunRequestsFilesThenCloses(t *testing.T) {
 	v := e.View(0)
 	if v.Open.Number != 2 || v.Open.BusinessDate != "2026-10-10" || c.ValueDate != "2026-10-10" {
 		t.Errorf("next cycle %s, value date %s", v.Open.ID, c.ValueDate)
+	}
+}
+
+// A refund clears as a credit: it reverses the direction of a sale's money,
+// carries no fees, and reaches the issuer and the acquirer flagged as one.
+func TestRefundClearsAsCredit(t *testing.T) {
+	a := auths{
+		"sale":   {AcquirerID: "A1", IssuerID: "FSB", Approved: true, Amount: 10_000, Currency: "840", Product: card.Credit, ProcessingCode: "003000"},
+		"refund": {AcquirerID: "A1", IssuerID: "FSB", Approved: true, Amount: 4_000, Currency: "840", Product: card.Credit, ProcessingCode: "200000"},
+		"big":    {AcquirerID: "A1", IssuerID: "FSB", Approved: true, Amount: 1_000, Currency: "840", Product: card.Credit, ProcessingCode: "200000"},
+	}
+	e, fi, fa := newEngine(DefaultFees(), a, []string{"FSB"}, []string{"A1"})
+	refund := pres("refund", 4_000)
+	refund.ProcessingCode = "200000"
+	big := pres("big", 1_200) // More than the refund that was authorized
+	big.ProcessingCode = "200000"
+	ack := e.Receive(NewFile(FileHeader{FileID: "A1-1", AcquirerID: "A1", Sequence: 1}, []Presentment{pres("sale", 10_000), refund, big}))
+	if ack.Accepted != 2 || len(ack.Rejected) != 1 || ack.Rejected[0].NetworkTxnID != "big" {
+		t.Fatalf("ack = %+v; want the sale and refund accepted and the oversized refund rejected", ack)
+	}
+
+	c := e.Close(context.Background())
+	if c.Status != CycleSettled {
+		t.Fatalf("status %s, stages %+v", c.Status, c.Stages)
+	}
+	var credit Item
+	for _, it := range c.Items {
+		if it.NetworkTxnID == "refund" {
+			credit = it
+		}
+	}
+	if !credit.Credit || credit.Interchange != 0 || credit.AcquirerFee != 0 || credit.IssuerFee != 0 || credit.ProgramID != ProgramCredit {
+		t.Errorf("refund item = %+v; want an unpriced credit", credit)
+	}
+	if credit.IssuerOwes != -4_000 || credit.AcquirerGets != -4_000 {
+		t.Errorf("refund owes/gets = %d/%d, want −4000 both", credit.IssuerOwes, credit.AcquirerGets)
+	}
+
+	sale := DefaultFees().Price(card.Credit, CardPresent, 10_000, 0)
+	for _, p := range c.Positions {
+		switch p.Role {
+		case RoleAcquirer:
+			if want := 10_000 - sale.Interchange - sale.AcquirerFee - 4_000; p.Net != want || p.Gross != 6_000 {
+				t.Errorf("acquirer net/gross = %d/%d, want %d/6000", p.Net, p.Gross, want)
+			}
+		case RoleIssuer:
+			if want := -(10_000 - sale.Interchange + sale.IssuerFee - 4_000); p.Net != want || p.Gross != -6_000 {
+				t.Errorf("issuer net/gross = %d/%d, want %d/−6000", p.Net, p.Gross, want)
+			}
+		}
+	}
+
+	if f := fi["FSB"].files; len(f) != 1 || len(f[0].Records) != 2 || !f[0].Records[1].Credit {
+		t.Errorf("issuer file = %+v; want the refund flagged as a credit", f)
+	}
+	adv := fa["A1"].advices
+	if len(adv) != 1 || adv[0].Gross != 6_000 || !adv[0].Items[1].Credit {
+		t.Errorf("advice = %+v; want gross 6000 with the refund flagged", adv)
+	}
+}
+
+// An acquirer whose cycle is only refunds owes the network, and an issuer
+// with only refunds is owed: settlement must still clear both to zero.
+func TestRefundOnlyCycleReversesThePayments(t *testing.T) {
+	a := auths{"r": {AcquirerID: "A1", IssuerID: "FSB", Approved: true, Amount: 2_500, Currency: "840", Product: card.Debit, ProcessingCode: "200000"}}
+	e, _, _ := newEngine(DefaultFees(), a, []string{"FSB"}, []string{"A1"})
+	r := pres("r", 2_500)
+	r.ProcessingCode = "200000"
+	e.Receive(NewFile(FileHeader{FileID: "A1-1", AcquirerID: "A1", Sequence: 1}, []Presentment{r}))
+	c := e.Close(context.Background())
+	if c.Status != CycleSettled || len(c.Transfers) != 2 {
+		t.Fatalf("status %s, transfers %+v", c.Status, c.Transfers)
+	}
+	if c.Transfers[0] != (Transfer{From: "A1", To: NetworkID, Currency: "840", Amount: 2_500, Memo: "Net settlement payment"}) ||
+		c.Transfers[1] != (Transfer{From: NetworkID, To: "FSB", Currency: "840", Amount: 2_500, Memo: "Net settlement credit"}) {
+		t.Errorf("transfers = %+v; want the acquirer paying and the issuer receiving", c.Transfers)
+	}
+	for _, b := range e.View(0).Balances {
+		if strings.HasPrefix(b.Account, "due_") && b.Net != 0 {
+			t.Errorf("%s left at %d after settlement", b.Account, b.Net)
+		}
 	}
 }

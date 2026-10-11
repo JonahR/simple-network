@@ -313,6 +313,12 @@ func IsBalanceInquiry(processingCode string) bool {
 	return strings.HasPrefix(processingCode, TxnBalanceInquiry)
 }
 
+// IsRefund reports whether DE3 is a refund: money back to the card (a credit)
+// rather than a charge.
+func IsRefund(processingCode string) bool {
+	return strings.HasPrefix(processingCode, TxnRefund)
+}
+
 // Redacted returns a copy with the PAN masked.
 func (r AuthResponse) Redacted(mask func(string) string) AuthResponse {
 	r.PAN = mask(r.PAN)

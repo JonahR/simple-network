@@ -189,7 +189,10 @@ input.invalid { border-color: var(--err); }
 .err { color: var(--err); font-size: 12px; min-height: 0; }
 .err:empty { display: none; }
 
-.actions { display: flex; gap: 10px; margin-top: 4px; }
+/* Charge gets its own row; the other ways to send a card sit under it. */
+.actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 4px; }
+.actions #charge { grid-column: 1 / -1; }
+.actions button { min-width: 0; }
 button {
   font: inherit;
   font-weight: 600;

@@ -39,8 +39,9 @@ type Funding struct {
 	Currency     string `json:"currency"`
 	Count        int    `json:"count"`
 	Sales        int64  `json:"sales"`
-	DiscountFee  int64  `json:"discount_fee"` // Merchant discount rate on sales
-	Paid         int64  `json:"paid"`         // Sales minus the discount fee
+	Refunds      int64  `json:"refunds"`      // Given back to cardholders; taken out of the payment
+	DiscountFee  int64  `json:"discount_fee"` // Merchant discount rate on sales (not refunded on refunds)
+	Paid         int64  `json:"paid"`         // Sales minus refunds minus the discount fee; negative means the merchant owes
 	Interchange  int64  `json:"interchange"`  // Paid to the issuer, out of the discount fee
 	NetworkFees  int64  `json:"network_fees"` // Paid to the network, out of the discount fee
 	Margin       int64  `json:"margin"`       // What the acquirer keeps (can be negative)
@@ -231,9 +232,10 @@ func (c *clearer) send(ctx context.Context, f clearing.File) (clearing.Ack, erro
 }
 
 // Fund handles the network's settlement advice: it pays each merchant its
-// sales minus the merchant discount fee. The discount fee covers interchange
-// and network fees; what is left is the acquirer's margin. An advice for a
-// cycle already funded changes nothing.
+// sales minus its refunds minus the merchant discount fee. The discount fee
+// covers interchange and network fees; what is left is the acquirer's
+// margin. Refunds carry no fees, and the merchant doesn't get the discount
+// fee back on them. An advice for a cycle already funded changes nothing.
 func (c *clearer) Fund(a clearing.Advice) []Funding {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -251,16 +253,21 @@ func (c *clearer) Fund(a clearing.Advice) []Funding {
 			byMerchant[it.MerchantID] = f
 			order = append(order, it.MerchantID)
 		}
+		f.Count++
+		c.status[it.NetworkTxnID] = funded
+		if it.Credit {
+			f.Refunds += it.Amount
+			f.Paid -= it.Amount
+			continue
+		}
 		m, _ := c.acq.merchant(it.MerchantID)
 		fee := clearing.BPS(it.Amount, m.DiscountBPS)
-		f.Count++
 		f.Sales += it.Amount
 		f.DiscountFee += fee
 		f.Paid += it.Amount - fee
 		f.Interchange += it.Interchange
 		f.NetworkFees += it.NetworkFee
 		f.Margin += fee - it.Interchange - it.NetworkFee
-		c.status[it.NetworkTxnID] = funded
 	}
 	var out []Funding
 	for _, id := range order {

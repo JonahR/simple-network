@@ -427,6 +427,7 @@ form.addEventListener("submit", async (e) => {
     body.three_ds = form.three_ds.checked;
     body.terminal_id = terminal.terminal_id;
     body.pre_auth = e.submitter && e.submitter.id === "preauth";
+    body.refund = e.submitter && e.submitter.id === "refund";
     const res = await fetch("/api/sale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -440,6 +441,7 @@ form.addEventListener("submit", async (e) => {
     renderResult(data);
     form.reset();
     setSplit(null);
+    setRefund(null);
     resetCardRead();
     updateForm();
     loadHistory();
@@ -545,6 +547,7 @@ const STATUS = {
   DECLINED: ["critical", "✕", "Declined"],
   NO_RESPONSE: ["critical", "!", "No response"],
   VOIDED: ["", "↩", "Voided"],
+  REFUND: ["good", "↩", "Refund approved"],
   CASH: ["good", "$", "Cash"],
   BALANCE: ["good", "$", "Balance"],
   CHALLENGE: ["warning", "?", "Verify shopper"],
@@ -573,6 +576,9 @@ function statusBadge(tx) {
       : ` <span class="status good" data-term="capture">✓ Captured</span>`;
   } else if (tx.request.auth_type === "estimated" && canVoid(tx)) {
     html += ` <span class="status warning" data-term="pre-auth">Pre-auth open</span>`;
+  }
+  if (tx.refunded) {
+    html += ` <span class="status" data-term="refund">↩ ${money(tx.refunded, tx.request.de49_currency)} refunded</span>`;
   }
   // A void shows as the sale's status; a timeout reversal needs its own badge.
   if (tx.reversal && tx.status !== "VOIDED") {
@@ -660,6 +666,7 @@ document.addEventListener("click", async (e) => {
 
 // balanceSection offers ways to collect what a partial approval left unpaid.
 function balanceSection(tx) {
+  if (tx.refund_of) return `<p class="split-note"><span data-term="refund">Refund</span> of sale STAN ${escapeHTML(tx.refund_of)}.</p>`;
   if (tx.split_of) return `<p class="split-note"><span data-term="split-tender">Split tender</span> toward sale STAN ${escapeHTML(tx.split_of)}.</p>`;
   if (tx.status !== "PARTIAL" || tx.reversal) return "";
   const cur = tx.request.de49_currency;
@@ -706,6 +713,48 @@ document.addEventListener("click", async (e) => {
   }
   loadHistory();
 });
+// --- Refunds ---------------------------------------------------------------------
+
+// refundable is what an approved card sale can still give back: what it
+// charged (the captured amount for a pre-auth or tipped sale) less refunds.
+function refundable(tx) {
+  const code = tx.request.de3_processing_code || "";
+  if (tx.tender !== "card" || !canVoid(tx) || code.startsWith("20") || code.startsWith("30") || tx.increment_of) return 0;
+  if (tx.request.auth_type === "estimated" && !tx.captured) return 0; // Void an open pre-auth instead
+  return (tx.captured || tx.response.de4_amount) - (tx.refunded || 0);
+}
+
+const refundButton = (tx, cls = "") => {
+  const left = refundable(tx);
+  return left > 0
+    ? `<button type="button" class="secondary ${cls}" data-refund="${escapeHTML(tx.request.de11_stan)}" data-max="${left}" data-pan="${escapeHTML(tx.request.de2_pan)}" data-currency="${escapeHTML(tx.request.de49_currency)}" data-term="refund">Refund</button>`
+    : "";
+};
+
+// setRefund links the next transaction to an earlier sale: the cashier
+// presents the same card and presses Refund, for up to what is left.
+function setRefund(stan, max, pan, currency) {
+  form.refund_of.value = stan || "";
+  const banner = document.getElementById("refund-banner");
+  banner.hidden = !stan;
+  if (!stan) return;
+  form.amount.value = (max / 100).toFixed(2);
+  if (currency) form.currency.value = currency;
+  banner.innerHTML = `<span data-term="refund">Refunding</span> sale STAN ${escapeHTML(stan)}: up to ${money(max, currency)} back to card ${escapeHTML(pan)}. Present that card, then press <b>Refund</b>. <button type="button" class="link" data-refund-cancel>Cancel</button>`;
+}
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-refund]");
+  if (btn) {
+    setSplit(null);
+    setRefund(btn.dataset.refund, Number(btn.dataset.max), btn.dataset.pan, btn.dataset.currency);
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+    form.amount.focus({ preventScroll: true });
+    return;
+  }
+  if (e.target.closest("button[data-refund-cancel]")) setRefund(null);
+});
+
 const voidButton = (tx, cls = "") =>
   canVoid(tx) ? `<button type="button" class="void ${cls}" data-void="${escapeHTML(tx.request.de11_stan)}" data-term="void">Void</button>` : "";
 
@@ -847,7 +896,7 @@ function renderResult(tx) {
     <div class="result-head">
       ${statusBadge(tx)}
       <p>${escapeHTML(tx.message)}</p>
-      <span class="result-actions">${receiptButton(tx)}${voidButton(tx)}</span>
+      <span class="result-actions">${receiptButton(tx)}${voidButton(tx)}${refundButton(tx)}</span>
     </div>
     ${balanceSection(tx)}
     ${adjustSection(tx)}
@@ -882,6 +931,8 @@ async function loadHistory() {
       const r = tx.request;
       const mode = tx.tender === "cash" ? ["Cash"] : [entryModes[r.de22_pos_entry_mode] || r.de22_pos_entry_mode];
       if (tx.split_of) mode.push(`split of ${tx.split_of}`);
+      if (tx.refund_of) mode.push(`refund of ${tx.refund_of}`);
+      else if (r.de3_processing_code?.startsWith("20")) mode.push("refund");
       if (r.wallet_provider) mode.push(wallets[r.wallet_provider] || r.wallet_provider);
       if (r.de52_pin_data) mode.push("PIN");
       return `<tr>
@@ -891,7 +942,7 @@ async function loadHistory() {
         <td class="mono">${escapeHTML(r.de2_pan)}</td>
         <td>${escapeHTML(mode.join(" · "))}</td>
         <td class="num">${money(r.de4_amount, r.de49_currency)}</td>
-        <td>${statusBadge(tx)} ${receiptButton(tx, "small")}${voidButton(tx, "small")}</td>
+        <td>${statusBadge(tx)} ${receiptButton(tx, "small")}${voidButton(tx, "small")}${refundButton(tx, "small")}</td>
       </tr>`;
     })
     .join("");
@@ -999,6 +1050,7 @@ function selectTerminal(id) {
 
   form.reset();
   setSplit(null);
+  setRefund(null);
   resetCardRead();
   clearErrors();
   updateForm();

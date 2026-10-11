@@ -101,3 +101,28 @@ func TestSubmitAndFund(t *testing.T) {
 		t.Error("t1 not marked funded")
 	}
 }
+
+// A refund comes out of the merchant's payment: no discount fee is charged
+// on it and none is given back, and a merchant with only refunds owes money.
+func TestFundingTakesRefundsOut(t *testing.T) {
+	acq := newAcquirer("100001", "Bank", []Merchant{{ID: "M1", Name: "Shop", DiscountBPS: 250}, {ID: "M2", Name: "Other", DiscountBPS: 250}}, nil)
+	c := newClearer(acq, "")
+	fs := c.Fund(clearing.Advice{CycleID: "c1", AcquirerID: "100001", Currency: "840", Items: []clearing.AdviceItem{
+		{NetworkTxnID: "sale", MerchantID: "M1", Amount: 10_000, Interchange: 160, NetworkFee: 16},
+		{NetworkTxnID: "refund", MerchantID: "M1", Amount: 3_000, Credit: true},
+		{NetworkTxnID: "only-refund", MerchantID: "M2", Amount: 1_500, Credit: true},
+	}})
+	if len(fs) != 2 {
+		t.Fatalf("fundings %+v", fs)
+	}
+	shop, other := fs[0], fs[1]
+	if shop.Sales != 10_000 || shop.Refunds != 3_000 || shop.DiscountFee != 250 || shop.Paid != 6_750 || shop.Margin != 74 || shop.Count != 2 {
+		t.Errorf("shop funding %+v; want 100.00 sales − 30.00 refund − 2.50 fee = 67.50 paid", shop)
+	}
+	if other.Refunds != 1_500 || other.Paid != -1_500 || other.DiscountFee != 0 {
+		t.Errorf("refund-only funding %+v; want the merchant to owe 15.00", other)
+	}
+	if c.View().Status["refund"] != funded {
+		t.Error("refund not marked funded")
+	}
+}

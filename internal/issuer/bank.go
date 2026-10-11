@@ -92,7 +92,7 @@ type Decision struct {
 	Limit           int64     `json:"limit"`
 	AvailableBefore int64     `json:"available_before"`
 	AvailableAfter  int64     `json:"available_after"`
-	Hold            string    `json:"hold"`                  // "active", "released", "posted", or "none"
+	Hold            string    `json:"hold"`                  // "active", "released", "posted", "none", or for a refund "credit pending" then "credited"
 	AVSResult       string    `json:"avs_result,omitempty"`  // DE44 AVS code, if AVS was asked
 	CVV2Result      string    `json:"cvv2_result,omitempty"` // DE44 CVV2 code, if a CVV2 was sent
 	ECI             string    `json:"eci,omitempty"`         // 3-D Secure e-commerce indicator, if any
@@ -234,6 +234,11 @@ func (b *Bank) Authorize(req iso8583.AuthRequest) iso8583.AuthResponse {
 		// A balance inquiry is answered, never held (DE54 type 02).
 		resp.Amount = 0
 		resp.AdditionalAmounts = []iso8583.AdditionalAmount{{Type: iso8583.AmountAvailable, Amount: acct.Available}}
+	case iso8583.IsApproved(code) && iso8583.IsRefund(req.ProcessingCode):
+		// A refund moves money to the card, so nothing is held. The credit
+		// posts when the refund clears (Post).
+		resp.AuthCode = authCode()
+		d.Hold = "credit pending"
 	case iso8583.IsApproved(code):
 		resp.AuthCode = authCode()
 		resp.Amount = approved // Less than requested on a partial approval
@@ -367,6 +372,13 @@ func (b *Bank) decide(req iso8583.AuthRequest, d *Decision) (*Account, string, i
 	if iso8583.IsBalanceInquiry(req.ProcessingCode) {
 		check("Balance inquiry", Pass, fmt.Sprintf("Processing code 30: report %s available; nothing is held", money(acct.Available, req.Currency)))
 		return acct, iso8583.RCApproved, 0
+	}
+
+	// A refund only has to reach a live account: there is no limit to
+	// check, because it gives money back.
+	if iso8583.IsRefund(req.ProcessingCode) {
+		check("Refund", Pass, fmt.Sprintf("Processing code 20: %s will be credited to the card when the refund clears; nothing is held", money(req.Amount, req.Currency)))
+		return acct, iso8583.RCApproved, req.Amount
 	}
 
 	var cashback, healthcare int64

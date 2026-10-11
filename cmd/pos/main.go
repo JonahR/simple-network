@@ -129,6 +129,13 @@ type SaleInput struct {
 	// PreAuth holds an estimate instead of charging a final amount; the
 	// cashier captures the final amount later.
 	PreAuth bool `json:"pre_auth"`
+
+	// Refund sends money back to the card (processing code 20). The card is
+	// presented again, as for a sale. RefundOf links it to an earlier sale
+	// (its STAN): the card must be the same and the total refunded can't
+	// exceed what that sale charged.
+	Refund   bool   `json:"refund"`
+	RefundOf string `json:"refund_of"`
 }
 
 // StoredCard is a card the merchant keeps on file for a returning customer.
@@ -158,7 +165,7 @@ func cardOnFile(id string) (StoredCard, bool) {
 
 // Transaction is a sale as recorded by the terminal.
 type Transaction struct {
-	Status   string                 `json:"status"` // APPROVED, PARTIAL, DECLINED, NO_RESPONSE, or VOIDED
+	Status   string                 `json:"status"` // APPROVED, PARTIAL, DECLINED, NO_RESPONSE, VOIDED, or REFUND (an approved refund)
 	Message  string                 `json:"message"`
 	Request  iso8583.AuthRequest    `json:"request"`            // Redacted
 	Response *iso8583.AuthResponse  `json:"response,omitempty"` // Redacted; nil if the acquirer never answered
@@ -179,6 +186,11 @@ type Transaction struct {
 	Authorized  int64                       `json:"authorized,omitempty"`   // Approved so far, increments included
 	Captured    int64                       `json:"captured,omitempty"`     // Final amount sent in the 0220
 	Completion  *iso8583.CompletionResponse `json:"completion,omitempty"`   // The acquirer's 0230
+
+	// Refunds. A refund names the sale it gives money back for; the sale
+	// keeps the running total refunded, so it can't be refunded twice.
+	RefundOf string `json:"refund_of,omitempty"` // On a refund: STAN of the sale
+	Refunded int64  `json:"refunded,omitempty"`  // On a sale: approved refunds so far
 
 	// The 0100 as sent, unmasked, so a reversal can identify the sale. Never
 	// serialized; the PIN block, CVV, track data and cryptogram are dropped.
@@ -299,6 +311,11 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 			fieldErrs = fieldErrors{"amount": msg}
 		}
 	}
+	if len(fieldErrs) == 0 && in.RefundOf != "" {
+		if field, msg := s.checkRefund(in.RefundOf, req); msg != "" {
+			fieldErrs = fieldErrors{field: msg}
+		}
+	}
 	if len(fieldErrs) > 0 {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"errors": fieldErrs})
 		return
@@ -314,7 +331,7 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 // completeSale sends the 0100, records the outcome, and reverses the sale if
 // no answer came back.
 func (s *server) completeSale(ctx context.Context, in SaleInput, req iso8583.AuthRequest, threeDS *iso8583.ThreeDSResult) Transaction {
-	tx := &Transaction{Request: req.Redacted(card.Mask), Created: time.Now(), sent: forReversal(req), Tender: "card", SplitOf: in.SplitOf, ThreeDS: threeDS}
+	tx := &Transaction{Request: req.Redacted(card.Mask), Created: time.Now(), sent: forReversal(req), Tender: "card", SplitOf: in.SplitOf, ThreeDS: threeDS, RefundOf: in.RefundOf}
 	resp, err := s.acquirer.authorize(ctx, req)
 	if err == nil && in.LoseResponse {
 		err = errors.New("the 0110 was lost on the way back (simulated)")
@@ -329,6 +346,11 @@ func (s *server) completeSale(ctx context.Context, in SaleInput, req iso8583.Aut
 	s.mu.Lock()
 	s.history = append(s.history, tx)
 	s.applyTender(tx, req.Amount)
+	if tx.Status == "REFUND" && tx.RefundOf != "" {
+		if sale := s.findTx(tx.RefundOf); sale != nil {
+			sale.Refunded += tx.Response.Amount
+		}
+	}
 	s.mu.Unlock()
 
 	// D9: a terminal that never hears back can't know whether the issuer

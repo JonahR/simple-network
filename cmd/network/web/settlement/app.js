@@ -80,7 +80,7 @@ function renderStages(c) {
 }
 
 function renderKPIs(c) {
-  const gross = c.items.reduce((n, i) => n + i.amount, 0);
+  const gross = c.items.reduce((n, i) => n + (i.credit ? -i.amount : i.amount), 0); // Refunds count against sales
   const ic = c.items.reduce((n, i) => n + i.interchange, 0);
   const rev = c.items.reduce((n, i) => n + i.acquirer_fee + i.issuer_fee, 0);
   const moved = c.transfers.reduce((n, t) => n + (t.from === data.network_id ? 0 : t.amount), 0);
@@ -168,7 +168,7 @@ function renderItems(c) {
           <td><span class="mono">${escapeHTML(i.arn)}</span><small>${escapeHTML(i.merchant_name)}</small></td>
           <td>${escapeHTML(i.issuer_id)}</td>
           <td><span class="mono">${escapeHTML(i.program_id)}</span><small>${escapeHTML(data.product_names[i.product] || i.product)} · ${i.channel === "card_present" ? "card present" : "card not present"}</small></td>
-          <td class="num">${money(i.amount, i.currency)}${i.cashback ? `<small>incl. ${money(i.cashback, i.currency)} cash back</small>` : ""}</td>
+          <td class="num">${i.credit ? `−${money(i.amount, i.currency)}<small data-term="refund">refund</small>` : money(i.amount, i.currency)}${i.cashback ? `<small>incl. ${money(i.cashback, i.currency)} cash back</small>` : ""}</td>
           <td class="num">${money(i.interchange, i.currency)}</td>
           <td class="num">${money(i.acquirer_fee + i.issuer_fee, i.currency)}</td>
           <td class="num">${money(i.issuer_owes, i.currency)}</td>
@@ -194,6 +194,13 @@ function renderWaterfall(i) {
   const el = document.getElementById("waterfall");
   if (!i) {
     el.innerHTML = "";
+    return;
+  }
+  if (i.credit) {
+    el.innerHTML = `<div class="waterfall">
+      <h3><span data-term="refund">Refund of ${money(i.amount, i.currency)}</span> · <span class="mono">${escapeHTML(i.arn)}</span> · ${escapeHTML(i.merchant_name)} → ${escapeHTML(nameOf(i.issuer_id))}</h3>
+      <p class="muted">Money flows back: the acquirer pays ${money(i.amount, i.currency)} and the issuer credits it to the card. No interchange or network fees in this simulation.</p>
+    </div>`;
     return;
   }
   const w = (v) => `${Math.max((v / i.amount) * 100, v > 0 ? 0.6 : 0)}%`;

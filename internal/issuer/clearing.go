@@ -5,8 +5,9 @@ import "github.com/JonahR/simple-network/internal/clearing"
 // Post applies the network's clearing file: each record turns its
 // authorization hold into a posted charge for the final amount. The hold is
 // released and the final amount is posted instead, so a final amount below
-// the hold gives the difference back. Posting the same file twice (a retry
-// after a lost reply) changes nothing.
+// the hold gives the difference back. A credit (a refund) gives the amount
+// back to the card instead. Posting the same file twice (a retry after a
+// lost reply) changes nothing.
 func (b *Bank) Post(f clearing.IssuerFile) clearing.IssuerAck {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -18,6 +19,19 @@ func (b *Bank) Post(f clearing.IssuerFile) clearing.IssuerAck {
 	}
 	ack := clearing.IssuerAck{FileID: f.FileID, Unmatched: []string{}}
 	for _, r := range f.Records {
+		if r.Credit {
+			// A refund: credit the account it was authorized on. It lowers
+			// what is owed (Posted) and frees up that much to spend.
+			if acct := b.accountFor(r.NetworkTxnID); acct != nil {
+				acct.Posted -= r.Amount
+				acct.Available += r.Amount
+				b.setHold(r.NetworkTxnID, "credited")
+				ack.Posted++
+			} else {
+				ack.Unmatched = append(ack.Unmatched, r.NetworkTxnID)
+			}
+			continue
+		}
 		h, ok := b.holds[r.NetworkTxnID]
 		if !ok {
 			// Presented without a live hold: post it to the card the

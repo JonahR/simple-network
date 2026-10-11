@@ -96,6 +96,8 @@ func outcome(req iso8583.AuthRequest, resp iso8583.AuthResponse) (string, string
 			}
 		}
 		return "BALANCE", "The issuer answered but sent no balance."
+	case iso8583.IsRefund(req.ProcessingCode) && iso8583.IsApproved(resp.ResponseCode):
+		return "REFUND", fmt.Sprintf("Refund approved: %s goes back to the card when the refund clears. Auth code %s.", cents(resp.Amount), resp.AuthCode)
 	case resp.ResponseCode == iso8583.RCPartialApproval:
 		rest := float64(req.Amount-resp.Amount) / 100
 		return "PARTIAL", fmt.Sprintf("Partially approved: %.2f approved, collect %.2f another way. Auth code %s.",
