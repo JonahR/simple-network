@@ -7,6 +7,24 @@ import (
 	"github.com/JonahR/simple-network/internal/iso8583"
 )
 
+func TestIncrementSurvivesRestart(t *testing.T) {
+	fsb, _, _ := testBanks(t)
+	pan := "4242424242424242"
+	first := req(pan, "3312", 10000)
+	first.AuthType = iso8583.AuthEstimated
+	fsb.Authorize(first)
+	more := req(pan, "3312", 3000)
+	more.AuthType, more.OriginalTxnID = iso8583.AuthIncremental, first.NetworkTxnID
+	fsb.Authorize(more)
+
+	again, _, _ := testBanks(t)
+	again.RestoreState(fsb.SaveState())
+	again.Reverse(iso8583.ReversalAdvice{MTI: "0420", NetworkTxnID: more.NetworkTxnID})
+	if h := again.holds[first.NetworkTxnID]; h.amount != 10000 {
+		t.Errorf("after restart, reversing the increment left a hold of %d, want 10000", h.amount)
+	}
+}
+
 func TestIncrementGrowsTheHoldAndClearsOnce(t *testing.T) {
 	fsb, _, _ := testBanks(t)
 	pan := "4242424242424242"

@@ -9,9 +9,10 @@ import (
 // BankState is a bank's saved state: accounts, holds and its logs. 3-D
 // Secure challenges and their CAVVs live for minutes and are not kept.
 type BankState struct {
-	Accounts    []Account                     `json:"accounts"` // In the order they were opened
-	Holds       map[string]SavedHold          `json:"holds"`    // By network transaction ID
-	Reversed    []string                      `json:"reversed"` // Reversals that arrived before their authorization
+	Accounts    []Account                     `json:"accounts"`             // In the order they were opened
+	Holds       map[string]SavedHold          `json:"holds"`                // By network transaction ID
+	Increments  map[string]SavedIncrement     `json:"increments,omitempty"` // Incremental authorizations folded into a hold
+	Reversed    []string                      `json:"reversed"`             // Reversals that arrived before their authorization
 	Decisions   []Decision                    `json:"decisions"`
 	Reversals   []Reversal                    `json:"reversals"`
 	PostedFiles map[string]clearing.IssuerAck `json:"posted_files"`
@@ -20,6 +21,13 @@ type BankState struct {
 // SavedHold is an authorization hold.
 type SavedHold struct {
 	PAN    string `json:"pan"`
+	Amount int64  `json:"amount"`
+}
+
+// SavedIncrement is an incremental authorization, folded into the hold of
+// the authorization it adds to.
+type SavedIncrement struct {
+	Of     string `json:"of"`
 	Amount int64  `json:"amount"`
 }
 
@@ -34,6 +42,12 @@ func (b *Bank) SaveState() BankState {
 	}
 	for id, h := range b.holds {
 		st.Holds[id] = SavedHold{PAN: h.pan, Amount: h.amount}
+	}
+	if len(b.increments) > 0 {
+		st.Increments = map[string]SavedIncrement{}
+		for id, inc := range b.increments {
+			st.Increments[id] = SavedIncrement{Of: inc.of, Amount: inc.amount}
+		}
 	}
 	for id := range b.reversed {
 		st.Reversed = append(st.Reversed, id)
@@ -67,6 +81,10 @@ func (b *Bank) RestoreState(st BankState) {
 	b.holds = map[string]hold{}
 	for id, h := range st.Holds {
 		b.holds[id] = hold{pan: h.PAN, amount: h.Amount}
+	}
+	b.increments = map[string]increment{}
+	for id, inc := range st.Increments {
+		b.increments[id] = increment{of: inc.Of, amount: inc.Amount}
 	}
 	b.reversed = map[string]struct{}{}
 	for _, id := range st.Reversed {

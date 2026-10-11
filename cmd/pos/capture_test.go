@@ -42,6 +42,24 @@ func TestPreAuthIncrementAndCapture(t *testing.T) {
 	}
 }
 
+func TestIncrementAfterRestartIsRefusedButCaptureWorks(t *testing.T) {
+	s, _ := newBankServer(t)
+	in := sale(creditPAN, iso8583.EntryManual)
+	in.Expiry, in.CVV, in.Amount, in.PreAuth = "12/33", "123", "100.00", true
+	_, pre := post(t, s.handleSale, in)
+
+	restarted, _ := newBankServer(t)
+	restarted.acquirer = s.acquirer
+	restarted.restoreState(s.saveState())
+	code, _ := post(t, restarted.handleIncrement, map[string]string{"stan": pre.Request.STAN, "amount": "10.00"})
+	if code != http.StatusConflict {
+		t.Errorf("increment with a masked card number: HTTP %d, want 409", code)
+	}
+	if code, tx := post(t, restarted.handleCapture, map[string]string{"stan": pre.Request.STAN, "amount": "90.00"}); code != 200 || tx.Captured != 9000 {
+		t.Errorf("capture after restart: %d %+v", code, tx)
+	}
+}
+
 func TestTipAdjust(t *testing.T) {
 	s, acq := newBankServer(t)
 	in := sale(creditPAN, iso8583.EntryManual)

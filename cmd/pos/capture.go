@@ -77,6 +77,11 @@ func (s *server) handleIncrement(w http.ResponseWriter, r *http.Request) {
 	if problem == "" && orig.Request.AuthType != iso8583.AuthEstimated {
 		problem = "Only a pre-auth can be increased; a final sale's amount is fixed except for a tip."
 	}
+	if problem == "" && card.ValidatePAN(orig.sent.PAN) != nil {
+		// The terminal saves sales with the card number masked, so after a
+		// restart it can't send another 0100 for the card.
+		problem = "The terminal restarted since this pre-auth and no longer has the card number: capture it, or take a new pre-auth."
+	}
 	var req iso8583.AuthRequest
 	if problem == "" {
 		req = orig.sent
