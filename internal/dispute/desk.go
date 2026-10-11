@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/JonahR/simple-network/internal/jsonapi"
 )
 
 // RegisterDesk gives a member's back office its own dispute desk: the
@@ -18,6 +20,11 @@ func RegisterDesk(mux *http.ServeMux, networkURL, side, member string) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	forward := func(target string) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
+			// Check the caller's own Content-Type before relabelling the
+			// body as JSON, or a cross-site form post would pass through.
+			if r.Method == http.MethodPost && !jsonapi.Require(w, r) {
+				return
+			}
 			t := target
 			for _, k := range []string{"id", "act"} {
 				t = strings.ReplaceAll(t, "{"+k+"}", url.PathEscape(r.PathValue(k)))
