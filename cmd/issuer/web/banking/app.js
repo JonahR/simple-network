@@ -20,6 +20,10 @@ let accountID = "";
 let lastCustomers = "";
 let lastStatement = "";
 let posURL = ""; // The POS page, for "Pay at the POS"
+let claims = []; // What a cardholder can say went wrong with a charge
+let disputing = ""; // The charge whose dispute form is open
+let draft = {}; // That form's answers, kept across redraws
+let disputeNotice = ""; // What the bank said after filing
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -68,6 +72,7 @@ $("customer").addEventListener("change", (e) => {
   store.set(`banking-customer-${bank.id}`, customer);
   window.snNav?.set("customer", customer);
   accountID = "";
+  disputing = disputeNotice = "";
   renderCards();
   loadStatement(true);
 });
@@ -77,6 +82,7 @@ $("cards").addEventListener("click", (e) => {
   if (!btn) return;
   accountID = btn.dataset.id;
   store.set(`banking-account-${bank.id}`, accountID);
+  disputing = disputeNotice = "";
   renderCards();
   loadStatement(true);
 });
@@ -165,13 +171,98 @@ function pendingTable(st) {
 function postedTable(st) {
   if (!st.posted.length) return `<p class="empty">No posted transactions yet. Pending purchases post after the network's end of day.</p>`;
   return `<table><thead><tr><th>Date</th><th>Posted</th><th>Description</th><th class="num">Amount</th></tr></thead><tbody>
-    ${st.posted.map((l) => `<tr>
+    ${st.posted.map((l) => `<tr${l.network_txn_id === disputing && l.disputable ? ' class="disputing"' : ""}>
       <td class="date">${day(l.time)}</td>
       <td class="date">${day(l.posted)}</td>
-      <td>${description(l)}</td>
-      <td class="num">${amount(l)}</td></tr>`).join("")}
+      <td>${description(l)}${l.disputable && disputing !== l.network_txn_id ? `<button type="button" class="dispute-btn" data-dispute="${escapeHTML(l.network_txn_id)}" data-term="chargeback">Dispute this charge</button>` : ""}</td>
+      <td class="num">${amount(l)}</td></tr>
+      ${l.disputable && disputing === l.network_txn_id ? `<tr class="dispute-row"><td colspan="4">${disputeForm(l)}</td></tr>` : ""}`).join("")}
   </tbody></table>`;
 }
+
+// --- Disputing a charge ----------------------------------------------------------
+
+// disputeForm asks what went wrong, in the cardholder's words. The bank
+// picks the network reason code and files the chargeback.
+function disputeForm(l) {
+  const c = claims.find((x) => x.id === draft.claim);
+  return `<form class="dispute-form" data-dispute-form data-term-scope="chargeback">
+    <h4><span data-term="chargeback">Dispute</span> ${escapeHTML(l.merchant || "this charge")} · ${amount(l)}</h4>
+    <fieldset>
+      <legend data-term="reason-code">What went wrong?</legend>
+      ${claims.map((x) => `<label class="claim"><input type="radio" name="claim" value="${escapeHTML(x.id)}"${x.id === draft.claim ? " checked" : ""}>
+        <span><b>${escapeHTML(x.label)}</b><small>${escapeHTML(x.hint)}</small></span></label>`).join("")}
+    </fieldset>
+    <label class="d-field"${c?.ask_amount ? "" : " hidden"} data-agreed><span data-term="de4">Amount you agreed to pay</span><input name="agreed" inputmode="decimal" placeholder="0.00" value="${escapeHTML(draft.agreed || "")}"></label>
+    <label class="d-field"><span>Tell us more <small>(optional)</small></span><input name="story" maxlength="280" value="${escapeHTML(draft.story || "")}"></label>
+    <p class="muted">While we look into it, we credit the disputed amount back to your card. The merchant can answer with evidence; if it shows the charge was right, we charge it again.</p>
+    <div class="d-actions"><button type="submit" class="primary" data-term="chargeback">Submit dispute</button><button type="button" data-cancel-dispute>Cancel</button><span class="d-error" data-dispute-error></span></div>
+  </form>`;
+}
+
+function redrawStatement() {
+  lastStatement = "";
+  loadStatement(true);
+}
+
+$("account").addEventListener("click", (e) => {
+  const open = e.target.closest("[data-dispute]");
+  if (open) {
+    disputing = open.dataset.dispute;
+    draft = {};
+    disputeNotice = "";
+    redrawStatement();
+  } else if (e.target.closest("[data-cancel-dispute]")) {
+    disputing = "";
+    redrawStatement();
+  }
+});
+
+$("account").addEventListener("input", (e) => {
+  const f = e.target.closest("[data-dispute-form]");
+  if (!f) return;
+  draft = { claim: f.claim.value, agreed: f.agreed.value, story: f.story.value };
+  f.querySelector("[data-agreed]").hidden = !claims.find((x) => x.id === draft.claim)?.ask_amount;
+});
+
+$("account").addEventListener("submit", async (e) => {
+  const f = e.target.closest("[data-dispute-form]");
+  if (!f) return;
+  e.preventDefault();
+  const err = f.querySelector("[data-dispute-error]");
+  if (!f.claim.value) {
+    err.textContent = "Choose what went wrong.";
+    return;
+  }
+  const btn = f.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  err.textContent = "";
+  let res, out;
+  try {
+    res = await fetch(`/api/banking/accounts/${encodeURIComponent(accountID)}/disputes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        network_txn_id: disputing,
+        claim: f.claim.value,
+        agreed: Math.round(parseFloat(String(f.agreed.value).replace(/[$,]/g, "")) * 100) || 0,
+        story: f.story.value,
+      }),
+    });
+    out = await res.json();
+  } catch {
+    out = { error: "Couldn't reach the bank. Try again." };
+  }
+  if (!res?.ok) {
+    err.textContent = out.error || `Something went wrong (${res?.status}).`;
+    btn.disabled = false;
+    return;
+  }
+  disputeNotice = `Dispute filed. We've credited ${money(out.amount)} back to your card while the merchant responds (by ${out.deadline}). Case ${out.dispute_id}, reason code ${out.reason}.`;
+  disputing = "";
+  draft = {};
+  redrawStatement();
+});
 
 function renderStatement(st) {
   $("account").innerHTML = `${overview(st)}
@@ -181,6 +272,7 @@ function renderStatement(st) {
     </section>
     <section class="panel" data-term-scope="clearing">
       <div class="txn-head"><h3><span data-term="clearing">Posted transactions</span></h3><small>${st.posted.length} posted</small></div>
+      ${disputeNotice ? `<p class="d-notice" data-term="chargeback">${escapeHTML(disputeNotice)}</p>` : ""}
       ${postedTable(st)}
     </section>`;
   $("lock").addEventListener("change", async (e) => {
@@ -237,6 +329,7 @@ async function refresh() {
           .join("");
       }
       customers = data.customers;
+      claims = data.claims || [];
       renderCustomers();
       renderCards();
     }

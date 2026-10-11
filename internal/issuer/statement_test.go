@@ -165,3 +165,50 @@ func TestStatementShowsDisputeCredits(t *testing.T) {
 		t.Errorf("after losing: posted %d lines, balance %d, available %d", len(st.Posted), st.Balance, st.Account.Available)
 	}
 }
+
+// A posted purchase can be disputed once; a refund or a pending hold can't.
+func TestDisputableCharge(t *testing.T) {
+	fsb, _, _ := testBanks(t)
+	id := janeCredit(t, fsb)
+	sale := req("4242424242424242", "3312", 40_00)
+	fsb.Authorize(sale)
+	if _, ok := fsb.DisputableCharge(id, sale.NetworkTxnID); ok {
+		t.Error("a pending hold is disputable")
+	}
+	refund := req("4242424242424242", "3312", 15_00)
+	refund.ProcessingCode = "200000"
+	fsb.Authorize(refund)
+	fsb.Post(clearing.IssuerFile{FileID: "c1-FSB", Records: []clearing.IssuerRecord{
+		{NetworkTxnID: sale.NetworkTxnID, ARN: "A1", Amount: 40_00, MerchantName: "Shop", Currency: "840"},
+		{NetworkTxnID: refund.NetworkTxnID, ARN: "A2", Amount: 15_00, MerchantName: "Shop", Currency: "840", Credit: true},
+	}})
+
+	if p, ok := fsb.DisputableCharge(id, sale.NetworkTxnID); !ok || p.Amount != 40_00 {
+		t.Errorf("posted sale: %+v %v, want disputable for 4000", p, ok)
+	}
+	if _, ok := fsb.DisputableCharge(id, refund.NetworkTxnID); ok {
+		t.Error("a refund is disputable")
+	}
+	if _, ok := fsb.DisputableCharge("someone-else", sale.NetworkTxnID); ok {
+		t.Error("another account can dispute the sale")
+	}
+	st, _ := fsb.Statement(id)
+	for _, l := range st.Posted {
+		if want := l.Kind == "purchase"; l.Disputable != want {
+			t.Errorf("%s line disputable = %v", l.Kind, l.Disputable)
+		}
+	}
+
+	if err := fsb.ApplyDispute(DisputeNotice{DisputeID: "D1", NetworkTxnID: sale.NetworkTxnID, State: "chargeback", Amount: 40_00, Credit: true, Summary: "First chargeback"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := fsb.DisputableCharge(id, sale.NetworkTxnID); ok {
+		t.Error("a disputed sale is disputable again")
+	}
+	st, _ = fsb.Statement(id)
+	for _, l := range st.Posted {
+		if l.Disputable {
+			t.Errorf("%s line still disputable after the dispute", l.Kind)
+		}
+	}
+}

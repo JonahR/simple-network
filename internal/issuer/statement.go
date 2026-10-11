@@ -62,6 +62,7 @@ type Activity struct {
 	Kind         string     `json:"kind"`                // "purchase", "refund", or "dispute" (a provisional credit)
 	AuthCode     string     `json:"auth_code,omitempty"` // Pending lines only
 	Note         string     `json:"note,omitempty"`      // e.g. "includes added authorizations"
+	Disputable   bool       `json:"disputable,omitempty"` // A posted purchase the cardholder hasn't disputed yet
 }
 
 // Statement is what the cardholder sees for one account.
@@ -178,6 +179,7 @@ func (b *Bank) Statement(accountID string) (Statement, bool) {
 		if !p.Credit && d.Dispute != "" {
 			line.Note = "Disputed: " + d.Dispute
 		}
+		line.Disputable = !p.Credit && d.Dispute == ""
 		st.Posted = append(st.Posted, line)
 		// A chargeback the cardholder is pursuing (or won) credits them back
 		// for now; the dispute's outcome can take it away again.
@@ -200,4 +202,24 @@ func (b *Bank) Statement(accountID string) (Statement, bool) {
 		st.Pending[i].Merchant = strings.TrimSpace(st.Pending[i].Merchant)
 	}
 	return st, true
+}
+
+// DisputableCharge returns a posted purchase on the account that the
+// cardholder may ask the bank to dispute: one not refunded as a credit and
+// not already disputed. The network decides whether a reason code applies.
+func (b *Bank) DisputableCharge(accountID, networkTxnID string) (Posting, bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	for _, p := range b.postings {
+		if p.AccountID != accountID || p.NetworkTxnID != networkTxnID || p.Credit {
+			continue
+		}
+		for _, d := range b.decisions {
+			if d.NetworkTxnID == networkTxnID && d.Dispute != "" {
+				return Posting{}, false
+			}
+		}
+		return p, true
+	}
+	return Posting{}, false
 }

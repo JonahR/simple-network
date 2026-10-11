@@ -56,6 +56,9 @@ type bankServer struct {
 	// peers is every bank in this process, so online banking can send a
 	// customer who banks elsewhere to the right bank's site.
 	peers []*bankServer
+
+	// disputes files chargebacks the bank's cardholders ask for.
+	disputes *dispute.Member
 }
 
 func main() {
@@ -118,7 +121,7 @@ func main() {
 	errs := make(chan error)
 	var servers []*bankServer
 	for _, b := range banks {
-		servers = append(servers, &bankServer{bank: b.bank, banks: links})
+		servers = append(servers, &bankServer{bank: b.bank, banks: links, disputes: dispute.NewIssuer(networkURL, b.bank.ID)})
 	}
 	for i, b := range banks {
 		s := servers[i]
@@ -140,6 +143,7 @@ func main() {
 		// The cardholder's online banking at /banking/ (see banking.go).
 		mux.HandleFunc("GET /api/banking/customers", s.handleCustomers)
 		mux.HandleFunc("GET /api/banking/accounts/{id}", s.handleStatement)
+		mux.HandleFunc("POST /api/banking/accounts/{id}/disputes", s.handleDisputeCharge)
 		mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 		// The bank's dispute desk, through the network's dispute system.
 		dispute.RegisterDesk(mux, networkURL, dispute.ActorIssuer, b.bank.ID)
