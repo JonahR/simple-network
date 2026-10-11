@@ -8,15 +8,14 @@ const (
 	MTIAuthAdviceResponse = "0130"
 )
 
-// AuthAdvice is an 0120. It carries a one-way hash of the card number, not
-// the number itself, so queued advices can be stored safely; the issuer
-// finds the account by hash.
+// AuthAdvice is an 0120. It carries a keyed card reference (card.Ref), not
+// the card number or its expiry, so queued advices can be stored safely; the
+// issuer finds the account by reference.
 type AuthAdvice struct {
 	MTI             string `json:"mti"`
 	NetworkTxnID    string `json:"network_txn_id"`
 	PAN             string `json:"de2_pan"` // Masked
-	PANHash         string `json:"pan_sha256"`
-	Expiry          string `json:"de14_expiry"`
+	CardRef         string `json:"card_ref"`
 	Amount          int64  `json:"de4_amount"`
 	Currency        string `json:"de49_currency"`
 	STAN            string `json:"de11_stan"`

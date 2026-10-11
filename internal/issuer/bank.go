@@ -27,8 +27,8 @@ type Account struct {
 	Holder  string
 	Product card.Product
 	Expiry  string // YYMM
-	CVV     string
-	PINHash string // sha256(PAN|PIN); empty when the card has no PIN
+	CVV     string `json:"-"` // Never saved: restored from the seed
+	PINHash string `json:"-"` // sha256(PAN|PIN), empty when the card has no PIN; never saved
 	Blocked bool   // Frozen by the cardholder or the bank
 
 	// Billing address, for AVS on card-not-present sales. Empty means the

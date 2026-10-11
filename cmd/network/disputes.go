@@ -13,6 +13,7 @@ import (
 	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/dispute"
 	"github.com/JonahR/simple-network/internal/iso8583"
+	"github.com/JonahR/simple-network/internal/jsonapi"
 	"github.com/JonahR/simple-network/internal/network"
 )
 
@@ -102,6 +103,9 @@ func registerDisputes(mux *http.ServeMux, eng *clearing.Engine, rec *network.Rec
 	// A simulation control: deadlines run on business days, which otherwise
 	// advance only at each end of day.
 	mux.HandleFunc("POST /api/disputes/advance", func(w http.ResponseWriter, r *http.Request) {
+		if !jsonapi.Require(w, r) {
+			return
+		}
 		var b disputeBody
 		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&b); err != nil || b.Days <= 0 || b.Days > 365 {
 			http.Error(w, "days must be 1-365", http.StatusBadRequest)
@@ -139,6 +143,9 @@ type disputeBody struct {
 // fn, and answers with the dispute or the reason the network refused.
 func handleDisputePost(mux *http.ServeMux, path string, fn func(r *http.Request, b disputeBody) (dispute.Dispute, error)) {
 	mux.HandleFunc("POST "+path, func(w http.ResponseWriter, r *http.Request) {
+		if !jsonapi.Require(w, r) {
+			return
+		}
 		var b disputeBody
 		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&b); err != nil {
 			http.Error(w, "invalid body", http.StatusBadRequest)

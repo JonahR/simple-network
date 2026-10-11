@@ -28,6 +28,16 @@ func (b *Bank) ApplyDispute(n DisputeNotice) error {
 	if acct == nil {
 		return fmt.Errorf("no account for transaction %s", n.NetworkTxnID)
 	}
+	// A dispute can't credit more than the bank approved for the sale.
+	var approved int64
+	for _, d := range b.decisions {
+		if d.NetworkTxnID == n.NetworkTxnID {
+			approved = max(approved, d.Approved)
+		}
+	}
+	if n.Amount < 0 || n.Amount > approved {
+		return fmt.Errorf("dispute amount %d is outside the sale's approved %d", n.Amount, approved)
+	}
 	want := int64(0)
 	if n.Credit {
 		want = n.Amount

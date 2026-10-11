@@ -15,6 +15,11 @@ const (
 	AcquirerPIN = "0123456789ABCDEFFEDCBA9876543210"
 	IssuerFSB   = "A1B2C3D4E5F60718293A4B5C6D7E8F90"
 	IssuerUCB   = "0F1E2D3C4B5A69788796A5B4C3D2E1F0"
+
+	// CardRef keys the card reference the network and its issuers share
+	// (card.Ref), so a stored reference can't be turned back into a card
+	// number without it. Override with CARD_REF_KEY.
+	CardRef = "5C1E9A07D3B2486FA1C0E7D94B6F2830"
 )
 
 // Load returns the key in env var name, or def when it is unset. It returns

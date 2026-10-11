@@ -1,18 +1,17 @@
 package issuer
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"strings"
 
+	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/iso8583"
 )
 
 // Advise honors an 0120: an authorization the network approved on the
 // bank's behalf (stand-in) while the bank couldn't answer. Stand-in
 // approvals bind the issuer, so the hold is placed even past the available
-// credit. The bank finds the account by card hash; the advice never carries
-// the card number. An advice repeated, or arriving after the bank's own late
+// credit. The bank finds the account by its keyed card reference; the advice never
+// carries the card number. An advice repeated, or arriving after the bank's own late
 // approval, places nothing new.
 func (b *Bank) Advise(adv iso8583.AuthAdvice) iso8583.AuthAdviceResponse {
 	b.mu.Lock()
@@ -28,7 +27,7 @@ func (b *Bank) Advise(adv iso8583.AuthAdvice) iso8583.AuthAdviceResponse {
 	}
 	var acct *Account
 	for _, a := range b.accounts {
-		if sum := sha256.Sum256([]byte(a.PAN)); hex.EncodeToString(sum[:]) == adv.PANHash {
+		if card.Ref(a.PAN) == adv.CardRef {
 			acct = a
 			break
 		}

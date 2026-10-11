@@ -25,6 +25,7 @@ import (
 	"github.com/JonahR/simple-network/internal/dispute"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/issuer"
+	"github.com/JonahR/simple-network/internal/jsonapi"
 	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/store"
 	"github.com/JonahR/simple-network/internal/ui"
@@ -178,6 +179,9 @@ func (s *bankServer) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 func (s *bankServer) handleDisputeNotice(w http.ResponseWriter, r *http.Request) {
 	if s.mode.Load() == "down" {
 		http.Error(w, "issuer down (simulated)", http.StatusServiceUnavailable)
+		return
+	}
+	if !jsonapi.Require(w, r) {
 		return
 	}
 	var n issuer.DisputeNotice

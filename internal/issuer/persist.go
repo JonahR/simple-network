@@ -74,6 +74,10 @@ func (b *Bank) RestoreState(st BankState) {
 	var order []string
 	for _, a := range st.Accounts {
 		a := a
+		// The CVV and PIN hash are never saved; take them from the seed.
+		if seed := b.accounts[a.PAN]; seed != nil {
+			a.CVV, a.PINHash = seed.CVV, seed.PINHash
+		}
 		b.accounts[a.PAN] = &a
 		saved[a.PAN] = true
 		order = append(order, a.PAN)

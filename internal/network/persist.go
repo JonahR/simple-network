@@ -3,6 +3,7 @@ package network
 import (
 	"slices"
 
+	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/iso8583"
 )
 
@@ -75,8 +76,9 @@ func (v *Vault) RestoreState(st VaultState) {
 
 // SavedAttempt is a finished authorization the switch remembers, so a
 // repeated 0100 gets its original answer and an acquirer's 0420 can still
-// reverse it after a restart. Fwd is already masked; the issuer matches a
-// reversal by network transaction ID, not card number.
+// reverse it after a restart. Fwd is saved masked and stripped to what a
+// reversal needs: the issuer matches a reversal by network transaction ID,
+// not card number.
 type SavedAttempt struct {
 	Key      string               `json:"key"` // Acquirer ID | STAN | DE7
 	Started  bool                 `json:"started"`
@@ -111,11 +113,15 @@ func (s *Switch) SaveState() SwitchState {
 				continue // Still in flight
 			}
 			sa.Resp = a.resp
+			sa.Resp.PAN = card.Mask(sa.Resp.PAN) // The 0110 echoes DE2
 			if a.rec != nil {
 				sa.RecordID = a.rec.ID
 			}
 			if a.fwd != nil {
-				f := *a.fwd
+				// For wallet sales fwd carries the real card number; never
+				// write it, or the cardholder's name, address or CAVV, to disk.
+				f := a.fwd.Redacted(card.Mask)
+				f.CardholderName, f.AVS, f.CAVV = "", nil, ""
 				sa.Fwd = &f
 			}
 			if a.iss != nil {

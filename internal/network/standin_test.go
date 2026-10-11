@@ -2,11 +2,14 @@ package network
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/pin"
 )
@@ -176,5 +179,31 @@ func TestStandInLeavesRefundsToTheIssuer(t *testing.T) {
 	f.fsb.down = false
 	if available(f) != before {
 		t.Errorf("available %d, want %d: nothing may be held for a refund", available(f), before)
+	}
+}
+
+// The 0120 carries a keyed card reference: a plain hash of the card number
+// could be reversed by trying every number in the BIN range.
+func TestStandInAdviceUsesKeyedCardRef(t *testing.T) {
+	f := newFixture(t)
+	withStandIn(f, true)
+	f.fsb.down = true
+	f.sw.Authorize(context.Background(), auth("4242424242424242", "3312", 2000))
+	data, _ := json.Marshal(f.sw.StandIn.SaveState())
+	sum := sha256.Sum256([]byte("4242424242424242"))
+	for _, s := range []string{hex.EncodeToString(sum[:]), "3312", "pan_sha256"} {
+		if strings.Contains(string(data), s) {
+			t.Errorf("saved stand-in state contains %s", s)
+		}
+	}
+	if !strings.Contains(string(data), card.Ref("4242424242424242")) {
+		t.Error("saved advice lacks the card reference")
+	}
+	// The issuer still finds the account by reference. (The fixture's issuer
+	// stays down: flipping it would race the background delivery.)
+	before := available(f)
+	resp := f.fsb.bank.Advise(iso8583.AuthAdvice{NetworkTxnID: "ref-test", CardRef: card.Ref("4242424242424242"), Amount: 500})
+	if !resp.Held || available(f) != before-500 {
+		t.Errorf("advice by reference: %+v, available %d → %d", resp, before, available(f))
 	}
 }

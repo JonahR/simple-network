@@ -3,8 +3,6 @@ package network
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"slices"
@@ -90,11 +88,6 @@ func (si *StandIn) SetEnabled(issuerID string, enabled bool) bool {
 	return ok
 }
 
-func panHash(pan string) string {
-	sum := sha256.Sum256([]byte(pan))
-	return hex.EncodeToString(sum[:])
-}
-
 // decide applies an issuer's stand-in agreement to a request the issuer
 // couldn't answer. On approval it queues the 0120 the issuer is owed.
 func (si *StandIn) decide(issuerID string, fwd iso8583.AuthRequest, why string) (iso8583.AuthAdvice, string, bool) {
@@ -102,8 +95,8 @@ func (si *StandIn) decide(issuerID string, fwd iso8583.AuthRequest, why string) 
 	defer si.mu.Unlock()
 	p := si.params[issuerID]
 	now := si.now()
-	hash := panHash(fwd.PAN)
-	key := issuerID + "|" + hash + "|" + now.UTC().Format("2006-01-02")
+	ref := card.Ref(fwd.PAN)
+	key := issuerID + "|" + ref + "|" + now.UTC().Format("2006-01-02")
 	switch {
 	case !p.Enabled:
 		return iso8583.AuthAdvice{}, "stand-in is off for this issuer", false
@@ -128,8 +121,8 @@ func (si *StandIn) decide(issuerID string, fwd iso8583.AuthRequest, why string) 
 	}
 	si.spent[key] += fwd.Amount
 	adv := iso8583.AuthAdvice{
-		MTI: iso8583.MTIAuthAdvice, NetworkTxnID: fwd.NetworkTxnID, PAN: card.Mask(fwd.PAN), PANHash: hash,
-		Expiry: fwd.Expiry, Amount: fwd.Amount, Currency: fwd.Currency, STAN: fwd.STAN, RRN: fwd.RRN,
+		MTI: iso8583.MTIAuthAdvice, NetworkTxnID: fwd.NetworkTxnID, PAN: card.Mask(fwd.PAN), CardRef: ref,
+		Amount: fwd.Amount, Currency: fwd.Currency, STAN: fwd.STAN, RRN: fwd.RRN,
 		AuthCode: standInCode(), ResponseCode: iso8583.RCApproved, MCC: fwd.MCC, EntryMode: fwd.EntryMode,
 		MerchantNameLoc: fwd.MerchantNameLoc, Reason: why,
 	}
