@@ -86,6 +86,7 @@ func main() {
 	mux.HandleFunc("POST /3ds/challenge", s.handleChallenge3DS)
 	mux.Handle("GET /", http.FileServerFS(static))
 	mux.HandleFunc("GET /api/overview", s.handleOverview)
+	mux.HandleFunc("POST /api/iso8583", handleEncode)
 	mux.HandleFunc("POST /clearing/submit", s.handleSubmitClearing)
 	mux.HandleFunc("POST /settlement/advice", s.handleAdvice)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
@@ -240,6 +241,23 @@ func (s *server) handleOverview(w http.ResponseWriter, _ *http.Request) {
 		"entry_modes":    iso8583.EntryModes,
 		"clearing":       s.clr.View(),
 	})
+}
+
+// handleEncode returns an 0100 as the ISO 8583 bytes a real network link
+// would carry, with a map of which bytes are which field. The page posts the
+// masked request it already has, so no card data comes back.
+func handleEncode(w http.ResponseWriter, r *http.Request) {
+	var req iso8583.AuthRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&req); err != nil {
+		http.Error(w, "invalid 0100 message", http.StatusBadRequest)
+		return
+	}
+	wire, err := iso8583.EncodeAuthRequest(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	writeJSON(w, http.StatusOK, wire)
 }
 
 // handleSubmitClearing sends a clearing file of every approved authorization

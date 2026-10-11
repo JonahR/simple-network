@@ -188,7 +188,161 @@ function wireCard(id, mti, title, msg, fields, tag, rec) {
       <thead><tr><th data-term="iso8583">Field</th><th>On the wire</th><th>Meaning</th><th>From</th></tr></thead>
       <tbody>${body}</tbody>
     </table></div>
+    ${mti === "0100" ? rawWindows(rec) : ""}
   </div>`;
+}
+
+// --- Raw message windows ---------------------------------------------------------
+// simple-network's services talk JSON over HTTP. A real network link carries
+// the same 0100 as ISO 8583 bytes; the acquirer encodes the masked request to
+// show them, with each byte mapped to the field it belongs to.
+
+// Which raw windows are open, kept across redraws.
+const rawOpen = { iso: false, json: false };
+// Encoded 0100s by record key; only the selected one is ever drawn.
+const isoCache = new Map();
+const ISO_CACHE_MAX = 20;
+
+function rawWindows(rec) {
+  return `<details class="raw" data-raw="iso" ${rawOpen.iso ? "open" : ""}>
+      <summary><span data-term="iso8583">Raw ISO 8583 bytes</span> (PAN masked, PIN block hidden)</summary>
+      <div class="iso" id="iso-body">${isoBody(rec)}</div>
+    </details>
+    <details class="raw" data-raw="json" ${rawOpen.json ? "open" : ""}>
+      <summary><span data-term="msg-0100">Raw JSON the simulation sends</span> (PAN masked, PIN block and CVV hidden)</summary>
+      <pre>${escapeHTML(JSON.stringify(rec.request, null, 2))}</pre>
+    </details>`;
+}
+
+function isoBody(rec) {
+  const w = isoCache.get(keyOf(rec));
+  if (!w) return `<p class="muted">Encoding…</p>`;
+  if (w.error) return `<p class="muted">Couldn't encode this message: ${escapeHTML(w.error)}</p>`;
+  return isoHTML(w);
+}
+
+// loadISO encodes the selected 0100 once, when its window is open.
+async function loadISO(rec) {
+  const key = keyOf(rec);
+  if (!rawOpen.iso || isoCache.has(key)) return;
+  let w;
+  try {
+    const res = await fetch("/api/iso8583", { method: "POST", body: JSON.stringify(rec.request) });
+    w = res.ok ? await res.json() : { error: (await res.text()).trim() };
+  } catch {
+    return; // Try again on the next redraw
+  }
+  isoCache.set(key, w);
+  if (isoCache.size > ISO_CACHE_MAX) isoCache.delete(isoCache.keys().next().value);
+  const cur = data && selected();
+  const el = document.getElementById("iso-body");
+  if (el && cur && keyOf(cur) === key) el.innerHTML = isoBody(cur);
+}
+
+const hex2 = (n) => n.toString(16).padStart(2, "0").toUpperCase();
+const printable = (n) => (n >= 0x20 && n < 0x7f ? String.fromCharCode(n) : "·");
+
+// isoHTML draws an encoded message three ways that point at each other:
+// a hex dump, the bitmap bit by bit, and a map of each field's bytes.
+function isoHTML(w) {
+  const bytes = w.hex.match(/../g).map((h) => parseInt(h, 16));
+  // owner[i] is the field index byte i belongs to; prefix marks length digits.
+  const owner = new Array(bytes.length);
+  const prefix = new Array(bytes.length).fill(false);
+  w.fields.forEach((f, fi) => {
+    for (let i = f.offset; i < f.offset + f.length; i++) owner[i] = fi;
+    for (const p of f.parts || []) {
+      if (p.label.startsWith("Length ")) for (let i = p.offset; i < p.offset + p.length; i++) prefix[i] = true;
+    }
+  });
+  const hidden = (i) => w.fields[owner[i]].masked && bytes[i] === 0x2a;
+  const byteCls = (i) => `b f${owner[i] % 6}${prefix[i] ? " pfx" : ""}${hidden(i) ? " hid" : ""}`;
+
+  const rows = [];
+  for (let at = 0; at < bytes.length; at += 16) {
+    let hexCells = "";
+    let ascii = "";
+    for (let i = at; i < Math.min(at + 16, bytes.length); i++) {
+      const tip = escapeHTML(w.fields[owner[i]].id);
+      hexCells += `<span class="${byteCls(i)}" data-f="${owner[i]}" title="${tip}">${hidden(i) ? "••" : hex2(bytes[i])}</span>`;
+      ascii += `<span class="${byteCls(i)}" data-f="${owner[i]}">${hidden(i) ? "•" : escapeHTML(printable(bytes[i]))}</span>`;
+    }
+    rows.push(`<div class="dump-row"><span class="off">${at.toString(16).padStart(4, "0")}</span><span class="hex">${hexCells}</span><span class="asc">${ascii}</span></div>`);
+  }
+
+  // Each bitmap byte, bit by bit: a set bit n means DE n follows.
+  const fieldOfBit = Object.fromEntries(w.fields.filter((f) => f.bit).map((f) => [f.bit, w.fields.indexOf(f)]));
+  const maps = w.fields
+    .map((f, fi) => [f, fi])
+    .filter(([f]) => f.id.startsWith("BITMAP"))
+    .map(([f, fi]) => {
+      const first = f.id === "BITMAP" ? 1 : 65;
+      const groups = [];
+      for (let k = 0; k < 8; k++) {
+        const v = bytes[f.offset + k];
+        let cells = "";
+        for (let j = 0; j < 8; j++) {
+          const bit = first + k * 8 + j;
+          const on = (v >> (7 - j)) & 1;
+          const target = fieldOfBit[bit];
+          cells += on
+            ? `<span class="cell on f${target % 6}" data-f="${target}" title="Bit ${bit} set: ${escapeHTML(w.fields[target].id)} follows">1<small>${bit}</small></span>`
+            : `<span class="cell" title="Bit ${bit} clear: no DE${bit}">0<small>${bit}</small></span>`;
+        }
+        groups.push(`<div class="bm-byte"><span class="bm-hex f${fi % 6}" data-f="${fi}">${hex2(v)}</span><div class="bm-bits">${cells}</div></div>`);
+      }
+      return `<div class="bm"><div class="bm-title"><b>${escapeHTML(f.name)}</b> <span class="muted">bytes ${f.offset}–${f.offset + 7}, bits ${first}–${first + 63}</span></div><div class="bm-grid">${groups.join("")}</div></div>`;
+    })
+    .join("");
+
+  // A field's value is its bytes after any length prefix: hex for binary
+  // fields, text for the rest.
+  const binary = (f) => f.id.startsWith("BITMAP") || f.id === "DE52" || f.id === "DE55";
+  const show = (f, from, to) =>
+    bytes
+      .slice(from, to)
+      .map((n, k) => (hidden(from + k) ? (binary(f) ? "••" : "•") : binary(f) ? hex2(n) : printable(n)))
+      .join(binary(f) ? " " : "");
+  const rowsMap = w.fields
+    .map((f, fi) => {
+      const parts = f.parts || [];
+      const pfx = parts.find((p) => p.label.startsWith("Length ") && p.offset === f.offset);
+      const start = pfx ? f.offset + pfx.length : f.offset;
+      const sub = parts
+        .filter((p) => p !== pfx)
+        .map((p) => `<div class="part"><span class="muted">${escapeHTML(p.label)}</span> <span class="mono">${escapeHTML(show(f, p.offset, p.offset + p.length))}</span></div>`)
+        .join("");
+      return `<tr data-f="${fi}">
+        <td><span class="swatch f${fi % 6}"></span><span class="mono">${escapeHTML(f.id)}</span> ${escapeHTML(f.name)}</td>
+        <td class="mono">${escapeHTML(f.format)}</td>
+        <td class="num mono">${f.offset}–${f.offset + f.length - 1}</td>
+        <td class="num">${f.length}</td>
+        <td class="mono value">${pfx ? `<span class="b pfx sample" title="Length prefix: ${f.length - pfx.length} bytes follow">${escapeHTML(pfx.label.slice(7))}</span> ` : ""}${escapeHTML(show(f, start, f.offset + f.length))}${sub}</td>
+      </tr>`;
+    })
+    .join("");
+
+  return `<p class="hint">simple-network sends this 0100 to the network as JSON over HTTP. On a real network link it travels as these ${bytes.length} bytes: the
+      <span data-term="mti">MTI</span> and fields as ASCII text, the <span data-term="bitmap">bitmap</span> as binary, and each variable-length field led by its
+      length (<span class="b pfx sample">LL</span> or <span class="b pfx sample">LLL</span> digits). Point at any byte, bit or row to see its field. DE48 subelement tags are simple-network's own; real networks each define theirs.</p>
+    <div class="dump mono" role="img" aria-label="Hex dump of the ISO 8583 message">${rows.join("")}</div>
+    ${maps}
+    <div class="table-wrap"><table class="iso-map">
+      <thead><tr><th data-term="iso8583">Field</th><th>Format</th><th class="num">Bytes</th><th class="num">Length</th><th>Value</th></tr></thead>
+      <tbody>${rowsMap}</tbody>
+    </table></div>`;
+}
+
+// Pointing at any byte, bit or row lights up everything for that field.
+function lightField(target) {
+  const root = document.querySelector("#path .iso");
+  if (!root) return;
+  const hit = target && root.contains(target) ? target.closest("[data-f]") : null;
+  const f = hit ? hit.dataset.f : "";
+  if (root.dataset.hot === f) return;
+  root.querySelectorAll(".hot").forEach((n) => n.classList.remove("hot"));
+  if (f) root.querySelectorAll(`[data-f="${f}"]`).forEach((n) => n.classList.add("hot"));
+  root.dataset.hot = f;
 }
 
 // wireHTML shows what the acquirer sent the network for rec: the 0100 it
@@ -296,11 +450,26 @@ function renderPath(rec) {
     </div>
     ${changes}
     ${wireHTML(rec)}`;
+  loadISO(rec);
 }
 
 // toNetwork is true for the messages the acquirer sent the network; the
 // page shows each one's fields.
 const toNetwork = (s) => s.from === "acquirer" && s.to === "network" && (s.mti === "0100" || s.mti === "0420");
+
+document.getElementById("path").addEventListener(
+  "toggle",
+  (e) => {
+    const kind = e.target.dataset?.raw;
+    if (!kind) return;
+    rawOpen[kind] = e.target.open;
+    const cur = data && selected();
+    if (kind === "iso" && cur) loadISO(cur);
+  },
+  true
+);
+document.getElementById("path").addEventListener("mouseover", (e) => lightField(e.target));
+document.getElementById("path").addEventListener("mouseleave", () => lightField(null));
 
 document.getElementById("path").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-wire]");

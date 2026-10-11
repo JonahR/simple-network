@@ -276,3 +276,55 @@ button.link {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* Raw message windows: the 0100 as ISO 8583 bytes, and as the JSON sent. */
+details.raw { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+details.raw summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); }
+details.raw pre {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--code-bg);
+  border-radius: 7px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+.iso { --f0: #3b82f6; --f1: #d97706; --f2: #16a34a; --f3: #c026d3; --f4: #0891b2; --f5: #dc2626; }
+.iso .hint { margin: 8px 0 10px; }
+.iso .f0 { --hue: var(--f0); } .iso .f1 { --hue: var(--f1); } .iso .f2 { --hue: var(--f2); }
+.iso .f3 { --hue: var(--f3); } .iso .f4 { --hue: var(--f4); } .iso .f5 { --hue: var(--f5); }
+
+/* Hex dump: offset, 16 bytes, then the same bytes as text. */
+.dump { font-size: 12px; background: var(--code-bg); border-radius: 7px; padding: 8px 10px; overflow-x: auto; }
+.dump-row { display: flex; gap: 14px; white-space: nowrap; line-height: 1.7; }
+.dump .off { color: var(--muted); }
+.dump .hex { display: inline-flex; width: calc(16 * 2.6ch); }
+.dump .hex .b { width: 2.6ch; text-align: center; }
+.dump .asc { display: inline-flex; }
+.b { background: color-mix(in srgb, var(--hue) 18%, transparent); border-radius: 2px; cursor: default; }
+.b.pfx { box-shadow: inset 0 -2px 0 var(--hue); font-weight: 700; }
+.b.hid { color: var(--muted); }
+.b.sample { --hue: var(--muted); padding: 0 3px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.iso .hot { background: color-mix(in srgb, var(--hue) 45%, transparent); outline: 1px solid var(--hue); }
+.iso tr.hot { outline: none; }
+.iso tr.hot td { background: color-mix(in srgb, var(--hue, var(--accent)) 14%, transparent); }
+
+/* Bitmap: each byte in hex, then its eight bits; bit n set means DE n follows. */
+.bm { margin-top: 12px; }
+.bm-title { font-size: 12px; margin-bottom: 6px; }
+.bm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 760px) { .bm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.bm-byte { border: 1px solid var(--border); border-radius: 6px; padding: 4px; min-width: 0; }
+.bm-hex { display: block; text-align: center; font: 700 12px ui-monospace, "SF Mono", Menlo, monospace; border-radius: 3px;
+  background: color-mix(in srgb, var(--hue) 18%, transparent); margin-bottom: 4px; }
+.bm-bits { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
+.cell { font: 12px ui-monospace, "SF Mono", Menlo, monospace; text-align: center; color: var(--muted); border-radius: 3px; padding: 1px 0; }
+.cell small { display: block; font-size: 9px; line-height: 1.1; }
+.cell.on { color: var(--text); font-weight: 700; background: color-mix(in srgb, var(--hue) 22%, transparent); cursor: default; }
+
+/* Field map: where each field's bytes are, and how it splits. */
+table.iso-map { margin-top: 12px; }
+table.iso-map td { vertical-align: top; }
+table.iso-map .value { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 180px; }
+table.iso-map .part { font-size: 11px; white-space: normal; }
+.swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; background: var(--hue); }
+.dump .asc .b { white-space: pre; }
