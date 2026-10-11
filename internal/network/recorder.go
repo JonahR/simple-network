@@ -32,6 +32,7 @@ type Record struct {
 	Duplicates    int                   `json:"duplicates"`
 	Reversed      bool                  `json:"reversed,omitempty"`       // The issuer acknowledged a reversal (0420/0430)
 	Incremented   int64                 `json:"incremented,omitempty"`    // Approved incremental authorizations added to this one
+	Refunded      int64                 `json:"refunded,omitempty"`       // Approved linked refunds of this sale
 	Request       iso8583.AuthRequest   `json:"request"`                  // As received from the acquirer
 	IssuerRequest *iso8583.AuthRequest  `json:"issuer_request,omitempty"` // As forwarded to the issuer
 	Response      *iso8583.AuthResponse `json:"response,omitempty"`       // As returned to the acquirer

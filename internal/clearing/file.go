@@ -42,6 +42,11 @@ type Presentment struct {
 	EntryMode      string `json:"entry_mode"`
 	ProcessingCode string `json:"processing_code"`
 	TxnDate        string `json:"txn_date"` // YYYY-MM-DD
+	// A linked refund names the sale it returns. The network sets both from
+	// its own records when it clears the refund: the sale's transaction ID,
+	// and its ARN once the sale has cleared.
+	OriginalTxnID string `json:"original_txn_id,omitempty"`
+	OriginalARN   string `json:"original_arn,omitempty"`
 }
 
 // FileTrailer carries the file's control totals.
@@ -121,6 +126,9 @@ type IssuerRecord struct {
 	MerchantName string `json:"merchant_name"`
 	Interchange  int64  `json:"interchange"` // What the issuer earns
 	NetworkFee   int64  `json:"network_fee"` // What the issuer pays the network
+	// OriginalTxnID is the sale a linked refund returns, so the issuer can
+	// record the credit against it.
+	OriginalTxnID string `json:"original_txn_id,omitempty"`
 }
 
 // IssuerFile is the network's outgoing clearing file to one issuer.

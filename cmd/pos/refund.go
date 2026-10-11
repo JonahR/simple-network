@@ -21,6 +21,16 @@ func refundable(sale *Transaction) int64 {
 	return charged - sale.Refunded
 }
 
+// networkTxnOf is the network transaction ID of the sale with a STAN.
+func (s *server) networkTxnOf(stan string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if sale := s.findTx(stan); sale != nil && sale.Response != nil {
+		return sale.Response.NetworkTxnID
+	}
+	return ""
+}
+
 // checkRefund checks a refund linked to an earlier sale (its STAN): the sale
 // must be an approved card sale that wasn't voided, the refund must go to the
 // same card, and the total refunded can't exceed what the sale charged. It

@@ -29,6 +29,8 @@ type AuthInfo struct {
 	// ProcessingCode is the 0100's DE3. A balance inquiry (30) moves no
 	// money, so it can't be presented.
 	ProcessingCode string
+	// OriginalTxnID is the sale a linked refund (or an increment) names.
+	OriginalTxnID string
 }
 
 // AuthSource looks up authorizations by network transaction ID.
@@ -366,6 +368,13 @@ func (e *Engine) match(c *Cycle, acquirerID string, p Presentment) (Item, string
 	}
 	ch := ChannelOf(p.EntryMode)
 	if iso8583.IsRefund(auth.ProcessingCode) {
+		// The network's link to the sale wins over the acquirer's, and the
+		// sale's ARN is filled in once it has cleared, so a dispute on the
+		// sale can find the credit.
+		p.OriginalTxnID, p.OriginalARN = auth.OriginalTxnID, ""
+		if orig, ok := e.clearedItem(p.OriginalTxnID); ok && p.OriginalTxnID != "" {
+			p.OriginalARN = orig.ARN
+		}
 		// A refund (credit) sends the money back: the acquirer owes it and
 		// the issuer is owed it. This simulation charges no interchange or
 		// network fees on credits; real networks have credit interchange.
@@ -396,6 +405,56 @@ func (e *Engine) match(c *Cycle, acquirerID string, p Presentment) (Item, string
 		AcquirerGets: p.Amount - price.Interchange - price.AcquirerFee,
 		Posting:      "pending",
 	}, ""
+}
+
+// clearedItem finds the item a network transaction cleared as. The caller
+// holds e.mu.
+func (e *Engine) clearedItem(txnID string) (Item, bool) {
+	cycleID := e.cleared[txnID]
+	if cycleID == "" {
+		return Item{}, false
+	}
+	for _, c := range append(slices.Clone(e.history), e.open) {
+		if c == nil || c.ID != cycleID {
+			continue
+		}
+		for _, it := range c.Items {
+			if it.NetworkTxnID == txnID {
+				return it, true
+			}
+		}
+	}
+	return Item{}, false
+}
+
+// ClearedItem returns the cleared record of a network transaction (a sale
+// or a refund): its cycle, ARN, amount and fees. Chargebacks use it to find
+// a disputed sale.
+func (e *Engine) ClearedItem(txnID string) (Item, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.init()
+	return e.clearedItem(txnID)
+}
+
+// Refunds returns the cleared refunds linked to a sale, oldest first: the
+// "credit already issued" a merchant cites against a chargeback.
+func (e *Engine) Refunds(originalTxnID string) []Item {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.init()
+	var out []Item
+	for _, c := range append(slices.Clone(e.history), e.open) {
+		if c == nil {
+			continue
+		}
+		for _, it := range c.Items {
+			if it.Credit && originalTxnID != "" && it.OriginalTxnID == originalTxnID {
+				out = append(out, it)
+			}
+		}
+	}
+	return out
 }
 
 // postClearing records a cleared item in the ledger (KT 05's entry): the
@@ -589,6 +648,7 @@ func (e *Engine) issuerFiles(c *Cycle) []IssuerFile {
 		f.Records = append(f.Records, IssuerRecord{
 			NetworkTxnID: it.NetworkTxnID, ARN: it.ARN, Amount: it.Amount, Currency: it.Currency, Credit: it.Credit,
 			MerchantName: it.MerchantName, Interchange: it.Interchange, NetworkFee: it.IssuerFee,
+			OriginalTxnID: it.OriginalTxnID,
 		})
 	}
 	sort.Strings(order)

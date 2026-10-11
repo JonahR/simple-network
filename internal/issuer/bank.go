@@ -96,6 +96,10 @@ type Decision struct {
 	AVSResult       string    `json:"avs_result,omitempty"`  // DE44 AVS code, if AVS was asked
 	CVV2Result      string    `json:"cvv2_result,omitempty"` // DE44 CVV2 code, if a CVV2 was sent
 	ECI             string    `json:"eci,omitempty"`         // 3-D Secure e-commerce indicator, if any
+	// Refunds. A linked refund names the sale it returns; that sale's
+	// decision adds up what was credited back once the refunds clear.
+	OriginalTxnID string `json:"original_txn_id,omitempty"`
+	Refunded      int64  `json:"refunded,omitempty"`
 }
 
 // Reversal is the bank's record of an 0420.

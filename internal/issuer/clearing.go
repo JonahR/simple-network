@@ -26,6 +26,7 @@ func (b *Bank) Post(f clearing.IssuerFile) clearing.IssuerAck {
 				acct.Posted -= r.Amount
 				acct.Available += r.Amount
 				b.setHold(r.NetworkTxnID, "credited")
+				b.recordRefund(r)
 				ack.Posted++
 			} else {
 				ack.Unmatched = append(ack.Unmatched, r.NetworkTxnID)
@@ -54,6 +55,24 @@ func (b *Bank) Post(f clearing.IssuerFile) clearing.IssuerAck {
 	}
 	b.postedFiles[f.FileID] = ack
 	return ack
+}
+
+// recordRefund notes a posted credit on the refund's decision and on the
+// sale it names, so a dispute on that sale can see the credit was already
+// issued. The caller holds b.mu.
+func (b *Bank) recordRefund(r clearing.IssuerRecord) {
+	if r.OriginalTxnID == "" {
+		return
+	}
+	for i := range b.decisions {
+		d := &b.decisions[i]
+		switch d.NetworkTxnID {
+		case r.NetworkTxnID:
+			d.OriginalTxnID = r.OriginalTxnID
+		case r.OriginalTxnID:
+			d.Refunded += r.Amount
+		}
+	}
 }
 
 // accountFor finds the account an authorization was decided on. The caller holds b.mu.

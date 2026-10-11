@@ -54,6 +54,8 @@ func TestLinkedRefundsAreCappedAtTheSale(t *testing.T) {
 	part.Refund, part.RefundOf = true, stan
 	if _, tx := post(t, s.handleSale, part); tx.Status != "REFUND" || tx.RefundOf != stan {
 		t.Fatalf("first refund: %+v", tx)
+	} else if tx.Request.OriginalTxnID != sale.Response.NetworkTxnID || tx.Request.OriginalTxnID == "" {
+		t.Errorf("the refund's 0100 names %q, want the sale's network transaction %q", tx.Request.OriginalTxnID, sale.Response.NetworkTxnID)
 	}
 	s.mu.Lock()
 	refunded := s.findTx(stan).Refunded

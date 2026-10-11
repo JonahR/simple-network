@@ -314,6 +314,10 @@ func (s *server) handleSale(w http.ResponseWriter, r *http.Request) {
 	if len(fieldErrs) == 0 && in.RefundOf != "" {
 		if field, msg := s.checkRefund(in.RefundOf, req); msg != "" {
 			fieldErrs = fieldErrors{field: msg}
+		} else {
+			// Name the sale in the 0100 too, so the network, clearing and the
+			// issuer can tie the credit to it (and a chargeback can find it).
+			req.OriginalTxnID = s.networkTxnOf(in.RefundOf)
 		}
 	}
 	if len(fieldErrs) > 0 {

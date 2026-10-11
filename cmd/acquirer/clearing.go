@@ -127,6 +127,7 @@ func (c *clearer) presentments() []clearing.Presentment {
 			EntryMode:      r.Request.EntryMode,
 			ProcessingCode: r.Request.ProcessingCode,
 			TxnDate:        r.Received.UTC().Format("2006-01-02"),
+			OriginalTxnID:  r.Request.OriginalTxnID, // A linked refund's sale (the network checks it)
 		})
 	}
 	return out

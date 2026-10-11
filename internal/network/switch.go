@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
+	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/fraud"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/pin"
@@ -202,9 +203,10 @@ func (s *Switch) process(req iso8583.AuthRequest, a *attempt, early bool) iso858
 			r.Status = "approved"
 		}
 	})
-	if req.AuthType == iso8583.AuthIncremental && iso8583.IsApproved(resp.ResponseCode) {
-		// Clearing presents the original once, for everything authorized.
-		s.Recorder.updateID(req.OriginalTxnID, func(r *Record) { r.Incremented += resp.Amount })
+	if linksToOriginal(req) && iso8583.IsApproved(resp.ResponseCode) {
+		// Clearing presents the original once, for everything authorized;
+		// linked refunds count against what the sale can still return.
+		s.Recorder.updateID(req.OriginalTxnID, func(r *Record) { addToOriginal(r, req, resp.Amount) })
 	}
 	tr.step("respond", fmt.Sprintf("0110 %s %s to acquirer %s", resp.ResponseCode, resp.ResponseText, req.AcquirerID), true, began)
 	if s.Fraud != nil {
@@ -237,14 +239,18 @@ func (s *Switch) authorize(req iso8583.AuthRequest, id string, tr *tracer) (iso8
 		return decline(iso8583.RCFormatError)
 	}
 	tr.step("validate", "0100 well formed, PAN passes Luhn", true, t0)
-	if req.AuthType == iso8583.AuthIncremental {
+	if linksToOriginal(req) {
 		t0 = s.Now()
-		detail, err := s.linkIncremental(req)
+		kind := "incremental authorization"
+		if iso8583.IsRefund(req.ProcessingCode) {
+			kind = "refund"
+		}
+		detail, err := s.linkOriginal(req)
 		if err != nil {
-			tr.step("link", "incremental authorization: "+err.Error(), false, t0)
+			tr.step("link", kind+": "+err.Error(), false, t0)
 			return decline(iso8583.RCInvalidTransaction)
 		}
-		tr.step("link", "incremental authorization "+detail, true, t0)
+		tr.step("link", kind+" "+detail, true, t0)
 	}
 
 	// 2. Route by BIN, detokenizing wallet payments first.
@@ -492,13 +498,13 @@ func (s *Switch) reverse(ctx context.Context, iss *Issuer, fwd iso8583.AuthReque
 			tr.step("reversal", detail, true, t0)
 			var undo int64
 			s.Recorder.update(tr.rec, func(r *Record) {
-				if !r.Reversed && r.Status == "approved" && r.Request.AuthType == iso8583.AuthIncremental && r.Response != nil {
+				if !r.Reversed && r.Status == "approved" && linksToOriginal(r.Request) && r.Response != nil {
 					undo = r.Response.Amount
 				}
 				r.Reversed = true
 			})
 			if undo > 0 {
-				s.Recorder.updateID(fwd.OriginalTxnID, func(r *Record) { r.Incremented -= undo })
+				s.Recorder.updateID(fwd.OriginalTxnID, func(r *Record) { addToOriginal(r, fwd, -undo) })
 			}
 			return
 		}
@@ -603,15 +609,35 @@ func validate(r iso8583.AuthRequest) error {
 		return errors.New("a balance inquiry can't be an estimated or incremental authorization")
 	case r.AuthType == iso8583.AuthIncremental && r.OriginalTxnID == "":
 		return errors.New("an incremental authorization must name the original's transaction ID")
-	case r.AuthType != iso8583.AuthIncremental && r.OriginalTxnID != "":
-		return errors.New("only an incremental authorization names an original")
+	case iso8583.IsRefund(r.ProcessingCode) && r.AuthType != "":
+		return errors.New("a refund can't be an estimated or incremental authorization")
+	case r.AuthType != iso8583.AuthIncremental && !iso8583.IsRefund(r.ProcessingCode) && r.OriginalTxnID != "":
+		return errors.New("only an incremental authorization or a refund names an original")
 	}
 	return nil
 }
 
-// linkIncremental checks that an incremental authorization adds to a live
-// authorization of the same card from the same acquirer.
-func (s *Switch) linkIncremental(req iso8583.AuthRequest) (string, error) {
+// linksToOriginal reports whether an 0100 names an earlier sale: an
+// incremental authorization always does; a refund does when the merchant
+// linked it to the sale it returns.
+func linksToOriginal(r iso8583.AuthRequest) bool {
+	return r.OriginalTxnID != "" && (r.AuthType == iso8583.AuthIncremental || iso8583.IsRefund(r.ProcessingCode))
+}
+
+// addToOriginal records an approved increment or linked refund (or, with a
+// negative amount, its reversal) on the sale it names.
+func addToOriginal(orig *Record, req iso8583.AuthRequest, amount int64) {
+	if iso8583.IsRefund(req.ProcessingCode) {
+		orig.Refunded += amount
+	} else {
+		orig.Incremented += amount
+	}
+}
+
+// linkOriginal checks that an incremental authorization or a linked refund
+// names a live sale of the same card from the same acquirer, and that
+// refunds of a sale don't add up to more than it was for.
+func (s *Switch) linkOriginal(req iso8583.AuthRequest) (string, error) {
 	orig, ok := s.Recorder.Get(req.OriginalTxnID)
 	switch {
 	case !ok:
@@ -621,14 +647,24 @@ func (s *Switch) linkIncremental(req iso8583.AuthRequest) (string, error) {
 	case orig.Reversed:
 		return "", errors.New("the original authorization was reversed")
 	case orig.Request.AuthType == iso8583.AuthIncremental:
-		return "", errors.New("name the first authorization, not another increment")
+		return "", errors.New("name the first authorization, not an increment")
+	case iso8583.IsRefund(orig.Request.ProcessingCode) || iso8583.IsBalanceInquiry(orig.Request.ProcessingCode):
+		return "", errors.New("the original must be a purchase")
 	case orig.AcquirerID != req.AcquirerID:
 		return "", errors.New("the original belongs to another acquirer")
 	case orig.Request.PAN != card.Mask(req.PAN):
 		return "", errors.New("the original was for a different card")
 	}
 	total := orig.Response.Amount + orig.Incremented
-	return fmt.Sprintf("adds to %s, authorized so far %d", orig.ID, total), nil
+	if !iso8583.IsRefund(req.ProcessingCode) {
+		return fmt.Sprintf("adds to %s, authorized so far %d", orig.ID, total), nil
+	}
+	// A tip may have raised the final amount, up to the MCC's tolerance.
+	limit := clearing.MaxCapture(total, orig.Request.MCC) - orig.Refunded
+	if req.Amount > limit {
+		return "", fmt.Errorf("refunds of %s would exceed the sale: at most %d more can be refunded", orig.ID, max(limit, 0))
+	}
+	return fmt.Sprintf("refunds %s (authorized %d, refunded so far %d)", orig.ID, total, orig.Refunded), nil
 }
 
 // validateReversal checks an acquirer's 0420.

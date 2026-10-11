@@ -48,7 +48,7 @@ func TestClearedRefundCreditsTheAccountOnce(t *testing.T) {
 
 	file := clearing.IssuerFile{FileID: "c1-FSB", Records: []clearing.IssuerRecord{
 		{NetworkTxnID: sale.NetworkTxnID, Amount: 80_00},
-		{NetworkTxnID: refund.NetworkTxnID, Amount: 30_00, Credit: true},
+		{NetworkTxnID: refund.NetworkTxnID, Amount: 30_00, Credit: true, OriginalTxnID: sale.NetworkTxnID},
 	}}
 	ack := fsb.Post(file)
 	if ack.Posted != 2 || len(ack.Unmatched) != 0 {
@@ -62,8 +62,12 @@ func TestClearedRefundCreditsTheAccountOnce(t *testing.T) {
 	if d[0].Hold != "credited" { // Newest first
 		t.Errorf("refund decision hold %q, want credited", d[0].Hold)
 	}
+	// The sale's decision shows the credit, for a dispute on that sale.
+	if d[0].OriginalTxnID != sale.NetworkTxnID || d[1].Refunded != 30_00 {
+		t.Errorf("refund names %q; sale shows %d refunded, want 3000", d[0].OriginalTxnID, d[1].Refunded)
+	}
 	fsb.Post(file) // A retried file changes nothing
-	if again, _ := fsb.Snapshot("4242424242424242"); again.Posted != 50_00 {
+	if again, _ := fsb.Snapshot("4242424242424242"); again.Posted != 50_00 || fsb.State().Decisions[1].Refunded != 30_00 {
 		t.Errorf("refund credited twice: posted %d", again.Posted)
 	}
 }
