@@ -9,13 +9,14 @@ import (
 // BankState is a bank's saved state: accounts, holds and its logs. 3-D
 // Secure challenges and their CAVVs live for minutes and are not kept.
 type BankState struct {
-	Accounts    []Account                     `json:"accounts"`             // In the order they were opened
-	Holds       map[string]SavedHold          `json:"holds"`                // By network transaction ID
-	Increments  map[string]SavedIncrement     `json:"increments,omitempty"` // Incremental authorizations folded into a hold
-	Reversed    []string                      `json:"reversed"`             // Reversals that arrived before their authorization
-	Decisions   []Decision                    `json:"decisions"`
-	Reversals   []Reversal                    `json:"reversals"`
-	PostedFiles map[string]clearing.IssuerAck `json:"posted_files"`
+	Accounts       []Account                     `json:"accounts"`             // In the order they were opened
+	Holds          map[string]SavedHold          `json:"holds"`                // By network transaction ID
+	Increments     map[string]SavedIncrement     `json:"increments,omitempty"` // Incremental authorizations folded into a hold
+	Reversed       []string                      `json:"reversed"`             // Reversals that arrived before their authorization
+	Decisions      []Decision                    `json:"decisions"`
+	Reversals      []Reversal                    `json:"reversals"`
+	PostedFiles    map[string]clearing.IssuerAck `json:"posted_files"`
+	DisputeCredits map[string]int64              `json:"dispute_credits,omitempty"`
 }
 
 // SavedHold is an authorization hold.
@@ -56,6 +57,10 @@ func (b *Bank) SaveState() BankState {
 	for id, ack := range b.postedFiles {
 		st.PostedFiles[id] = ack
 	}
+	st.DisputeCredits = map[string]int64{}
+	for id, v := range b.disputeCredits {
+		st.DisputeCredits[id] = v
+	}
 	return st
 }
 
@@ -94,5 +99,9 @@ func (b *Bank) RestoreState(st BankState) {
 	b.postedFiles = map[string]clearing.IssuerAck{}
 	for id, ack := range st.PostedFiles {
 		b.postedFiles[id] = ack
+	}
+	b.disputeCredits = map[string]int64{}
+	for id, v := range st.DisputeCredits {
+		b.disputeCredits[id] = v
 	}
 }

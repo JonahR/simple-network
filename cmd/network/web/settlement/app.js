@@ -80,7 +80,8 @@ function renderStages(c) {
 }
 
 function renderKPIs(c) {
-  const gross = c.items.reduce((n, i) => n + (i.credit ? -i.amount : i.amount), 0); // Refunds count against sales
+  // Refunds and chargebacks count against sales; arbitration fees aren't sales.
+  const gross = c.items.reduce((n, i) => n + (i.credit || i.dispute === "chargeback" ? -i.amount : i.amount), 0);
   const ic = c.items.reduce((n, i) => n + i.interchange, 0);
   const rev = c.items.reduce((n, i) => n + i.acquirer_fee + i.issuer_fee, 0);
   const moved = c.transfers.reduce((n, t) => n + (t.from === data.network_id ? 0 : t.amount), 0);
@@ -168,7 +169,7 @@ function renderItems(c) {
           <td><span class="mono">${escapeHTML(i.arn)}</span><small>${escapeHTML(i.merchant_name)}</small></td>
           <td>${escapeHTML(i.issuer_id)}</td>
           <td><span class="mono">${escapeHTML(i.program_id)}</span><small>${escapeHTML(data.product_names[i.product] || i.product)} · ${i.channel === "card_present" ? "card present" : "card not present"}</small></td>
-          <td class="num">${i.credit ? `−${money(i.amount, i.currency)}<small data-term="refund">refund</small>` : money(i.amount, i.currency)}${i.cashback ? `<small>incl. ${money(i.cashback, i.currency)} cash back</small>` : ""}</td>
+          <td class="num">${disputeAmount(i) ?? (i.credit ? `−${money(i.amount, i.currency)}<small data-term="refund">refund</small>` : money(i.amount, i.currency))}${i.cashback ? `<small>incl. ${money(i.cashback, i.currency)} cash back</small>` : ""}</td>
           <td class="num">${money(i.interchange, i.currency)}</td>
           <td class="num">${money(i.acquirer_fee + i.issuer_fee, i.currency)}</td>
           <td class="num">${money(i.issuer_owes, i.currency)}</td>
@@ -194,6 +195,16 @@ function renderWaterfall(i) {
   const el = document.getElementById("waterfall");
   if (!i) {
     el.innerHTML = "";
+    return;
+  }
+  if (i.dispute) {
+    const what = {
+      chargeback: `The acquirer pays ${money(i.amount, i.currency)} back to the issuer for dispute ${i.dispute_id}.`,
+      representment: `The merchant's evidence stood for now: the issuer pays ${money(i.amount, i.currency)} back to the acquirer for dispute ${i.dispute_id}.`,
+      arbitration_fee: `The loser of arbitration in dispute ${i.dispute_id} pays the network ${money(i.issuer_fee || i.acquirer_fee, i.currency)}.`,
+    }[i.dispute];
+    el.innerHTML = `<div class="waterfall"><h3><span data-term="chargeback">Dispute money</span> · <span class="mono">${escapeHTML(i.arn)}</span></h3>
+      <p class="muted">${escapeHTML(what)} <a href="/disputes/#dispute=${encodeURIComponent(i.dispute_id)}">Open the case</a></p></div>`;
     return;
   }
   if (i.credit) {
@@ -352,3 +363,12 @@ async function poll() {
 }
 
 poll();
+
+// disputeAmount labels the money a dispute moves, or returns undefined for
+// an ordinary sale or refund.
+function disputeAmount(i) {
+  if (i.dispute === "chargeback") return `−${money(i.amount, i.currency)}<small data-term="chargeback">chargeback ${escapeHTML(i.dispute_id)}</small>`;
+  if (i.dispute === "representment") return `${money(i.amount, i.currency)}<small data-term="representment">representment ${escapeHTML(i.dispute_id)}</small>`;
+  if (i.dispute === "arbitration_fee") return `${money(i.issuer_fee || i.acquirer_fee, i.currency)}<small data-term="pre-arbitration">arbitration fee ${escapeHTML(i.dispute_id)}</small>`;
+  return undefined;
+}

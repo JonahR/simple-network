@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>simple-network Disputes</title>
+<link rel="stylesheet" href="/ui/nav.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/depts.css">
+<link rel="stylesheet" href="/learn/learn.css">
+</head>
+<body>
+<header data-term-scope="chargeback">
+  <div class="brand"><b data-term="network">simple-network</b> <span data-term="chargeback">Disputes</span></div>
+  <div class="tagline">Chargebacks between issuers and acquirers, under the network's rules and deadlines</div>
+  <nav class="learn-nav" aria-label="Learning">
+    <a href="/learn/">Learn the network</a>
+    <button type="button" class="learn-toggle" data-learn-toggle aria-pressed="false" aria-keyshortcuts="h">Help <kbd>H</kbd></button>
+  </nav>
+  <nav class="sn-nav" data-page="network"></nav>
+</header>
+<div class="dept-bar">
+  <span class="company"><b data-term="network">simple-network</b> <span data-term="fraud-department">departments</span></span>
+  <nav aria-label="Departments"><a href="/" data-term="auth-switch">Operations</a><a href="/fraud/" data-term="fraud-department">Fraud</a><a href="/settlement/" data-term="settlement">Settlement</a><a href="/disputes/" data-term="chargeback" aria-current="page">Disputes</a></nav>
+</div>
+
+<main>
+  <div class="kpis" id="kpis"></div>
+
+  <section class="panel">
+    <h2><span data-term="chargeback">Dispute lifecycle</span></h2>
+    <ol class="flow" id="flow"></ol>
+    <div class="clock">
+      <span><span data-term="dispute-window">Network date</span> <b id="today">…</b> <span class="muted" id="offset"></span></span>
+      <button type="button" id="advance" data-term="dispute-window">+30 days</button>
+      <span class="muted">Deadlines run on business days, which otherwise move only at each <a id="settle-link" href="/settlement/">end of day</a>. A side that misses its deadline loses.</span>
+    </div>
+    <p class="hint">Every stage that moves money adds an item to the next <a href="/settlement/">settlement</a> cycle: the chargeback (acquirer → issuer), a representment (back to the acquirer), and the arbitration fee (loser → network).</p>
+  </section>
+
+  <div class="cols">
+    <div class="side">
+      <section class="panel">
+        <h2><span data-term="chargeback">File a chargeback</span> <span class="badge issuer" data-term="issuer">issuer</span></h2>
+        <form class="form" id="file">
+          <label class="field"><span data-term="presentment">Cleared sale</span><select name="txn" id="sale"></select></label>
+          <label class="field"><span data-term="reason-code">Reason code</span><select name="reason" id="reason"></select></label>
+          <label class="field"><span data-term="de4">Disputed amount</span><input name="amount" id="amount" inputmode="decimal"></label>
+          <label class="field"><span data-term="chargeback">Cardholder's story</span><input name="note" placeholder="Optional"></label>
+          <div id="eligibility"></div>
+          <div class="actions"><button type="submit" class="primary" data-term="chargeback">File chargeback</button><span class="error" id="file-error"></span></div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2><span data-term="reason-code">Reason codes</span></h2>
+        <div class="table-wrap"><table class="wrap"><thead><tr><th data-term="reason-code">Code</th><th data-term="reason-code">Reason</th><th data-term="representment">Valid evidence</th></tr></thead><tbody id="reasons"></tbody></table></div>
+        <p class="hint">Chargebacks within <span id="limit-cb">120</span> days of clearing. The acquirer has <span id="limit-rep">30</span> days to answer, the issuer <span id="limit-pre">30</span> to go to pre-arbitration, and the acquirer <span id="limit-arb">30</span> to ask for arbitration. The loser of arbitration pays <span id="limit-fee">$250</span>.</p>
+      </section>
+    </div>
+
+    <div class="side">
+      <section class="panel">
+        <div class="panel-head"><h2><span data-term="chargeback">Disputes</span></h2><span class="muted">Select one to see its timeline</span></div>
+        <div class="table-wrap">
+          <table class="list">
+            <thead><tr><th data-term="chargeback">Case</th><th data-term="merchant">Sale</th><th data-term="reason-code">Reason</th><th class="num" data-term="de4">Amount</th><th data-term="chargeback">Stage</th><th data-term="dispute-window">Deadline</th></tr></thead>
+            <tbody id="disputes"><tr><td colspan="6" class="empty">No disputes. File one from a cleared sale.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2><span data-term="chargeback">Case</span></h2>
+        <div id="case" class="empty">Select a dispute.</div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script src="/ui/nav.js"></script>
+<script src="app.js"></script>
+<script src="/learn/learn.js"></script>
+</body>
+</html>

@@ -78,7 +78,11 @@ type Item struct {
 	Pricing
 	// Credit marks a refund: money flows back from the acquirer to the
 	// issuer. Amount stays positive; IssuerOwes and AcquirerGets go negative.
-	Credit       bool   `json:"credit,omitempty"`
+	Credit bool `json:"credit,omitempty"`
+	// Dispute marks money a dispute moves (chargeback, representment, or
+	// arbitration fee). Issuers aren't sent these: they started them.
+	Dispute      string `json:"dispute,omitempty"`
+	DisputeID    string `json:"dispute_id,omitempty"`
 	IssuerOwes   int64  `json:"issuer_owes"`   // Amount − interchange + issuer fee; −Amount for a credit
 	AcquirerGets int64  `json:"acquirer_gets"` // Amount − interchange − acquirer fee; −Amount for a credit
 	Posting      string `json:"posting"`       // pending, posted, unmatched, or delivery failed
@@ -466,9 +470,13 @@ func (e *Engine) Refunds(originalTxnID string) []Item {
 // owed by the other for the cycle.
 func (e *Engine) postClearing(c *Cycle, it Item) {
 	iss, acq := DueFrom(it.IssuerID), DueTo(it.AcquirerID)
-	if it.Credit {
+	if it.Credit || it.Dispute == DisputeChargeback {
+		memo := fmt.Sprintf("Refund %s: %s → %s", it.ARN, it.AcquirerID, it.IssuerID)
+		if it.Dispute == DisputeChargeback {
+			memo = fmt.Sprintf("Chargeback %s (%s): %s → %s", it.DisputeID, it.ARN, it.AcquirerID, it.IssuerID)
+		}
 		if err := e.ledger.Post(Entry{Time: e.Now().UTC(), CycleID: c.ID, Ref: it.NetworkTxnID, Currency: it.Currency,
-			Memo:  fmt.Sprintf("Refund %s: %s → %s", it.ARN, it.AcquirerID, it.IssuerID),
+			Memo:  memo,
 			Lines: []Line{{Account: acq, Debit: it.Amount}, {Account: iss, Credit: it.Amount}}}); err != nil {
 			panic(err) // Balanced by construction.
 		}
@@ -485,8 +493,15 @@ func (e *Engine) postClearing(c *Cycle, it Item) {
 		{Account: AccountRevenue, Credit: it.IssuerFee},
 	}
 	lines = slices.DeleteFunc(lines, func(l Line) bool { return l.Debit == 0 && l.Credit == 0 })
+	memo := fmt.Sprintf("Clearing %s: %s → %s, %s", it.ARN, it.AcquirerID, it.IssuerID, it.ProgramID)
+	switch it.Dispute {
+	case DisputeRepresentment:
+		memo = fmt.Sprintf("Representment %s (%s): %s → %s", it.DisputeID, it.ARN, it.IssuerID, it.AcquirerID)
+	case DisputeFee:
+		memo = fmt.Sprintf("Arbitration fee %s (%s) to the network", it.DisputeID, it.ARN)
+	}
 	if err := e.ledger.Post(Entry{Time: e.Now().UTC(), CycleID: c.ID, Ref: it.NetworkTxnID, Currency: it.Currency,
-		Memo: fmt.Sprintf("Clearing %s: %s → %s, %s", it.ARN, it.AcquirerID, it.IssuerID, it.ProgramID), Lines: lines}); err != nil {
+		Memo: memo, Lines: lines}); err != nil {
 		panic(err) // The lines above balance by construction.
 	}
 }
@@ -639,6 +654,9 @@ func (e *Engine) issuerFiles(c *Cycle) []IssuerFile {
 	byIssuer := map[string]*IssuerFile{}
 	var order []string
 	for _, it := range c.Items {
+		if it.Dispute != "" {
+			continue // The issuer started it; there is nothing to post
+		}
 		f := byIssuer[it.IssuerID]
 		if f == nil {
 			f = &IssuerFile{FileID: c.ID + "-" + it.IssuerID, CycleID: c.ID, IssuerID: it.IssuerID}
@@ -695,9 +713,12 @@ func (e *Engine) net(c *Cycle) {
 	}
 	revenue := map[string]int64{}
 	for _, it := range c.Items {
-		amount := it.Amount // Signed: a credit moves money the other way
-		if it.Credit {
+		amount := it.Amount // Signed: a credit or chargeback moves money the other way
+		switch {
+		case it.Credit || it.Dispute == DisputeChargeback:
 			amount = -amount
+		case it.Dispute == DisputeFee:
+			amount = 0 // A fee moves no sales volume
 		}
 		iss := get(it.IssuerID, RoleIssuer, it.Currency)
 		iss.Count++
@@ -820,15 +841,17 @@ func (e *Engine) advices(c *Cycle) []Advice {
 			byKey[k] = a
 			keys = append(keys, k)
 		}
-		if it.Credit {
+		switch {
+		case it.Credit || it.Dispute == DisputeChargeback:
 			a.Gross -= it.Amount
-		} else {
+		case it.Dispute == DisputeFee:
+		default:
 			a.Gross += it.Amount
 		}
 		a.Net += it.AcquirerGets
 		a.Items = append(a.Items, AdviceItem{
 			NetworkTxnID: it.NetworkTxnID, ARN: it.ARN, MerchantID: it.MerchantID, Amount: it.Amount, Credit: it.Credit,
-			Interchange: it.Interchange, NetworkFee: it.AcquirerFee, ProgramID: it.ProgramID,
+			Interchange: it.Interchange, NetworkFee: it.AcquirerFee, ProgramID: it.ProgramID, Dispute: it.Dispute,
 		})
 	}
 	out := make([]Advice, len(keys))

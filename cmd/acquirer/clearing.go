@@ -40,6 +40,7 @@ type Funding struct {
 	Count        int    `json:"count"`
 	Sales        int64  `json:"sales"`
 	Refunds      int64  `json:"refunds"`      // Given back to cardholders; taken out of the payment
+	Disputes     int64  `json:"disputes"`     // Chargebacks less representments won, plus arbitration fees; taken out of the payment
 	DiscountFee  int64  `json:"discount_fee"` // Merchant discount rate on sales (not refunded on refunds)
 	Paid         int64  `json:"paid"`         // Sales minus refunds minus the discount fee; negative means the merchant owes
 	Interchange  int64  `json:"interchange"`  // Paid to the issuer, out of the discount fee
@@ -255,6 +256,20 @@ func (c *clearer) Fund(a clearing.Advice) []Funding {
 			order = append(order, it.MerchantID)
 		}
 		f.Count++
+		switch it.Dispute {
+		case clearing.DisputeChargeback, clearing.DisputeFee: // Passed on to the merchant
+			amt := it.Amount
+			if it.Dispute == clearing.DisputeFee {
+				amt = it.NetworkFee
+			}
+			f.Disputes += amt
+			f.Paid -= amt
+			continue
+		case clearing.DisputeRepresentment: // Won back for the merchant
+			f.Disputes -= it.Amount
+			f.Paid += it.Amount
+			continue
+		}
 		c.status[it.NetworkTxnID] = funded
 		if it.Credit {
 			f.Refunds += it.Amount

@@ -561,6 +561,7 @@ function renderClearing() {
         <td class="num">${f.count}</td>
         <td class="num">${money(f.sales, f.currency)}</td>
         <td class="num">${f.refunds ? "−" + money(f.refunds, f.currency) : "—"}</td>
+        <td class="num">${f.disputes ? (f.disputes > 0 ? "−" : "+") + money(Math.abs(f.disputes), f.currency) : "—"}</td>
         <td class="num">${money(f.discount_fee, f.currency)}</td>
         <td class="num"><b>${money(f.paid, f.currency)}</b></td>
         <td class="num">${money(f.interchange, f.currency)}</td>

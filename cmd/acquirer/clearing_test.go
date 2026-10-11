@@ -126,3 +126,16 @@ func TestFundingTakesRefundsOut(t *testing.T) {
 		t.Error("refund not marked funded")
 	}
 }
+
+func TestFundingPassesDisputesToTheMerchant(t *testing.T) {
+	acq := newAcquirer("100001", "Bank", []Merchant{{ID: "M1", Name: "Shop", DiscountBPS: 250}}, nil)
+	c := newClearer(acq, "http://unused")
+	fs := c.Fund(clearing.Advice{CycleID: "c2", AcquirerID: "100001", Currency: "840", Items: []clearing.AdviceItem{
+		{NetworkTxnID: "t1", MerchantID: "M1", Amount: 4_000, Dispute: clearing.DisputeChargeback},
+		{NetworkTxnID: "t2", MerchantID: "M1", Amount: 1_500, Dispute: clearing.DisputeRepresentment},
+		{NetworkTxnID: "t3", MerchantID: "M1", NetworkFee: 25_000, Dispute: clearing.DisputeFee},
+	}})
+	if len(fs) != 1 || fs[0].Disputes != 4_000-1_500+25_000 || fs[0].Paid != -(4_000-1_500+25_000) || fs[0].DiscountFee != 0 {
+		t.Fatalf("funding %+v", fs)
+	}
+}

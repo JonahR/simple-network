@@ -50,6 +50,7 @@ function statusBadge(d) {
 }
 
 function holdLabel(d) {
+  if (d.dispute) return `<span data-term="chargeback">Disputed</span>`;
   if (d.hold === "active") return `<span data-term="auth-hold">Active</span>`;
   if (d.hold === "released") return `<span data-term="reversal">Released</span>`;
   if (d.hold === "posted") return `<span data-term="clearing">Posted</span>`;
@@ -152,6 +153,7 @@ function renderDecision(d) {
       ${d.auth_code ? `<span><span data-term="de38">Auth code</span> <b class="mono">${escapeHTML(d.auth_code)}</b></span>` : ""}
       <span><span data-term="auth-hold">Hold</span> <b>${{ none: "None", active: "Active", released: "Released by reversal", posted: "Posted by clearing", "credit pending": "None: a refund credits the card when it clears", credited: "Refund credited by clearing" }[d.hold] || d.hold}</b></span>
       <span><span data-term="network-txn-id">Network txn</span> <b class="mono">${escapeHTML(d.network_txn_id)}</b></span>
+      ${d.dispute ? `<span><span data-term="chargeback">Dispute</span> <b>${escapeHTML(d.dispute)}</b></span>` : ""}
     </div>`;
 }
 

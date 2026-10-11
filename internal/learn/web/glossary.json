@@ -813,6 +813,84 @@
         "ChargebackAccepted"
       ]
     },
+    "reason-code": {
+      "name": "Chargeback reason code",
+      "def": "The rule an issuer cites when it files a chargeback, such as Visa 13.1 (merchandise not received) or 10.4 (card-absent fraud). Each code has conditions the sale must meet, a time limit (often 120 days from clearing) and the kinds of evidence that can answer it. Liability shifts are part of the conditions: a fraud chargeback isn't allowed on a sale authenticated with 3-D Secure, or a counterfeit one when the chip was read.",
+      "kt": [
+        [
+          "Reason code categories",
+          "08-exceptions-and-disputes.md#reason-code-categories"
+        ],
+        [
+          "Fraud disputes and liability shift",
+          "08-exceptions-and-disputes.md#fraud-disputes-and-liability-shift"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "aliases": [
+        "Reason code",
+        "Reason codes",
+        "Reason",
+        "Liability shift"
+      ]
+    },
+    "representment": {
+      "name": "Representment (second presentment)",
+      "def": "The acquirer's answer to a chargeback on its merchant's behalf: evidence that the sale was valid, such as proof of delivery or a refund already issued. The network checks the evidence can answer the reason code and moves the disputed money back to the acquirer in the next settlement. The issuer then accepts it (and rebills the cardholder) or goes to pre-arbitration.",
+      "kt": [
+        [
+          "Chargebacks: the dispute lifecycle",
+          "08-exceptions-and-disputes.md#chargebacks-the-dispute-lifecycle"
+        ],
+        [
+          "Dispute stages and typical time limits",
+          "08-exceptions-and-disputes.md#dispute-stages-and-typical-time-limits"
+        ]
+      ],
+      "ext": [
+        [
+          "Chargeback (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Chargeback"
+        ]
+      ],
+      "aliases": [
+        "Representment",
+        "Second presentment",
+        "Evidence",
+        "Merchant evidence"
+      ]
+    },
+    "pre-arbitration": {
+      "name": "Pre-arbitration and arbitration",
+      "def": "When an issuer rejects the merchant's evidence, it files pre-arbitration with a rebuttal (for example, the parcel went to a different address). The acquirer can accept, returning the money, or ask the network to arbitrate. The network decides whether the rebuttal answers the evidence; the losing side pays an arbitration fee, often hundreds of dollars.",
+      "kt": [
+        [
+          "Chargebacks: the dispute lifecycle",
+          "08-exceptions-and-disputes.md#chargebacks-the-dispute-lifecycle"
+        ],
+        [
+          "Dispute stages and typical time limits",
+          "08-exceptions-and-disputes.md#dispute-stages-and-typical-time-limits"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "aliases": [
+        "Pre-arbitration",
+        "Rebuttal",
+        "Issuer rebuttal",
+        "Arbitration fee"
+      ]
+    },
     "dispute-window": {
       "name": "Dispute window",
       "def": "How long a cardholder's issuer has to file a chargeback, typically about 120 days from processing (or from the expected delivery date). Each later dispute stage has its own deadline, enforced by the network.",

@@ -154,7 +154,8 @@ type AdviceItem struct {
 	ARN          string `json:"arn"`
 	MerchantID   string `json:"merchant_id"`
 	Amount       int64  `json:"amount"`
-	Credit       bool   `json:"credit,omitempty"` // A refund the acquirer pays back
+	Credit       bool   `json:"credit,omitempty"`  // A refund the acquirer pays back
+	Dispute      string `json:"dispute,omitempty"` // Chargeback, representment, or arbitration fee
 	Interchange  int64  `json:"interchange"`
 	NetworkFee   int64  `json:"network_fee"`
 	ProgramID    string `json:"program_id"`

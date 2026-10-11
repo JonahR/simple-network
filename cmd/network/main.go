@@ -28,6 +28,7 @@ import (
 	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/demokeys"
+	"github.com/JonahR/simple-network/internal/dispute"
 	"github.com/JonahR/simple-network/internal/fraud"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
@@ -117,6 +118,7 @@ func main() {
 	sw.Fraud.Register(mux, s.fraudHistory)
 	ui.Register(mux, ui.PagesFromEnv())
 	eng := registerClearing(mux, sw, issuers, acquirerID, env("ACQUIRER_NAME", "Simple Merchant Bank"), env("ACQUIRER_URL", "http://localhost:8081"))
+	disputes := registerDisputes(mux, eng, sw.Recorder, issuers)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 
 	// Saved state survives restarts. Restore the recorder before the switch:
@@ -131,6 +133,7 @@ func main() {
 		sw.StandIn.RestoreState(saved.StandIn)
 		sw.Vault.RestoreState(saved.Vault)
 		eng.RestoreState(saved.Clearing)
+		disputes.RestoreState(saved.Disputes)
 		if sw.Fraud != nil {
 			sw.Fraud.RestoreState(saved.Fraud)
 		}
@@ -142,6 +145,7 @@ func main() {
 			st.Fraud = sw.Fraud.SaveState()
 		}
 		st.StandIn = sw.StandIn.SaveState()
+		st.Disputes = disputes.SaveState()
 		return st
 	}, store.DefaultInterval)
 
@@ -176,6 +180,7 @@ type networkState struct {
 	Clearing clearing.EngineState  `json:"clearing"`
 	Fraud    fraud.EngineState     `json:"fraud"`
 	StandIn  network.StandInState  `json:"stand_in"`
+	Disputes dispute.State         `json:"disputes"`
 }
 
 // handleAuthorize is the acquirer-facing endpoint.

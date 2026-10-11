@@ -116,6 +116,7 @@ func main() {
 		mux.HandleFunc("POST /authorize", s.handleAuthorize)
 		mux.HandleFunc("POST /reverse", s.handleReverse)
 		mux.HandleFunc("POST /advice", s.handleAdvice)
+		mux.HandleFunc("POST /disputes/notify", s.handleDisputeNotice)
 		mux.HandleFunc("POST /3ds/authenticate", s.handleAuthenticate3DS)
 		mux.HandleFunc("POST /3ds/challenge", s.handleChallenge3DS)
 		mux.HandleFunc("POST /clearing/presentments", s.handlePresentments)
@@ -153,6 +154,27 @@ func (s *bankServer) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s auth txn=%s pan=%s amount=%d code=%s approved=%d",
 		s.bank.ID, req.NetworkTxnID, card.Mask(req.PAN), req.Amount, resp.ResponseCode, resp.Amount)
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleDisputeNotice applies the network's word on a chargeback: the
+// cardholder's provisional credit while it's open or won, a rebill if the
+// merchant wins.
+func (s *bankServer) handleDisputeNotice(w http.ResponseWriter, r *http.Request) {
+	if s.mode.Load() == "down" {
+		http.Error(w, "issuer down (simulated)", http.StatusServiceUnavailable)
+		return
+	}
+	var n issuer.DisputeNotice
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&n); err != nil || n.DisputeID == "" {
+		http.Error(w, "invalid dispute notice", http.StatusBadRequest)
+		return
+	}
+	if err := s.bank.ApplyDispute(n); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	log.Printf("%s dispute %s txn=%s state=%s credit=%v", s.bank.ID, n.DisputeID, n.NetworkTxnID, n.State, n.Credit)
+	writeJSON(w, http.StatusOK, map[string]bool{"applied": true})
 }
 
 // handleAdvice honors the network's 0120 for an authorization it approved

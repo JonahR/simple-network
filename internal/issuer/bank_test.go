@@ -272,3 +272,37 @@ func TestPostTurnsHoldsIntoCharges(t *testing.T) {
 		t.Errorf("file posted twice: %d", acct.Posted)
 	}
 }
+
+func TestDisputeCreditIsIdempotent(t *testing.T) {
+	fsb, _, _ := testBanks(t)
+	r := req("4242424242424242", "3312", 5000)
+	fsb.Authorize(r)
+	fsb.Post(clearing.IssuerFile{FileID: "c1", Records: []clearing.IssuerRecord{{NetworkTxnID: r.NetworkTxnID, Amount: 5000}}})
+	base, _ := fsb.Snapshot("4242424242424242")
+
+	n := DisputeNotice{DisputeID: "D1", NetworkTxnID: r.NetworkTxnID, Amount: 3000, Credit: true, Summary: "open"}
+	for range 3 { // Repeated notices change nothing
+		if err := fsb.ApplyDispute(n); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if a, _ := fsb.Snapshot("4242424242424242"); a.Available != base.Available+3000 {
+		t.Errorf("provisional credit: %d, want %d", a.Available, base.Available+3000)
+	}
+	if d := fsb.State().Decisions[0]; d.Dispute != "open" {
+		t.Errorf("decision not annotated: %q", d.Dispute)
+	}
+
+	// Saved and restored mid-dispute, then the merchant wins: rebill once.
+	other, _, _ := testBanks(t)
+	other.RestoreState(fsb.SaveState())
+	n.Credit, n.Summary = false, "lost"
+	other.ApplyDispute(n)
+	other.ApplyDispute(n)
+	if a, _ := other.Snapshot("4242424242424242"); a.Available != base.Available {
+		t.Errorf("after rebill: %d, want %d", a.Available, base.Available)
+	}
+	if err := fsb.ApplyDispute(DisputeNotice{DisputeID: "D9", NetworkTxnID: "unknown", Amount: 1, Credit: true}); err == nil {
+		t.Error("credit applied to an unknown transaction")
+	}
+}
