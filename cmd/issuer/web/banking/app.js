@@ -19,6 +19,7 @@ let customer = "";
 let accountID = "";
 let lastCustomers = "";
 let lastStatement = "";
+let posURL = ""; // The POS page, for "Pay at the POS"
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -42,6 +43,8 @@ function renderCustomers() {
   sel.innerHTML = customers.map((c) => `<option>${escapeHTML(c.holder)}</option>`).join("");
   if (!customers.some((c) => c.holder === customer)) customer = customers[0]?.holder || "";
   sel.value = customer;
+  // The nav links carry the signed-in customer, so the POS rings up for them.
+  window.snNav?.set("customer", customer);
 }
 
 function renderCards() {
@@ -63,6 +66,7 @@ function renderCards() {
 $("customer").addEventListener("change", (e) => {
   customer = e.target.value;
   store.set(`banking-customer-${bank.id}`, customer);
+  window.snNav?.set("customer", customer);
   accountID = "";
   renderCards();
   loadStatement(true);
@@ -76,6 +80,15 @@ $("cards").addEventListener("click", (e) => {
   renderCards();
   loadStatement(true);
 });
+
+// payAtPOS links to the POS ringing up for this customer, with this card
+// picked in the wallet.
+function payAtPOS(a) {
+  const u = new URL(window.snNav ? window.snNav.link(posURL) : posURL);
+  u.searchParams.set("customer", customer);
+  u.searchParams.set("card", a.pan.slice(-4));
+  return u.toString();
+}
 
 // --- One account -----------------------------------------------------------------
 
@@ -119,6 +132,7 @@ function overview(st) {
         <label class="switch" data-term="card-controls"><input type="checkbox" id="lock" ${a.blocked ? "checked" : ""}> Lock card</label>
         <span class="muted">${a.blocked ? "New purchases are declined until you unlock." : "Locking declines new purchases right away."}</span>
       </div>
+      ${posURL ? `<a class="pay-pos" data-term="pos-terminal" href="${escapeHTML(payAtPOS(a))}">Pay at the POS with this card →</a>` : ""}
     </div>
     <div class="numbers">${numbers}</div>
   </section>`;
@@ -208,7 +222,15 @@ async function refresh() {
         document.title = `${bank.name} · Online Banking`;
         $("bank-name").textContent = bank.name;
         $("bank-mark").textContent = bank.name[0];
-        customer = store.get(`banking-customer-${bank.id}`);
+        // A customer named in the link (from the POS, say) wins over the last
+        // one signed in here. One who banks elsewhere goes to their bank's site.
+        const wanted = window.snNav?.get("customer") || "";
+        const home = data.directory?.[wanted];
+        if (wanted && home && !data.customers.some((c) => c.holder === wanted) && new URL(home).origin !== location.origin) {
+          location.replace(window.snNav ? window.snNav.link(home) : home);
+          return;
+        }
+        customer = wanted || store.get(`banking-customer-${bank.id}`);
         accountID = new URLSearchParams(location.search).get("account") || store.get(`banking-account-${bank.id}`);
         $("banks").innerHTML = data.banks
           .map((b) => `<a href="${escapeHTML(b.url)}"${b.id === bank.id ? ' aria-current="page"' : ""}>${escapeHTML(b.name)}</a>`)
@@ -224,6 +246,14 @@ async function refresh() {
     lastStatement = "";
   }
 }
+
+fetch("/ui/pages")
+  .then((r) => r.json())
+  .then((pages) => {
+    posURL = pages.find((p) => p.id === "pos")?.url || "";
+    lastStatement = ""; // Redraw with the button
+  })
+  .catch(() => {});
 
 async function poll() {
   await refresh();

@@ -71,8 +71,10 @@ const ALL_METHODS = ["tap", "insert", "swipe", "key"];
 // also provisioned to each mobile wallet with a distinct device token.
 // Expiries are fixed and must match the issuer's records (internal/issuer/seed.go)
 // and the token vault (internal/network/vault.go); cmd/pos/expiry_test.go checks.
+// `customer` is the cardholder as the issuer knows them, so the Cardholder
+// tab and the POS agree on whose cards these are.
 const WALLET = [
-  { label: "Everyday Credit", style: "blue", number: "4242424242424242", expiry: "12/33", cvv: "123", name: "Jane Doe",
+  { label: "Everyday Credit", customer: "Jane Doe", style: "blue", number: "4242424242424242", expiry: "12/33", cvv: "123", name: "Jane Doe",
     zip: "94105", street: "123 Market St",
     methods: ALL_METHODS,
     tokens: {
@@ -80,7 +82,7 @@ const WALLET = [
       google_pay:  { number: "4895373708421368", expiry: "11/34" },
       samsung_pay: { number: "4895377555006883", expiry: "06/34" },
     } },
-  { label: "Rewards Plus", style: "dark", number: "5555555555554444", expiry: "08/32", cvv: "456", name: "John Smith",
+  { label: "Rewards Plus", customer: "John Smith", style: "dark", number: "5555555555554444", expiry: "08/32", cvv: "456", name: "John Smith",
     zip: "10001", street: "456 Oak Ave",
     methods: ALL_METHODS,
     tokens: {
@@ -88,21 +90,54 @@ const WALLET = [
       google_pay:  { number: "5220934871046911", expiry: "01/35" },
       samsung_pay: { number: "5220933784416278", expiry: "05/35" },
     } },
-  { label: "Checking Debit", style: "green", number: "4000056655665556", expiry: "05/33", cvv: "789", name: "Jane Doe",
+  { label: "Checking Debit", customer: "Jane Doe", style: "green", number: "4000056655665556", expiry: "05/33", cvv: "789", name: "Jane Doe",
     hint: "PIN 1234", methods: ALL_METHODS },
-  { label: "Gift Card", style: "purple", number: "4358805984634941", expiry: "07/32", cvv: "321", name: "",
+  { label: "Gift Card", customer: "Gift card", style: "purple", number: "4358805984634941", expiry: "07/32", cvv: "321", name: "",
     methods: ["swipe", "key"] },
-  { label: "Fleet Card", style: "orange", number: "5568007143162129", expiry: "02/33", cvv: "654", name: "Acme Logistics",
+  { label: "Fleet Card", customer: "Acme Logistics", style: "orange", number: "5568007143162129", expiry: "02/33", cvv: "654", name: "Acme Logistics",
     hint: "Driver 4821", methods: ["insert", "swipe", "key"] },
-  { label: "Health Savings", style: "teal", number: "4716006861111015", expiry: "11/32", cvv: "852", name: "Jane Doe",
+  { label: "Health Savings", customer: "Jane Doe", style: "teal", number: "4716006861111015", expiry: "11/32", cvv: "852", name: "Jane Doe",
     methods: ALL_METHODS },
   // Buy now, pay later: the provider issues a new single-use virtual card for each purchase.
-  { label: "Pay Later", style: "pink", virtual: true, bin: "485932", name: "Jane Doe", methods: ["key"] },
+  { label: "Pay Later", customer: "Jane Doe", style: "pink", virtual: true, bin: "485932", name: "Jane Doe", methods: ["key"] },
 ];
 
 let selected = 0;
 
+// The customer at the counter, whose cards are in the wallet and on the
+// phone; "" is everyone (every test card). The nav carries it between pages
+// (?customer=), so picking a customer on the Cardholder tab picks them here.
+const CUSTOMERS = [...new Set(WALLET.map((c) => c.customer))];
+let customer = "";
+const customerSelect = document.getElementById("customer-select");
+// walletCards is the wallet's cards for the customer, as [card, WALLET index].
+const walletCards = () => WALLET.map((c, i) => [c, i]).filter(([c]) => !customer || c.customer === customer);
+
+// setCustomer changes whose cards the POS offers. card (last four digits)
+// picks one of them, as the Cardholder tab's "Pay at the POS" does.
+function setCustomer(name, card) {
+  customer = CUSTOMERS.includes(name) ? name : "";
+  customerSelect.value = customer;
+  try { localStorage.setItem("pos-customer", customer); } catch {}
+  window.snNav?.set("customer", customer);
+  const hit = card ? walletCards().find(([c]) => c.number?.endsWith(card)) : null;
+  if (hit) selected = hit[1];
+  mwCard = 0;
+  renderWallet();
+  renderMobileWallets();
+  fillCardsOnFile();
+}
+
+customerSelect.addEventListener("change", () => {
+  setCustomer(customerSelect.value);
+  resetCardRead();
+  for (const name of ["card_number", "expiry", "cvv", "cardholder_name"]) form[name].value = "";
+  updateForm();
+});
+
 function renderWallet() {
+  const visible = walletCards();
+  if (!visible.some(([, i]) => i === selected)) selected = visible[0][1];
   const c = WALLET[selected];
   const last4 = c.number ? c.number.slice(-4) : "····";
   document.getElementById("card-face").innerHTML = `
@@ -118,7 +153,7 @@ function renderWallet() {
 
   const list = document.getElementById("card-list");
   list.innerHTML = "";
-  WALLET.forEach((card, i) => {
+  visible.forEach(([card, i]) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "card-row";
@@ -221,7 +256,8 @@ const MOBILE_WALLETS = [
   { id: "google_pay", name: "Google Pay", short: "Google", auth: "Unlock phone…" },
   { id: "samsung_pay", name: "Samsung Pay", short: "Samsung", auth: "Fingerprint…" },
 ];
-const MW_CARDS = WALLET.filter((c) => c.tokens);
+// The customer's cards provisioned to the phone.
+const mwCards = () => walletCards().map(([c]) => c).filter((c) => c.tokens);
 
 let mwWallet = MOBILE_WALLETS[0];
 let mwCard = 0;
@@ -249,7 +285,13 @@ function renderMobileWallets() {
 
   const cards = document.getElementById("mw-cards");
   cards.innerHTML = "";
-  MW_CARDS.forEach((c, i) => {
+  const onPhone = mwCards();
+  if (mwCard >= onPhone.length) mwCard = 0;
+  mwPay.hidden = !onPhone.length;
+  if (!onPhone.length) {
+    cards.innerHTML = `<p class="mw-none">${escapeHTML(customer || "This customer")} has no cards in ${escapeHTML(mwWallet.name)}.</p>`;
+  }
+  onPhone.forEach((c, i) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mw-card";
@@ -271,7 +313,7 @@ function renderMobileWallets() {
 
 mwPay.addEventListener("click", async () => {
   const w = mwWallet;
-  const token = MW_CARDS[mwCard].tokens[w.id];
+  const token = mwCards()[mwCard].tokens[w.id];
   mwPay.disabled = true;
   mwStatus.className = "mw-status";
   mwStatus.textContent = "Hold near reader…";
@@ -1019,6 +1061,21 @@ function monthsFromNow(n) {
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
 }
 
+// storedCards is the merchant's card-on-file vault (masked); the picker shows
+// the ones belonging to the customer at the counter.
+let storedCards = [];
+function fillCardsOnFile() {
+  const mine = new Set(walletCards().map(([c]) => c.number?.slice(-4)));
+  const el = document.getElementById("card_on_file");
+  el.innerHTML = "";
+  fillSelect(
+    "card_on_file",
+    Object.fromEntries(storedCards.filter((c) => !customer || mine.has(c.masked.slice(-4))).map((c) => [c.id, `${c.customer} · ${c.masked.slice(-4)}`])),
+    "",
+    "Choose…"
+  );
+}
+
 function fillSelect(id, options, selectedValue, placeholder) {
   const el = document.getElementById(id);
   if (placeholder) el.add(new Option(placeholder, ""));
@@ -1083,15 +1140,13 @@ async function init() {
   fillSelect("currency", currencies, "840");
   fillSelect("entry_mode", entryModes, ENTRY.manual);
   fillSelect("cof_indicator", cofIndicators, "", "Choose…");
-  fillSelect(
-    "card_on_file",
-    Object.fromEntries(data.cards_on_file.map((c) => [c.id, `${c.customer} · ${c.masked.slice(-4)}`])),
-    "",
-    "Choose…"
-  );
+  storedCards = data.cards_on_file;
 
-  renderWallet();
-  renderMobileWallets();
+  for (const name of CUSTOMERS) customerSelect.add(new Option(name, name));
+  const params = new URLSearchParams(location.search);
+  let savedCustomer = "";
+  try { savedCustomer = localStorage.getItem("pos-customer") || ""; } catch {}
+  setCustomer(window.snNav?.get("customer") || params.get("customer") || savedCustomer, params.get("card"));
   let saved = "";
   try { saved = localStorage.getItem("pos-terminal") || ""; } catch {}
   selectTerminal(saved);

@@ -50,6 +50,10 @@ type bankServer struct {
 	bank  *issuer.Bank
 	banks []bankLink
 	mode  atomic.Value // string
+
+	// peers is every bank in this process, so online banking can send a
+	// customer who banks elsewhere to the right bank's site.
+	peers []*bankServer
 }
 
 func main() {
@@ -109,8 +113,13 @@ func main() {
 	store.SaveOnExit(nil, st)
 
 	errs := make(chan error)
+	var servers []*bankServer
 	for _, b := range banks {
-		s := &bankServer{bank: b.bank, banks: links}
+		servers = append(servers, &bankServer{bank: b.bank, banks: links})
+	}
+	for i, b := range banks {
+		s := servers[i]
+		s.peers = servers
 		s.mode.Store("normal")
 		mux := http.NewServeMux()
 		mux.HandleFunc("POST /authorize", s.handleAuthorize)

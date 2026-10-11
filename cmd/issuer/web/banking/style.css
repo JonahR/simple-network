@@ -123,3 +123,4 @@ tbody tr:last-child td { border-bottom: 0; }
 
 .bank-foot { max-width: 1180px; margin: 0 auto; padding: 0 24px 32px; color: var(--muted); font-size: 13px; }
 .numbers .refund-note { display: block; font-size: 12px; font-weight: 600; color: var(--credit); }
+.pay-pos { display: inline-block; margin-top: 12px; padding: 8px 14px; border-radius: 999px; background: var(--brand); color: var(--brand-ink); font-weight: 600; font-size: 14px; text-decoration: none; }
