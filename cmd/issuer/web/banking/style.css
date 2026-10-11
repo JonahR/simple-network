@@ -43,8 +43,9 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 syst
 a { color: var(--brand); }
 .empty, .muted { color: var(--muted); }
 
-/* The simulation's own bar, kept small so the page reads as the bank's. */
-.sim-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 8px 24px; background: var(--code-bg); border-bottom: 1px solid var(--border); font-size: 13px; }
+/* The simulation's own bar, kept small so the page reads as the bank's. Its
+   12px top padding matches every other page's header, so the nav doesn't move. */
+.sim-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 12px 24px; background: var(--code-bg); border-bottom: 1px solid var(--border); font-size: 13px; }
 .sim-label { color: var(--muted); }
 .sim-label span { color: var(--brand); font-weight: 600; }
 .sim-bar .learn-nav { margin-left: auto; }
