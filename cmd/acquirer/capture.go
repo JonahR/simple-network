@@ -69,6 +69,8 @@ func (a *acquirer) Capture(c iso8583.Completion, presented func(id string) bool)
 		resp.Message = "Capture the original authorization; increments are cleared with it"
 	case c.Currency != rec.Request.Currency:
 		resp.Message = "Currency differs from the authorization"
+	case rec.Batch != "":
+		resp.Message = "Batch " + rec.Batch + " is closed; the sale can't change now"
 	case presented(rec.Response.NetworkTxnID):
 		resp.Message = "Already sent to the network in a clearing file; it can't change now"
 	case c.Amount > max:

@@ -22,6 +22,8 @@ var MTINames = map[string]string{
 	MTIReversalResponse:   "Reversal advice response",
 	MTICompletion:         "Completion advice",
 	MTICompletionResp:     "Completion advice response",
+	MTIReconciliation:     "Reconciliation request (batch close)",
+	MTIReconciliationResp: "Reconciliation response",
 	MTIAuthAdvice:         "Authorization advice (stand-in)",
 	MTIAuthAdviceResponse: "Authorization advice response",
 }

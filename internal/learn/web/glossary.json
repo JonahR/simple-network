@@ -4584,6 +4584,109 @@
         "Final amount",
         "Capture final amount"
       ]
+    },
+    "batch-close": {
+      "name": "Batch close",
+      "def": "The end-of-day step where a terminal totals the card sales and refunds it had approved since the last close and settles them with its acquirer. If the acquirer's records agree, the batch is sealed: tips and voids can no longer change it, and its sales go to clearing. Each batch has a three-digit number that goes from 001 to 999 and then starts again. Open pre-auths stay out until they are captured.",
+      "kt": [
+        [
+          "Batch close at the terminal",
+          "03-transaction-lifecycle.md#batch-close-at-the-terminal"
+        ],
+        [
+          "Stage 2: Capture and clearing",
+          "03-transaction-lifecycle.md#stage-2-capture-and-clearing"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment terminal (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_terminal"
+        ]
+      ],
+      "aliases": [
+        "Batch",
+        "Close batch",
+        "Batch close",
+        "Batch number",
+        "Closed batches",
+        "Batch closes",
+        "Open batch"
+      ]
+    },
+    "msg-0500": {
+      "name": "0500 reconciliation request",
+      "def": "The message a terminal sends to close its batch. It carries the batch number (DE60) and totals for each currency: the number and amount of debits, which are sales (DE76, DE88), and of credits, which are refunds (DE74, DE86). The acquirer answers with an 0510: 00 if its own totals agree, or 95 if they don't. Processing code 920000 asks to close; 960000 closes using the acquirer's totals.",
+      "kt": [
+        [
+          "Batch close at the terminal",
+          "03-transaction-lifecycle.md#batch-close-at-the-terminal"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "aliases": [
+        "0500",
+        "0510",
+        "0500/0510",
+        "Reconciliation request (batch close)",
+        "Reconciliation response",
+        "Reconciliation"
+      ]
+    },
+    "reconcile-error": {
+      "name": "95 reconcile error",
+      "def": "The answer to a batch close when the terminal's totals don't match the acquirer's. The acquirer sends back its own totals and items, so the cashier can find which sales differ, such as a tip the acquirer never received or a void that didn't arrive. The acquirer holds the authorizations, so its records are what clears: the terminal can close again using the acquirer's totals.",
+      "kt": [
+        [
+          "Batch close at the terminal",
+          "03-transaction-lifecycle.md#batch-close-at-the-terminal"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "aliases": [
+        "95",
+        "Reconcile error",
+        "Totals differ",
+        "Differences",
+        "Close with the acquirer's totals"
+      ]
+    },
+    "batch-totals": {
+      "name": "Batch totals",
+      "def": "The counts and amounts that a batch close compares, for each currency: sales (debits), refunds (credits) and the net amount, which is sales minus refunds. A sale counts at its final amount, so a tip or a captured pre-auth counts at what was captured. Declines, voids, balance inquiries and open pre-auths are left out.",
+      "kt": [
+        [
+          "Batch close at the terminal",
+          "03-transaction-lifecycle.md#batch-close-at-the-terminal"
+        ]
+      ],
+      "ext": [
+        [
+          "Payment terminal (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Payment_terminal"
+        ]
+      ],
+      "aliases": [
+        "Batch totals",
+        "Terminal totals",
+        "Acquirer totals",
+        "Sales count",
+        "Sales amount",
+        "Refunds count",
+        "Refunds amount",
+        "Net amount",
+        "Held pre-auths"
+      ]
     }
   }
 }

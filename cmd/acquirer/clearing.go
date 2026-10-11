@@ -72,8 +72,8 @@ func newClearer(acq *acquirer, networkURL string) *clearer {
 }
 
 // presentments builds clearing records for approved authorizations not yet
-// presented. The caller holds c.mu.
-func (c *clearer) presentments() []clearing.Presentment {
+// presented; only those in only, if it isn't nil. The caller holds c.mu.
+func (c *clearer) presentments(only map[string]bool) []clearing.Presentment {
 	var out []clearing.Presentment
 	records := c.acq.Records()
 	slices.Reverse(records) // Oldest first
@@ -87,7 +87,7 @@ func (c *clearer) presentments() []clearing.Presentment {
 	}
 	for _, r := range records {
 		id := r.Response.NetworkTxnID
-		if r.Status == "DECLINED" || id == "" || c.status[id] != "" || !iso8583.IsApproved(r.Response.ResponseCode) {
+		if r.Status == "DECLINED" || id == "" || c.status[id] != "" || !iso8583.IsApproved(r.Response.ResponseCode) || (only != nil && !only[id]) {
 			continue
 		}
 		// A balance inquiry asked a question; there is nothing to clear.
@@ -160,10 +160,16 @@ func arn(acquirerID string, now time.Time, seq int) string {
 // network never acknowledged is resent unchanged, with the same ID, so the
 // network's duplicate check makes the retry safe.
 func (c *clearer) Submit(ctx context.Context) (SentFile, error) {
+	return c.submit(ctx, nil)
+}
+
+// submit sends a clearing file of the transactions in only (all of them if
+// only is nil), or resends the file still waiting for an answer.
+func (c *clearer) submit(ctx context.Context, only map[string]bool) (SentFile, error) {
 	c.mu.Lock()
 	file := c.pending
 	if file == nil {
-		records := c.presentments()
+		records := c.presentments(only)
 		now := c.now().UTC()
 		base := len(c.status)
 		for i := range records {
@@ -312,7 +318,7 @@ func (c *clearer) View() ClearingView {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	v.Unpresented = len(c.presentments())
+	v.Unpresented = len(c.presentments(nil))
 	for i := len(c.files) - 1; i >= 0; i-- {
 		v.Files = append(v.Files, c.files[i])
 	}

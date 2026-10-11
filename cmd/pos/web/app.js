@@ -619,6 +619,9 @@ function statusBadge(tx) {
   } else if (tx.request.auth_type === "estimated" && canVoid(tx)) {
     html += ` <span class="status warning" data-term="pre-auth">Pre-auth open</span>`;
   }
+  if (tx.batch) {
+    html += ` <span class="status" data-term="batch-close">Batch ${escapeHTML(tx.batch)}</span>`;
+  }
   if (tx.refunded) {
     html += ` <span class="status" data-term="refund">↩ ${money(tx.refunded, tx.request.de49_currency)} refunded</span>`;
   }
@@ -630,7 +633,8 @@ function statusBadge(tx) {
   return html;
 }
 
-const canVoid = (tx) => (tx.status === "APPROVED" || tx.status === "PARTIAL") && !tx.reversal;
+// A sale in a closed batch is sealed: it can only be refunded.
+const canVoid = (tx) => (tx.status === "APPROVED" || tx.status === "PARTIAL") && !tx.reversal && !tx.batch;
 
 // --- Pre-auth, capture and tips ------------------------------------------------
 
@@ -988,7 +992,115 @@ async function loadHistory() {
       </tr>`;
     })
     .join("");
+  loadBatch();
 }
+
+// --- Batch close ---------------------------------------------------------------
+
+const batchEl = document.getElementById("batch");
+let batchReport = null; // The last close attempt on this lane, to show its differences
+
+const TOTALS_HEAD = `<tr><th><span data-term="de49">Currency</span></th>
+  <th class="num"><span data-term="batch-totals">Sales count</span></th><th class="num"><span data-term="batch-totals">Sales amount</span></th>
+  <th class="num"><span data-term="batch-totals">Refunds count</span></th><th class="num"><span data-term="batch-totals">Refunds amount</span></th>
+  <th class="num"><span data-term="batch-totals">Net amount</span></th></tr>`;
+
+function totalsRows(totals, who) {
+  return totals
+    .map((t) => `<tr>${who ? `<td>${who}</td>` : ""}<td>${escapeHTML(currencies[t.de50_currency] || t.de50_currency)}</td>
+      <td class="num">${t.de76_debits_count}</td><td class="num">${money(t.de88_debits_amount, t.de50_currency)}</td>
+      <td class="num">${t.de74_credits_count}</td><td class="num">${money(t.de86_credits_amount, t.de50_currency)}</td>
+      <td class="num">${money(t.de97_net_amount, t.de50_currency)}</td></tr>`)
+    .join("");
+}
+
+// differencesSection shows what the acquirer disagreed on after a 95.
+function differencesSection(report) {
+  const r = report.response;
+  const side = (on, amount, cur) => (on ? money(amount, cur) : `<span class="empty">missing</span>`);
+  const diffs = (report.differences || [])
+    .map((d) => `<tr><td class="mono">${escapeHTML(d.stan)}${d.refund ? " · refund" : ""}</td>
+      <td class="num">${side(d.on_terminal, d.terminal_amount, d.currency)}</td>
+      <td class="num">${side(d.on_host, d.host_amount, d.currency)}</td></tr>`)
+    .join("");
+  const both = `<tr><th></th>${TOTALS_HEAD.slice(4)}`;
+  return `<div class="adjust">
+    <span class="status critical" data-term="reconcile-error"><span aria-hidden="true">!</span> 95 Reconcile error</span>
+    <p class="split-note">${escapeHTML(r.message)}</p>
+    <div class="table-wrap"><table>
+      <thead>${both}</thead>
+      <tbody>${totalsRows(report.request.totals || [], `<span data-term="batch-totals">Terminal totals</span>`)}
+      ${totalsRows(r.host_totals || [], `<span data-term="batch-totals">Acquirer totals</span>`)}</tbody>
+    </table></div>
+    ${diffs ? `<div class="table-wrap"><table>
+      <thead><tr><th><span data-term="reconcile-error">Differences</span> · <span data-term="de11">STAN</span></th>
+      <th class="num"><span data-term="pos-terminal">Terminal</span></th><th class="num"><span data-term="acquirer">Acquirer</span></th></tr></thead>
+      <tbody>${diffs}</tbody></table></div>` : ""}
+    <span class="adjust-row"><button type="button" class="secondary" data-close-batch="force" data-term="reconcile-error">Close with the acquirer's totals</button></span>
+  </div>`;
+}
+
+function renderBatch(v) {
+  document.getElementById("batch-number").textContent = v.batch_number;
+  const open = v.totals.length
+    ? `<div class="table-wrap"><table><thead>${TOTALS_HEAD}</thead><tbody>${totalsRows(v.totals)}</tbody></table></div>`
+    : `<p class="empty">No card sales or refunds in the open batch.</p>`;
+  const held = v.held
+    ? `<p class="split-note"><span data-term="batch-totals">Held pre-auths</span>: ${v.held === 1 ? "1 open pre-auth stays" : `${v.held} open pre-auths stay`} out until captured.</p>`
+    : "";
+  const last = batchReport && batchReport.terminal_id === v.terminal_id ? batchReport : null;
+  let outcome = "";
+  if (last && last.error) outcome = `<p class="err">${escapeHTML(last.error)}</p>`;
+  else if (last && last.response.de39_response_code === "95" && last.request.de60_batch_number === v.batch_number) outcome = differencesSection(last);
+  else if (last) outcome = `<p class="split-note"><span class="status good" data-term="msg-0500">✓ 0510 00</span> ${escapeHTML(last.response.message)}</p>`;
+  const closes = v.reports
+    .filter((r) => r.response && r.response.de39_response_code === "00")
+    .map((r) => {
+      const t = r.response.host_totals || [];
+      const count = t.reduce((n, x) => n + x.de76_debits_count + x.de74_credits_count, 0);
+      const net = t.map((x) => money(x.de97_net_amount, x.de50_currency)).join(" · ") || "—";
+      return `<tr><td class="mono">${escapeHTML(r.request.de60_batch_number)}</td><td>${new Date(r.closed).toLocaleString()}</td>
+        <td>${r.request.de3_processing_code === "960000" ? "Acquirer's totals" : "Totals agreed"}</td>
+        <td class="num">${count}</td><td class="num">${net}</td>
+        <td class="mono">${escapeHTML(r.response.clearing_file_id || r.response.clearing_error || "—")}</td></tr>`;
+    })
+    .join("");
+  batchEl.innerHTML = `${open}${held}
+    <p class="adjust-row"><button type="button" data-close-batch="close" data-term="batch-close" ${v.count ? "" : "disabled"}>Close batch ${escapeHTML(v.batch_number)}</button></p>
+    ${outcome}
+    ${closes ? `<h3><span data-term="batch-close">Closed batches</span></h3><div class="table-wrap"><table>
+      <thead><tr><th><span data-term="batch-close">Batch number</span></th><th><span data-term="batch-close">Closed</span></th>
+      <th><span data-term="msg-0500">Reconciliation</span></th><th class="num"><span data-term="batch-totals">Sales count</span> + refunds</th>
+      <th class="num"><span data-term="batch-totals">Net amount</span></th><th><span data-term="clearing-file">Clearing file</span></th></tr></thead>
+      <tbody>${closes}</tbody></table></div>` : ""}`;
+}
+
+async function loadBatch() {
+  const lane = terminal.terminal_id;
+  const v = await (await fetch(`/api/batch?terminal=${encodeURIComponent(lane || "")}`)).json();
+  if (lane === terminal.terminal_id) renderBatch(v);
+}
+
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-close-batch]");
+  if (!btn) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/batch/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ terminal_id: terminal.terminal_id, accept_host: btn.dataset.closeBatch === "force" }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    batchReport = data.report;
+    renderBatch(data.batch);
+    loadHistory();
+  } catch (err) {
+    batchEl.insertAdjacentHTML("beforeend", `<p class="err">Could not close the batch: ${escapeHTML(err.message || "no answer")}</p>`);
+    btn.disabled = false;
+  }
+});
 
 // Void an approved sale: the terminal sends an 0420 naming it in DE90.
 
@@ -1113,6 +1225,7 @@ function selectTerminal(id) {
   updateForm();
   resultEl.className = "empty";
   resultEl.innerHTML = RESULT_EMPTY;
+  batchReport = null;
   loadHistory();
 }
 

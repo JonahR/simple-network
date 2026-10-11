@@ -82,6 +82,7 @@ func main() {
 	mux.HandleFunc("POST /authorize", s.handleAuthorize)
 	mux.HandleFunc("POST /reverse", s.handleReverse)
 	mux.HandleFunc("POST /capture", s.handleCapture)
+	mux.HandleFunc("POST /batch/close", s.handleBatchClose)
 	mux.HandleFunc("POST /3ds/authenticate", s.handleAuthenticate3DS)
 	mux.HandleFunc("POST /3ds/challenge", s.handleChallenge3DS)
 	mux.Handle("GET /", http.FileServerFS(static))
@@ -230,6 +231,10 @@ func (s *server) handleOverview(w http.ResponseWriter, _ *http.Request) {
 	if len(records) > maxListed {
 		records = records[:maxListed]
 	}
+	batches := s.acq.Batches()
+	if len(batches) > maxListed {
+		batches = batches[:maxListed]
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"bank":           map[string]string{"id": s.acq.id, "name": s.acq.name},
 		"stats":          st,
@@ -240,6 +245,7 @@ func (s *server) handleOverview(w http.ResponseWriter, _ *http.Request) {
 		"currencies":     iso8583.Currencies,
 		"entry_modes":    iso8583.EntryModes,
 		"clearing":       s.clr.View(),
+		"batches":        batches,
 	})
 }
 
@@ -290,6 +296,27 @@ func (s *server) handleCapture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Printf("capture terminal=%s orig_stan=%s amount=%d rc=%s", c.TerminalID, c.OriginalData.STAN, c.Amount, resp.ResponseCode)
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleBatchClose takes a terminal's 0500 batch close and answers with an
+// 0510: 00 closed (and sent to clearing), or 95 if the totals differ.
+func (s *server) handleBatchClose(w http.ResponseWriter, r *http.Request) {
+	var rq iso8583.Reconciliation
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&rq); err != nil {
+		http.Error(w, "invalid 0500 message", http.StatusBadRequest)
+		return
+	}
+	if m, ok := s.acq.merchant(rq.MerchantID); !ok || !m.HasTerminal(rq.TerminalID) {
+		http.Error(w, "merchant or terminal is not on file", http.StatusBadRequest)
+		return
+	}
+	resp, err := s.clr.CloseBatch(r.Context(), rq)
+	if err != nil {
+		http.Error(w, "invalid 0500: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	log.Printf("batch close terminal=%s batch=%s proc=%s rc=%s file=%s", rq.TerminalID, rq.BatchNumber, rq.ProcessingCode, resp.ResponseCode, resp.ClearingFileID)
 	writeJSON(w, http.StatusOK, resp)
 }
 

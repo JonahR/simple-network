@@ -49,6 +49,8 @@ func capturable(tx *Transaction) string {
 		return "Adjust the original pre-auth, not an increment."
 	case iso8583.IsBalanceInquiry(tx.Request.ProcessingCode):
 		return "A balance inquiry has nothing to capture."
+	case tx.Batch != "":
+		return "Batch " + tx.Batch + " is closed: the sale is in clearing and can't change. Refund it instead."
 	case tx.Captured > 0:
 		return "Already captured: the final amount is set."
 	}

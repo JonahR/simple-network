@@ -69,6 +69,34 @@ Points to remember:
 - An authorization that never clears **expires**. The issuer drops the hold after a set period (often around 7 days for most merchants, longer for hotels and car rentals).
 - A transaction that clears **without** a matching auth is allowed in some cases (below floor limits, offline chip transactions), but it usually gets worse interchange and weaker chargeback protection.
 
+### Batch close at the terminal
+
+Before the acquirer clears a terminal's sales, the terminal and the acquirer check that they agree on them. At the end of the day the terminal **closes its batch**: it sends an **0500 reconciliation request** with its batch number (DE60) and totals for each currency. Sales are debits (DE76 count, DE88 amount) and refunds are credits (DE74 count, DE86 amount).
+
+```mermaid
+sequenceDiagram
+    participant T as Terminal
+    participant A as Acquirer
+    participant N as Network
+
+    T->>A: 0500 batch 001: 2 sales $33.00, 1 refund $4.00
+    Note over A: Add up its own records<br/>for this terminal
+    alt Totals agree
+        A-->>T: 0510 response 00: batch closed
+        A->>N: Clearing file with the batch's sales
+    else Totals differ
+        A-->>T: 0510 response 95, with its totals and items
+        Note over T: Find the sales that differ,<br/>then close with the acquirer's totals (960000)
+    end
+```
+
+- A sale counts at its **final amount**: the tip or the captured pre-auth amount. Declines, voids and balance inquiries are left out.
+- An **open pre-auth** stays out of the batch until it is captured.
+- Closing **seals** the batch: a tip, capture or void on a closed sale is refused. A refund is the only way to give money back.
+- On a **95**, the acquirer's records win, because it holds the authorizations. Typical causes are a tip whose 0220 never arrived or a void that is still being retried.
+- Closing the same batch number again, after a lost 0510, gets the same answer. The batch number goes from 001 to 999 and then starts again.
+- In this simulation the acquirer sends a closed batch to clearing right away. The network's cutoff still sweeps up anything not yet presented, as an acquirer's automatic close would.
+
 ## Stage 3: Settlement
 
 The network adds up each member's cleared transactions and fees into one **net position** per member per settlement currency. Then it tells the settlement bank to move the funds.

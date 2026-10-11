@@ -54,6 +54,7 @@ var ResponseCodes = map[string]ResponseCode{
 	RCLateResponse:       {"Response received too late", false, "network"},
 	RCIssuerUnavailable:  {"Issuer or switch unavailable", false, "network"},
 	RCDuplicate:          {"Duplicate transmission", false, "network"},
+	RCReconcileError:     {"Reconcile error: batch totals differ", false, "acquirer"},
 	RCSystemError:        {"System malfunction", false, "network"},
 	RCCVVMismatch:        {"CVV2 mismatch", false, "issuer"},
 }

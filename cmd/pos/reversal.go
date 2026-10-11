@@ -60,6 +60,8 @@ func (s *server) handleVoid(w http.ResponseWriter, r *http.Request) {
 		problem = "This sale is already being reversed."
 	case tx.Status != "APPROVED" && tx.Status != "PARTIAL":
 		problem = "Only approved sales can be voided."
+	case tx.Batch != "":
+		problem = "Batch " + tx.Batch + " is closed, so the sale can't be voided. Refund it instead."
 	}
 	s.mu.Unlock()
 	if problem != "" {

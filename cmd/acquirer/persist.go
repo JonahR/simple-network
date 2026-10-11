@@ -17,6 +17,7 @@ type acquirerState struct {
 	Seen     []savedSeen  `json:"seen"`
 	Legs     []savedLeg   `json:"legs"`
 	Clearing clearerState `json:"clearing"`
+	Batches  []Batch      `json:"batches"` // Oldest first
 }
 
 type savedSeen struct {
@@ -45,7 +46,8 @@ type clearerState struct {
 func (s *server) saveState() acquirerState {
 	a := s.acq
 	a.mu.Lock()
-	st := acquirerState{STAN: a.stan.Load(), Records: make([]Record, len(a.records)), Seen: []savedSeen{}, Legs: []savedLeg{}}
+	st := acquirerState{STAN: a.stan.Load(), Records: make([]Record, len(a.records)), Seen: []savedSeen{}, Legs: []savedLeg{},
+		Batches: append([]Batch{}, a.batches...)}
 	index := map[*Record]int{}
 	for i, r := range a.records {
 		c := *r
@@ -92,6 +94,7 @@ func (s *server) restoreState(st acquirerState) {
 		a.seen[e.Key] = seenEntry{resp: e.Resp, at: e.At}
 		a.seenOrder = append(a.seenOrder, seenKey{key: e.Key, at: e.At})
 	}
+	a.batches = st.Batches
 	a.legs = map[string]*leg{}
 	for _, l := range st.Legs {
 		lg := &leg{out: l.Out, reason: l.Reason}

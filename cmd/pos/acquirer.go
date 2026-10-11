@@ -51,6 +51,12 @@ func (c *acquirerClient) challenge3DS(ctx context.Context, ch iso8583.ThreeDSCha
 	return res, c.post(ctx, "/3ds/challenge", ch, &res)
 }
 
+// closeBatch sends an 0500 batch close and returns the 0510.
+func (c *acquirerClient) closeBatch(ctx context.Context, rq iso8583.Reconciliation) (iso8583.ReconciliationResponse, error) {
+	var resp iso8583.ReconciliationResponse
+	return resp, c.post(ctx, "/batch/close", rq, &resp)
+}
+
 // httpError is a non-200 answer from the acquirer.
 type httpError struct {
 	code int

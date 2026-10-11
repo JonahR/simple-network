@@ -192,6 +192,9 @@ type Transaction struct {
 	RefundOf string `json:"refund_of,omitempty"` // On a refund: STAN of the sale
 	Refunded int64  `json:"refunded,omitempty"`  // On a sale: approved refunds so far
 
+	// Batch is the batch number the sale was closed in; empty while open.
+	Batch string `json:"batch,omitempty"`
+
 	// The 0100 as sent, unmasked, so a reversal can identify the sale. Never
 	// serialized; the PIN block, CVV, track data and cryptogram are dropped.
 	sent iso8583.AuthRequest
@@ -212,6 +215,9 @@ type server struct {
 
 	chipFailures map[string]time.Time   // PAN -> last failed chip read, for fallback swipes
 	challenges   map[string]*pending3DS // 3-D Secure ID -> sale waiting for the shopper's code
+
+	batchNo map[string]int // Terminal ID -> open batch number (1 if absent)
+	batches []BatchReport  // Batch closes, oldest first, at most maxBatchReports
 }
 
 func main() {
@@ -255,6 +261,8 @@ func main() {
 	mux.HandleFunc("POST /api/chip-failure", s.handleChipFailure)
 	mux.HandleFunc("POST /api/cash", s.handleCash)
 	mux.HandleFunc("GET /api/transactions", s.handleTransactions)
+	mux.HandleFunc("GET /api/batch", s.handleBatch)
+	mux.HandleFunc("POST /api/batch/close", s.handleBatchClose)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	ui.Register(mux, ui.PagesFromEnv())
 

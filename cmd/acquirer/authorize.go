@@ -92,6 +92,9 @@ type Record struct {
 	// final bill, or a sale plus tip). Clearing presents it instead of the
 	// authorized amount.
 	Captured int64 `json:"captured,omitempty"`
+	// Batch is the terminal batch number the sale was closed in; empty
+	// while the batch is open.
+	Batch string `json:"batch,omitempty"`
 }
 
 // leg is what the acquirer sent the network for one terminal request, so a
@@ -141,6 +144,7 @@ type acquirer struct {
 	seen      map[string]seenEntry // Idempotency key -> the answer the terminal got
 	seenOrder []seenKey            // Keys of seen, oldest first
 	legs      map[string]*leg      // Same keys as seen: the network leg of each request
+	batches   []Batch              // Terminal batch closes, oldest first, at most maxBatches
 	closed    bool                 // Set by Close; no new reversals start
 	bgCtx     context.Context      // Cancelled by Close
 	bgCancel  context.CancelFunc

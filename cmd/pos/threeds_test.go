@@ -18,6 +18,10 @@ type bankAcquirer struct {
 	bank     *issuer.Bank
 	sent     []iso8583.AuthRequest
 	captures []iso8583.Completion
+	closes   []iso8583.Reconciliation
+	// hostItems, if set, is the acquirer's view of the open batch: a close
+	// whose totals differ gets a 95. Otherwise every close is accepted.
+	hostItems []iso8583.BatchItem
 }
 
 func (a *bankAcquirer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +40,18 @@ func (a *bankAcquirer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		json.NewDecoder(r.Body).Decode(&c)
 		a.captures = append(a.captures, c)
 		json.NewEncoder(w).Encode(iso8583.CompletionResponse{MTI: "0230", STAN: c.STAN, ResponseCode: "00", Captured: c.Amount})
+	case "/batch/close":
+		var rq iso8583.Reconciliation
+		json.NewDecoder(r.Body).Decode(&rq)
+		a.closes = append(a.closes, rq)
+		resp := iso8583.ReconciliationResponse{MTI: "0510", STAN: rq.STAN, BatchNumber: rq.BatchNumber, ResponseCode: "00", HostTotals: rq.Totals}
+		if a.hostItems != nil {
+			resp.HostTotals = iso8583.SumBatch(a.hostItems)
+			if !iso8583.SameTotals(resp.HostTotals, rq.Totals) && rq.ProcessingCode != iso8583.ProcBatchCloseForced {
+				resp.ResponseCode, resp.Items = "95", a.hostItems
+			}
+		}
+		json.NewEncoder(w).Encode(resp)
 	case "/authorize":
 		var req iso8583.AuthRequest
 		json.NewDecoder(r.Body).Decode(&req)

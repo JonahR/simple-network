@@ -212,6 +212,12 @@
       </table>
     </div>
   </section>
+
+  <section class="panel batch">
+    <h2><span data-term="batch-close">Batch</span> <span id="batch-number" class="mono" data-term="batch-close"></span></h2>
+    <p class="hint">At the end of the day the terminal sends its <span data-term="batch-totals">batch totals</span> to the acquirer in an <span data-term="msg-0500">0500</span>. If the acquirer's records agree, the batch closes: its sales can't be tipped or voided any more, and they go to <span data-term="clearing">clearing</span>.</p>
+    <div id="batch"></div>
+  </section>
 </main>
 
 <script src="/ui/nav.js"></script>

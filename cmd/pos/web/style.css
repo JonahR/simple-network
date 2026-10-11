@@ -394,3 +394,6 @@ button.receipt-btn.small { padding: 2px 8px; font-size: 12px; margin-left: 6px; 
 .customer-pick > span { font-size: 12px; font-weight: 600; color: var(--muted); }
 .customer-pick select { flex: 1; min-width: 0; padding: 6px 10px; }
 .mw-none { margin: 4px 0; font-size: 12px; color: #9a9a94; text-align: center; }
+.batch { grid-column: 1 / -1; }
+.batch h3 { margin: 18px 0 8px; font-size: 13px; }
+.batch .adjust table { margin-top: 4px; }
