@@ -68,6 +68,8 @@ start_services() {
         done < "$dir/serve.env"
       fi
       export SERVE_COMMIT="$sha"
+      # One data directory for every build, so state survives redeploys.
+      export SN_DATA_DIR="${SN_DATA_DIR:-$RUN/data}"
       cd "$dir" && exec "$bin"
     ) >>"$LOGS/$name.log" 2>&1 &
     PIDS+=("$!")

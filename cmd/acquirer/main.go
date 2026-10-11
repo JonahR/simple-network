@@ -31,6 +31,7 @@ import (
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/merchant"
+	"github.com/JonahR/simple-network/internal/store"
 	"github.com/JonahR/simple-network/internal/ui"
 )
 
@@ -61,6 +62,17 @@ func main() {
 	s := &server{acq: newAcquirer(env("ACQUIRER_ID", "100001"), env("ACQUIRER_NAME", "Simple Merchant Bank"), merchants, network)}
 	s.clr = newClearer(s.acq, network.url)
 	s.net = network
+
+	// Saved state survives restarts (make serve redeploys on every merge).
+	st := store.Open(store.Dir(), "acquirer")
+	var saved acquirerState
+	if ok, err := st.Load(&saved); err != nil {
+		log.Printf("store: %v", err)
+	} else if ok {
+		s.restoreState(saved)
+		log.Printf("restored %d authorizations from %s", len(saved.Records), st.Path())
+	}
+	st.Run(func() any { return s.saveState() }, store.DefaultInterval)
 
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
@@ -101,6 +113,9 @@ func main() {
 	}
 	<-drained
 	s.acq.Close()
+	if err := st.Close(); err != nil {
+		log.Printf("store: final save: %v", err)
+	}
 }
 
 // handleAuthorize is the terminal-facing endpoint.

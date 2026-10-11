@@ -26,11 +26,13 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/card"
+	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/demokeys"
 	"github.com/JonahR/simple-network/internal/fraud"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/network"
+	"github.com/JonahR/simple-network/internal/store"
 	"github.com/JonahR/simple-network/internal/ui"
 )
 
@@ -106,8 +108,32 @@ func main() {
 	// The fraud department: its page at /fraud/, rules, cases, and blocks.
 	sw.Fraud.Register(mux, s.fraudHistory)
 	ui.Register(mux, ui.PagesFromEnv())
-	registerClearing(mux, sw, issuers, acquirerID, env("ACQUIRER_NAME", "Simple Merchant Bank"), env("ACQUIRER_URL", "http://localhost:8081"))
+	eng := registerClearing(mux, sw, issuers, acquirerID, env("ACQUIRER_NAME", "Simple Merchant Bank"), env("ACQUIRER_URL", "http://localhost:8081"))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
+
+	// Saved state survives restarts. Restore the recorder before the switch:
+	// its idempotency memory links to records.
+	st := store.Open(store.Dir(), "network")
+	var saved networkState
+	if ok, err := st.Load(&saved); err != nil {
+		log.Printf("store: %v", err)
+	} else if ok {
+		sw.Recorder.RestoreState(saved.Recorder)
+		sw.RestoreState(saved.Switch)
+		sw.Vault.RestoreState(saved.Vault)
+		eng.RestoreState(saved.Clearing)
+		if sw.Fraud != nil {
+			sw.Fraud.RestoreState(saved.Fraud)
+		}
+		log.Printf("restored %d transactions from %s", len(saved.Recorder.Records), st.Path())
+	}
+	st.Run(func() any {
+		st := networkState{Recorder: sw.Recorder.SaveState(), Switch: sw.SaveState(), Vault: sw.Vault.SaveState(), Clearing: eng.SaveState()}
+		if sw.Fraud != nil {
+			st.Fraud = sw.Fraud.SaveState()
+		}
+		return st
+	}, store.DefaultInterval)
 
 	// On SIGINT or SIGTERM, stop taking requests, then stop retrying reversals.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -127,6 +153,18 @@ func main() {
 	}
 	<-drained
 	sw.Close()
+	if err := st.Close(); err != nil {
+		log.Printf("store: final save: %v", err)
+	}
+}
+
+// networkState is everything the network saves.
+type networkState struct {
+	Recorder network.RecorderState `json:"recorder"`
+	Switch   network.SwitchState   `json:"switch"`
+	Vault    network.VaultState    `json:"vault"`
+	Clearing clearing.EngineState  `json:"clearing"`
+	Fraud    fraud.EngineState     `json:"fraud"`
 }
 
 // handleAuthorize is the acquirer-facing endpoint.

@@ -25,6 +25,7 @@ import (
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/issuer"
 	"github.com/JonahR/simple-network/internal/learn"
+	"github.com/JonahR/simple-network/internal/store"
 	"github.com/JonahR/simple-network/internal/ui"
 )
 
@@ -84,6 +85,28 @@ func main() {
 		POS:       env("POS_PUBLIC_URL", "http://localhost:8080"),
 		Dashboard: env("NETWORK_DASHBOARD_URL", "http://localhost:8090"),
 	})
+
+	// Saved state survives restarts: accounts, holds, posted charges and logs.
+	st := store.Open(store.Dir(), "issuer")
+	saved := map[string]issuer.BankState{}
+	if ok, err := st.Load(&saved); err != nil {
+		log.Printf("store: %v", err)
+	} else if ok {
+		for _, b := range banks {
+			if bs, ok := saved[b.bank.ID]; ok {
+				b.bank.RestoreState(bs)
+			}
+		}
+		log.Printf("restored %d banks from %s", len(saved), st.Path())
+	}
+	st.Run(func() any {
+		out := map[string]issuer.BankState{}
+		for _, b := range banks {
+			out[b.bank.ID] = b.bank.SaveState()
+		}
+		return out
+	}, store.DefaultInterval)
+	store.SaveOnExit(nil, st)
 
 	errs := make(chan error)
 	for _, b := range banks {

@@ -25,6 +25,7 @@ import (
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/merchant"
+	"github.com/JonahR/simple-network/internal/store"
 	"github.com/JonahR/simple-network/internal/ui"
 )
 
@@ -233,6 +234,17 @@ func main() {
 	ui.Register(mux, ui.PagesFromEnv())
 
 	log.Printf("POS with %d merchant lanes (default %s, terminal %s) listening on %s", len(lanes), lanes[0].MerchantName, lanes[0].TerminalID, addr)
+	// Saved state survives restarts (make serve redeploys on every merge).
+	st := store.Open(store.Dir(), "pos")
+	var saved posState
+	if ok, err := st.Load(&saved); err != nil {
+		log.Printf("store: %v", err)
+	} else if ok {
+		s.restoreState(saved)
+		log.Printf("restored %d sales from %s", len(saved.History), st.Path())
+	}
+	st.Run(func() any { return s.saveState() }, store.DefaultInterval)
+	store.SaveOnExit(nil, st)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
