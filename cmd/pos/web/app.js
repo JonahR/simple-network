@@ -47,6 +47,8 @@ const FIELDS = [
   ["de123_avs", "DE123", "Billing address"],
   ["eci", "", "E-commerce indicator"],
   ["cavv", "", "Authentication value"],
+  ["auth_type", "", "Authorization type"],
+  ["original_txn_id", "", "Original transaction ID"],
   ["cardholder_name", "", "Cardholder name"],
   ["wallet_provider", "", "Wallet provider"],
 ];
@@ -54,6 +56,7 @@ const FIELDS = [
 const TXN_TYPES = { "00": "Purchase", "09": "Purchase with cash back", "20": "Refund", "30": "Balance inquiry" };
 const ACCOUNT_TYPES = { "00": "default account", "20": "checking", "30": "credit" };
 const AMOUNT_TYPES = { "40": "Cash back", "4S": "HSA/FSA eligible" };
+const AUTH_TYPES = { estimated: "Estimated: a pre-auth for an estimate", incremental: "Incremental: adds to an earlier pre-auth" };
 const ECIS = { "05": "Fully authenticated with 3-D Secure", "06": "Authentication attempted", "07": "Not authenticated" };
 const AVS_RESULTS = { Y: "Street address and ZIP match", Z: "ZIP matches, street doesn't", A: "Street matches, ZIP doesn't", N: "Neither matches", U: "Address unavailable" };
 const CVV2_RESULTS = { M: "Match", N: "No match", P: "Not processed", U: "Issuer has no CVV2 for this card" };
@@ -423,6 +426,7 @@ form.addEventListener("submit", async (e) => {
     body.balance_inquiry = e.submitter && e.submitter.id === "balance";
     body.three_ds = form.three_ds.checked;
     body.terminal_id = terminal.terminal_id;
+    body.pre_auth = e.submitter && e.submitter.id === "preauth";
     const res = await fetch("/api/sale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -528,6 +532,8 @@ function describe(key, r) {
       return [v.zip && `ZIP ${v.zip}`, v.street].filter(Boolean).join(" · ");
     case "eci":
       return explain(ECIS[v]);
+    case "auth_type":
+      return explain(AUTH_TYPES[v]);
     default:
       return String(v);
   }
@@ -560,6 +566,14 @@ function statusBadge(tx) {
       ? ` <span class="status warning" data-term="split-tender">${money(tx.balance_due, tx.request.de49_currency)} due</span>`
       : ` <span class="status good" data-term="split-tender">✓ Paid in full</span>`;
   }
+  if (tx.captured) {
+    const tip = tx.request.auth_type ? 0 : tx.captured - tx.response.de4_amount;
+    html += tip > 0
+      ? ` <span class="status good" data-term="tip-adjust">✓ Tip ${money(tip, tx.request.de49_currency)}</span>`
+      : ` <span class="status good" data-term="capture">✓ Captured</span>`;
+  } else if (tx.request.auth_type === "estimated" && canVoid(tx)) {
+    html += ` <span class="status warning" data-term="pre-auth">Pre-auth open</span>`;
+  }
   // A void shows as the sale's status; a timeout reversal needs its own badge.
   if (tx.reversal && tx.status !== "VOIDED") {
     const [rcls, ricon, rlabel] = REVERSAL_STATUS[tx.reversal.status] || ["", "", tx.reversal.status];
@@ -569,6 +583,78 @@ function statusBadge(tx) {
 }
 
 const canVoid = (tx) => (tx.status === "APPROVED" || tx.status === "PARTIAL") && !tx.reversal;
+
+// --- Pre-auth, capture and tips ------------------------------------------------
+
+// adjustable: an approved card sale whose final amount isn't set yet.
+const adjustable = (tx) =>
+  canVoid(tx) && tx.tender === "card" && !tx.increment_of && !tx.captured && !tx.request.de3_processing_code.startsWith("30");
+
+// adjustSection lets the cashier add to a pre-auth and capture its final
+// amount, or add a tip to an ordinary sale.
+function adjustSection(tx) {
+  const r = tx.request;
+  const cur = r.de49_currency;
+  const stan = escapeHTML(r.de11_stan);
+  if (tx.increment_of) {
+    return `<p class="split-note"><span data-term="incremental-auth">Adds to pre-auth</span> STAN ${escapeHTML(tx.increment_of)}.</p>`;
+  }
+  if (tx.captured) {
+    const authorized = tx.authorized || tx.response.de4_amount;
+    return `<p class="split-note"><span data-term="completion-advice">Final amount</span> <b>${money(tx.captured, cur)}</b>
+      captured with an 0220 (authorized ${money(authorized, cur)}). Clearing presents the final amount; the issuer releases the rest of the hold.</p>`;
+  }
+  if (!adjustable(tx)) return "";
+  if (r.auth_type === "estimated") {
+    return `<div class="adjust">
+      <span><span data-term="pre-auth">Held so far</span> <b>${money(tx.authorized || tx.response.de4_amount, cur)}</b></span>
+      <span class="adjust-row">
+        <input data-adjust-input="increment" inputmode="decimal" placeholder="0.00" aria-label="Amount to add" data-term="incremental-auth">
+        <button type="button" class="secondary" data-increment="${stan}" data-term="incremental-auth">Add to tab</button>
+      </span>
+      <span class="adjust-row">
+        <input data-adjust-input="capture" inputmode="decimal" placeholder="${((tx.authorized || 0) / 100).toFixed(2)}" aria-label="Final amount" data-term="completion-advice">
+        <button type="button" data-capture="${stan}" data-term="completion-advice">Capture final amount</button>
+      </span>
+      <small class="err" data-adjust-err></small>
+    </div>`;
+  }
+  return `<div class="adjust">
+    <span class="adjust-row">
+      <input data-adjust-input="tip" inputmode="decimal" placeholder="0.00" aria-label="Tip" data-term="tip-adjust">
+      <button type="button" class="secondary" data-tip="${stan}" data-term="tip-adjust">Add tip</button>
+    </span>
+    <small class="err" data-adjust-err></small>
+  </div>`;
+}
+
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-increment], button[data-capture], button[data-tip]");
+  if (!btn) return;
+  const box = btn.closest(".adjust");
+  const err = box.querySelector("[data-adjust-err]");
+  const value = btn.parentElement.querySelector("input").value.trim();
+  let path, body;
+  if (btn.dataset.increment) [path, body] = ["/api/increment", { stan: btn.dataset.increment, amount: value }];
+  else if (btn.dataset.capture) [path, body] = ["/api/capture", { stan: btn.dataset.capture, amount: value || btn.parentElement.querySelector("input").placeholder }];
+  else [path, body] = ["/api/capture", { stan: btn.dataset.tip, tip: value }];
+  btn.disabled = true;
+  err.textContent = "";
+  try {
+    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) {
+      err.textContent = data.error || "Request failed.";
+      return;
+    }
+    renderResult(data);
+    loadHistory();
+  } catch {
+    err.textContent = "Could not reach the terminal server.";
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 // --- Split tender --------------------------------------------------------------
 
@@ -764,6 +850,7 @@ function renderResult(tx) {
       <span class="result-actions">${receiptButton(tx)}${voidButton(tx)}</span>
     </div>
     ${balanceSection(tx)}
+    ${adjustSection(tx)}
     ${reversalRows(tx)}
     ${threeDSRows(tx)}
     ${responseRows(tx)}

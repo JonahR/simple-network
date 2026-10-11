@@ -469,7 +469,8 @@
         ]
       ],
       "aliases": [
-        "Capture"
+        "Capture",
+        "Captured"
       ]
     },
     "clearing": {
@@ -4392,6 +4393,115 @@
       ],
       "aliases": [
         "Backtest"
+      ]
+    },
+    "pre-auth": {
+      "name": "Pre-authorization (estimated authorization)",
+      "def": "An authorization for an estimate when the final amount isn't known yet: a hotel stay, a car rental, a bar tab, a fuel pump. The issuer holds the estimate; the merchant can add to it with incremental authorizations, then captures the final amount, and the issuer releases whatever wasn't used when the sale clears.",
+      "kt": [
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ],
+        [
+          "Matching clearing to authorization",
+          "05-clearing-and-settlement.md#matching-clearing-records-to-authorizations"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ],
+        [
+          "Authorization hold (Wikipedia)",
+          "https://en.wikipedia.org/wiki/Authorization_hold"
+        ]
+      ],
+      "aliases": [
+        "Pre-authorize",
+        "Pre-auth",
+        "Pre-auth open",
+        "Estimated authorization",
+        "Estimated",
+        "Authorization type",
+        "Held so far"
+      ]
+    },
+    "incremental-auth": {
+      "name": "Incremental authorization",
+      "def": "An 0100 that adds to an earlier pre-auth's hold instead of starting a new sale, for example when a hotel guest extends a stay. It names the original's transaction ID; the issuer grows the same hold, and clearing presents the original once for the total.",
+      "kt": [
+        [
+          "Authorization variants",
+          "04-authorization-deep-dive.md#authorization-variants-the-network-must-support"
+        ],
+        [
+          "Matching clearing to authorization",
+          "05-clearing-and-settlement.md#matching-clearing-records-to-authorizations"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "aliases": [
+        "Incremental authorization",
+        "Incremental",
+        "Add to tab",
+        "Original transaction ID",
+        "Adds to pre-auth"
+      ]
+    },
+    "tip-adjust": {
+      "name": "Tip adjust",
+      "def": "Changing an approved sale's final amount to include a tip, after the card was authorized for the bill. No new authorization is sent: the terminal captures the higher amount, and clearing accepts it if it is within the tolerance for the merchant's category (about 20% for restaurants, bars and coffee shops).",
+      "kt": [
+        [
+          "Matching clearing to authorization",
+          "05-clearing-and-settlement.md#matching-clearing-records-to-authorizations"
+        ]
+      ],
+      "ext": [
+        [
+          "Visa Core Rules (public PDF)",
+          "https://usa.visa.com/dam/VCOM/download/about-visa/visa-rules-public.pdf"
+        ]
+      ],
+      "aliases": [
+        "Add tip",
+        "Tip",
+        "Tip adjust"
+      ]
+    },
+    "completion-advice": {
+      "name": "Completion advice (0220)",
+      "def": "The message a terminal sends its acquirer with the final amount of a sale it already authorized: a pre-auth's final bill or a sale plus tip. The acquirer answers with an 0230 and puts the final amount in its clearing file; the issuer sees it at clearing and releases the rest of the hold.",
+      "kt": [
+        [
+          "Matching clearing to authorization",
+          "05-clearing-and-settlement.md#matching-clearing-records-to-authorizations"
+        ],
+        [
+          "Stage 2: Capture and clearing",
+          "03-transaction-lifecycle.md#stage-2-capture-and-clearing"
+        ]
+      ],
+      "ext": [
+        [
+          "ISO 8583 (Wikipedia)",
+          "https://en.wikipedia.org/wiki/ISO_8583"
+        ]
+      ],
+      "aliases": [
+        "Completion advice",
+        "Completion advice response",
+        "0220",
+        "0230",
+        "Final amount",
+        "Capture final amount"
       ]
     }
   }
