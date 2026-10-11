@@ -4,6 +4,8 @@ services:
       context: .
       args:
         SERVICE: pos
+    volumes:
+      - sn-data:/data # Saved state survives docker compose down/up
     ports:
       - "8080:8080"
     environment:
@@ -31,6 +33,8 @@ services:
       context: .
       args:
         SERVICE: acquirer
+    volumes:
+      - sn-data:/data # Saved state survives docker compose down/up
     ports:
       - "8081:8081"
     environment:
@@ -60,6 +64,8 @@ services:
       context: .
       args:
         SERVICE: network
+    volumes:
+      - sn-data:/data # Saved state survives docker compose down/up
     ports:
       - "8090:8090"
     environment:
@@ -82,6 +88,8 @@ services:
       context: .
       args:
         SERVICE: issuer
+    volumes:
+      - sn-data:/data # Saved state survives docker compose down/up
     ports:
       - "8091:8091"
       - "8092:8092"
@@ -123,3 +131,6 @@ services:
       RISKLAB_PUBLIC_URL: "http://localhost:8093"
     depends_on:
       - acquirer
+
+volumes:
+  sn-data:

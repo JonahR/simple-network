@@ -15,8 +15,18 @@ A card network PoC in Go (see PLAN.md). Several agents often work on this repo a
 |---|---|
 | `make serve` | Serve the latest good commit of `main`: POS on http://localhost:8080, acquirer on http://localhost:8081, network dashboard on http://localhost:8090, the issuers' back-office pages on http://localhost:8091 (First Simple Bank) and http://localhost:8092 (Union Card Bank), clearing and settlement on http://localhost:8090/settlement/, the network's Fraud department (rules, cases, blocks) on http://localhost:8090/fraud/, and the Risk lab (fraud and failure drills) on http://localhost:8093. Logs are in `.run/logs/`. |
 | `make serve-stop` | Stop it |
+| `make reset-data` | Delete saved state (stop `make serve` first) |
 | `make test` | `go test ./...` |
 | `make up` / `make down` | Full Docker setup (uses the same ports, so stop `make serve` first) |
+
+## Saved state
+
+Services keep their state across restarts (`internal/store`): each saves a JSON document to `SN_DATA_DIR` (`.run/data` under `make serve`, a `sn-data` volume in Docker) at most once a second, and once more on SIGTERM. The state lives in each package's `persist.go` (`SaveState`/`RestoreState`).
+
+- **New state that should survive a redeploy must be added to that package's `persist.go`.** Anything left out starts empty after every merge to `main`.
+- Short-lived state (3-D Secure challenges, chip-failure windows, fraud velocity counters) is deliberately not saved.
+- Save card numbers masked; only the issuer keeps them, as it does in memory.
+- When you run services yourself for a test, use unusual ports (not 18080–18093): several sessions test at once and will hit each other's services.
 
 New services go under `cmd/<name>/`. `make serve` builds and starts every binary there, so give each one its own port in `serve.env` and `docker-compose.yml`.
 
