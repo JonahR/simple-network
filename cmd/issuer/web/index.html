@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>simple-network Issuer</title>
 <link rel="stylesheet" href="/ui/nav.css">
+<link rel="stylesheet" href="/ui/disputes.css">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="/learn/learn.css">
 </head>
@@ -60,6 +61,14 @@
     <div class="legend"><span><i class="posted"></i><span data-term="clearing">Posted charges</span></span><span><i class="held"></i><span data-term="auth-hold">Holds</span></span><span><i class="free"></i><span data-term="available-credit">Available</span></span></div>
   </section>
 
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span data-term="chargeback">Disputes</span></h2>
+      <span class="muted">This bank's chargebacks, through the network's dispute system</span>
+    </div>
+    <div class="sn-disputes" data-side="issuer"></div>
+  </section>
+
   <div class="split even">
     <section class="panel">
       <h2 class="spaced"><span data-term="reversal">Reversals (0420)</span></h2>
@@ -81,6 +90,7 @@
 
 <script src="/ui/nav.js"></script>
 <script src="app.js"></script>
+<script src="/ui/disputes.js"></script>
 <script src="/learn/learn.js"></script>
 </body>
 </html>

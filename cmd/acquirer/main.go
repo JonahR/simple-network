@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/JonahR/simple-network/internal/clearing"
+	"github.com/JonahR/simple-network/internal/dispute"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/learn"
 	"github.com/JonahR/simple-network/internal/merchant"
@@ -59,7 +60,8 @@ func main() {
 	merchants := append(merchant.FromEnv(os.Getenv), acquirerOnlyMerchants...)
 
 	network := newHTTPNetwork(env("NETWORK_URL", "http://localhost:8090"))
-	s := &server{acq: newAcquirer(env("ACQUIRER_ID", "100001"), env("ACQUIRER_NAME", "Simple Merchant Bank"), merchants, network)}
+	acquirerID := env("ACQUIRER_ID", "100001")
+	s := &server{acq: newAcquirer(acquirerID, env("ACQUIRER_NAME", "Simple Merchant Bank"), merchants, network)}
 	s.clr = newClearer(s.acq, network.url)
 	s.net = network
 
@@ -91,6 +93,8 @@ func main() {
 	mux.HandleFunc("POST /clearing/submit", s.handleSubmitClearing)
 	mux.HandleFunc("POST /settlement/advice", s.handleAdvice)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
+	// Chargebacks against this acquirer's merchants, through the network's dispute system.
+	dispute.RegisterDesk(mux, network.url, dispute.ActorAcquirer, acquirerID)
 	ui.Register(mux, ui.PagesFromEnv())
 	// Definitions for every label (Help mode), the learning hub, and the Network KT docs.
 	mux.Handle("GET /learn/", learn.Handler(learn.Links{

@@ -1,7 +1,8 @@
 // Package ui holds what every service's web page shares: the navigation bar
 // that links the participants' pages in the order a payment flows through
 // them (POS → Acquirer → Network → Issuer), then on to clearing and
-// settlement at the end of the day, and the Risk lab beside them.
+// settlement at the end of the day, and the Risk lab beside them. It also
+// holds the dispute desk the issuer's and acquirer's pages share.
 //
 // A page opts in with:
 //
@@ -17,7 +18,7 @@ import (
 	"os"
 )
 
-//go:embed nav.css nav.js
+//go:embed nav.css nav.js disputes.css disputes.js
 var assets embed.FS
 
 // Page is one participant's web page.
@@ -53,6 +54,9 @@ func Register(mux *http.ServeMux, pages []Page) {
 	files := http.StripPrefix("/ui/", http.FileServerFS(assets))
 	mux.Handle("GET /ui/nav.css", files)
 	mux.Handle("GET /ui/nav.js", files)
+	// A member's dispute desk, for the issuer's and acquirer's pages.
+	mux.Handle("GET /ui/disputes.css", files)
+	mux.Handle("GET /ui/disputes.js", files)
 	mux.HandleFunc("GET /ui/pages", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(pages)

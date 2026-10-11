@@ -467,6 +467,16 @@ func (e *Engine) log(d *Dispute, ev Event) {
 	d.Events = append(d.Events, ev)
 }
 
+// Get returns a copy of one dispute.
+func (e *Engine) Get(id string) (Dispute, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if d := e.find(id); d != nil {
+		return clone(d), true
+	}
+	return Dispute{}, false
+}
+
 func (e *Engine) find(id string) *Dispute {
 	for _, d := range e.disputes {
 		if d.ID == id {

@@ -1,7 +1,8 @@
 // Disputes: the network's dispute desk. Issuers file chargebacks against
 // cleared sales; acquirers accept or represent with evidence; issuers accept
 // or go to pre-arbitration with a rebuttal; the network arbitrates. Both
-// sides act here, labelled, as a simulation of the messages they'd send.
+// sides act here, labelled, as a simulation of the messages they'd send;
+// each can also act on its own cases from its own page (internal/ui/disputes.js).
 
 const POLL_MS = 2000;
 const STAGES = [
@@ -292,5 +293,16 @@ async function refresh() {
   data = JSON.parse(body);
   render();
 }
+
+// Point at each side's own desk, wherever its page is served.
+fetch("/ui/pages")
+  .then((r) => r.json())
+  .then((pages) => {
+    for (const p of pages) {
+      const a = document.getElementById(`${p.id}-desk`);
+      if (a) a.href = p.url;
+    }
+  })
+  .catch(() => {});
 
 refresh();

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>simple-network Acquirer</title>
 <link rel="stylesheet" href="/ui/nav.css">
+<link rel="stylesheet" href="/ui/disputes.css">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="/learn/learn.css">
 </head>
@@ -58,6 +59,14 @@
   </section>
   <section class="panel">
     <div class="panel-head">
+      <h2><span data-term="chargeback">Chargebacks</span></h2>
+      <span class="muted">Disputes against this acquirer's merchants, through the network's dispute system</span>
+    </div>
+    <div class="sn-disputes" data-side="acquirer"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
       <h2><span data-term="clearing">Clearing &amp; funding</span></h2>
       <span class="muted" id="clearing-status"></span>
     </div>
@@ -85,6 +94,7 @@
 
 <script src="/ui/nav.js"></script>
 <script src="app.js"></script>
+<script src="/ui/disputes.js"></script>
 <script src="/learn/learn.js"></script>
 </body>
 </html>

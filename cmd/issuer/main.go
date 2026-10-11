@@ -22,6 +22,7 @@ import (
 	"github.com/JonahR/simple-network/internal/card"
 	"github.com/JonahR/simple-network/internal/clearing"
 	"github.com/JonahR/simple-network/internal/demokeys"
+	"github.com/JonahR/simple-network/internal/dispute"
 	"github.com/JonahR/simple-network/internal/iso8583"
 	"github.com/JonahR/simple-network/internal/issuer"
 	"github.com/JonahR/simple-network/internal/learn"
@@ -112,6 +113,7 @@ func main() {
 	}, store.DefaultInterval)
 	store.SaveOnExit(nil, st)
 
+	networkURL := env("NETWORK_URL", "http://localhost:8090")
 	errs := make(chan error)
 	var servers []*bankServer
 	for _, b := range banks {
@@ -138,6 +140,8 @@ func main() {
 		mux.HandleFunc("GET /api/banking/customers", s.handleCustomers)
 		mux.HandleFunc("GET /api/banking/accounts/{id}", s.handleStatement)
 		mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
+		// The bank's dispute desk, through the network's dispute system.
+		dispute.RegisterDesk(mux, networkURL, dispute.ActorIssuer, b.bank.ID)
 		ui.Register(mux, ui.PagesFromEnv())
 		mux.Handle("GET /learn/", learnHandler)
 		log.Printf("%s (%s) listening on %s", b.bank.Name, b.bank.ID, b.addr)

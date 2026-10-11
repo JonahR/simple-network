@@ -94,6 +94,7 @@ services:
       - "8091:8091"
       - "8092:8092"
     environment:
+      NETWORK_URL: "http://network:8090" # Its dispute desk goes through the network's dispute system
       ISSUER_FSB_ADDR: ":8091"
       ISSUER_UCB_ADDR: ":8092"
       # Opened by your browser, not other containers
