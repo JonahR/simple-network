@@ -66,6 +66,9 @@ func registerDisputes(mux *http.ServeMux, eng *clearing.Engine, rec *network.Rec
 	mux.HandleFunc("GET /api/disputes", func(w http.ResponseWriter, _ *http.Request) {
 		v := d.View()
 		sales := eng.ClearedSales()
+		if sales == nil {
+			sales = []clearing.Item{} // An empty list, not null, for the page
+		}
 		if len(sales) > 100 {
 			sales = sales[:100]
 		}
