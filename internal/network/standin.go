@@ -111,6 +111,10 @@ func (si *StandIn) decide(issuerID string, fwd iso8583.AuthRequest, why string) 
 		return iso8583.AuthAdvice{}, "stand-in approves ordinary purchases only, not " + fwd.AuthType + " authorizations", false
 	case iso8583.IsBalanceInquiry(fwd.ProcessingCode):
 		return iso8583.AuthAdvice{}, "only the issuer knows the balance", false
+	case iso8583.IsRefund(fwd.ProcessingCode):
+		// The issuer's advice handling places a hold, which for a refund
+		// would take money from the card instead of giving it back.
+		return iso8583.AuthAdvice{}, "a refund waits for the issuer: stand-in approves purchases only", false
 	case fwd.PINData != "":
 		return iso8583.AuthAdvice{}, "a PIN can't be verified in stand-in", false
 	case fwd.Amount > p.MaxAmount:

@@ -159,3 +159,22 @@ func TestStandInStateRoundTrip(t *testing.T) {
 		t.Errorf("restored %+v", v)
 	}
 }
+
+// A refund is never approved in stand-in: the issuer's 0120 handling would
+// hold it like a purchase, taking money from the card instead of returning it.
+func TestStandInLeavesRefundsToTheIssuer(t *testing.T) {
+	f := newFixture(t)
+	withStandIn(f, true)
+	f.fsb.down = true
+	before := available(f)
+	r := auth("4242424242424242", "3312", 1_000)
+	r.ProcessingCode = "200000"
+	resp := f.sw.Authorize(context.Background(), r)
+	if resp.ResponseCode != "91" || !strings.Contains(stepDetail(t, f, resp.NetworkTxnID, "stand_in").Detail, "refund") {
+		t.Errorf("refund in stand-in: %s", resp.ResponseCode)
+	}
+	f.fsb.down = false
+	if available(f) != before {
+		t.Errorf("available %d, want %d: nothing may be held for a refund", available(f), before)
+	}
+}
